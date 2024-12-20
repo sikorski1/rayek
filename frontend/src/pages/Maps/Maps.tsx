@@ -1,22 +1,60 @@
 import Title from "@/components/Title/Title";
 import Wrapper from "@/components/Wrapper/Wrapper";
 import { Link } from "react-router-dom";
+import sampleImg from "@/assets/imgs/sampleMapImg.jpg"
 import styles from "./maps.module.scss";
+type MapData = {
+	id: string;
+	name: string;
+	description: string;
+	img: string;
+};
 export default function Maps() {
+	const sampleData: MapData[] = [
+		{
+			id: "1",
+			name: "AGH fragment",
+			description: "",
+			img: "",
+		},
+		{
+			id: "2",
+			name: "Cracow Main Market Square",
+			description: "",
+			img: "",
+		},
+		{
+			id: "3",
+			name: "Cracow Nowa Huta",
+			description: "",
+			img: "",
+		},
+		{
+			id: "4",
+			name: "Cracow Wawel",
+			description: "",
+			img: "",
+		},
+	];
 	return (
 		<Wrapper>
 			<div className={styles.box}>
 				<Title>Available Maps</Title>
-				<div>
-					<Link to="1" className={styles.link}>
-						First map
-					</Link>
-					<Link to="2" className={styles.link}>
-						Second map
-					</Link>
-					<Link to="3" className={styles.link}>
-						Third map
-					</Link>
+				<div className={styles.cardsBox}>
+					{sampleData.map((item: MapData) => (
+						<div className={styles.card}>
+							<div className={styles.titleBox}>
+								<h3 className={styles.cardTitle}>{item.name}</h3>
+							</div>
+							<div className={styles.cardBox}>
+								<Link key={item.id} to="1" className={styles.link}></Link>
+								<div className={styles.bgGradient}></div>
+                                <div className={styles.imgBox}>
+                                    <img className={styles.img} src={sampleImg} alt="map image" />
+                                </div>
+							</div>
+						</div>
+					))}
 				</div>
 			</div>
 		</Wrapper>

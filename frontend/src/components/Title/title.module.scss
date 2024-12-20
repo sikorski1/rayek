@@ -1,4 +1,5 @@
 @use "@/constants/colors" as *;
+@use "@/constants/screenSizes" as *;
 .title {
 	margin-top: 1.4em;
 	margin-bottom: 0.4em;
@@ -6,15 +7,16 @@
 	font-size: 2.6rem;
 	color: $white;
 	text-shadow: 3px 3px 5px $black;
+	user-select: none;
 }
 
-@media (min-width: 768px) {
-	.title {
-		font-size: 3.4rem;
-	}
-}
-@media (min-width: 992px) {
+@media (min-width: $md) {
 	.title {
 		font-size: 3.8rem;
+	}
+}
+@media (min-width: $lg) {
+	.title {
+		font-size: 4.2rem;
 	}
 }
