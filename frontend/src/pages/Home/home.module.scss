@@ -1,0 +1,29 @@
+@use "@/constants/colors" as *;
+
+.box {
+	height: 80vh;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	.name {
+		margin-bottom: 1.4rem;
+		font-size: 8rem;
+		color: $white;
+        user-select: none;
+	}
+
+	.link {
+		padding: 1rem 2rem;
+        font-size: 2rem;
+		color: $white;
+		text-decoration: none;
+        transition: background-color 0.3s, color 0.3s, transform 0.2s;
+        border-radius: 4px;
+        &:hover {
+            background-color: $green-400;
+            color: $black;
+            transform: scale(1.02);
+        }
+	}
+}

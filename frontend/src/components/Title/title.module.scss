@@ -1,0 +1,20 @@
+@use "@/constants/colors" as *;
+.title {
+	margin-top: 1.4em;
+	margin-bottom: 0.4em;
+	align-self: center;
+	font-size: 2.6rem;
+	color: $white;
+	text-shadow: 3px 3px 5px $black;
+}
+
+@media (min-width: 768px) {
+	.title {
+		font-size: 3.4rem;
+	}
+}
+@media (min-width: 992px) {
+	.title {
+		font-size: 3.8rem;
+	}
+}
