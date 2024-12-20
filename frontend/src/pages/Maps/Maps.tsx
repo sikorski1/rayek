@@ -47,7 +47,7 @@ export default function Maps() {
 								<h3 className={styles.cardTitle}>{item.name}</h3>
 							</div>
 							<div className={styles.cardBox}>
-								<Link key={item.id} to="1" className={styles.link}></Link>
+								<Link key={item.id} to={item.name} className={styles.link}></Link>
 								<div className={styles.bgGradient}></div>
                                 <div className={styles.imgBox}>
                                     <img className={styles.img} src={sampleImg} alt="map image" />
