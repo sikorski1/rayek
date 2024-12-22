@@ -6,7 +6,7 @@
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-
+	margin-bottom: 5rem;
 	.mapBox {
 		display: flex;
 		flex-direction: column;
@@ -37,6 +37,21 @@
 				border-radius: 4px;
 				box-shadow: 0 0 20px $green-400-shadow;
 			}
+		}
+	}
+	.computeBtn {
+		margin: 2rem 0rem 0 auto;
+		padding: 2rem;
+		font-size: 2rem;
+		color: $white;
+		background: none;
+		background-color: $green-400-shadow;
+		border: none;
+		border-radius: 4px;
+		transition: background-color 0.3s;
+		cursor: pointer;
+		&:hover {
+			background-color: $green-400;
 		}
 	}
 }
@@ -74,7 +89,7 @@
 			margin-bottom: 2rem;
 			display: flex;
 			flex-direction: column;
-            align-items: center;
+			align-items: center;
 			gap: 1.6rem;
 		}
 		.label {
@@ -82,10 +97,10 @@
 			color: $white;
 		}
 		.input {
-            padding: 0.6rem;
+			padding: 0.6rem;
 			font-size: 2rem;
-            border-radius: 4px;
-            width: 100%;
+			border-radius: 4px;
+			width: 100%;
 		}
 		.submitBtn {
 			padding: 1rem;

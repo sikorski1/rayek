@@ -2,10 +2,36 @@ import sampleImg from "@/assets/imgs/sampleMapImg.jpg";
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
 import Title from "@/components/Title/Title";
 import Wrapper from "@/components/Wrapper/Wrapper";
+import { url } from "@/utils/url";
+import axios from "axios";
 import { useState } from "react";
 import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
+
+type postComputeTypes = {
+	freq: string;
+	stationH: string;
+};
+
+const postCompute = async ({ freq, stationH }: postComputeTypes) => {
+	let response;
+	const data = {
+		freq: freq,
+		stationH: stationH,
+	};
+	try {
+		response = await axios.post(url + "/raycheck/compute", data, {
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+	} catch (error) {
+		console.log(error);
+	}
+	return response
+};
+
 export default function SingleMap() {
 	const [popSettings, setPopSettings] = useState<boolean>(false);
 	const [frequency, setFrequency] = useState<string>("1000");
@@ -18,12 +44,18 @@ export default function SingleMap() {
 	const handleDialogFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const target = event.target as typeof event.target & {
-			frequency:{value:string},
-			stationHeight:{value:string}
-		}
+			frequency: { value: string };
+			stationHeight: { value: string };
+		};
 		setFrequency(target.frequency.value);
 		setStationHeight(target.stationHeight.value);
 		setPopSettings(false);
+	};
+
+	const handleComputeBtn = async () => {
+		const data = { freq: frequency, stationH: stationHeight };
+		const response = await postCompute(data)
+		console.log(response);
 	};
 	return (
 		<>
@@ -91,6 +123,9 @@ export default function SingleMap() {
 						<div className={styles.imgBox}>
 							<img src={sampleImg} className={styles.img} alt="mapa" />
 						</div>
+						<button onClick={handleComputeBtn} className={styles.computeBtn}>
+							Compute
+						</button>
 					</div>
 				</div>
 			</Wrapper>
