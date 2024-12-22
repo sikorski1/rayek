@@ -1,13 +1,13 @@
 import express from "express";
 import { Express } from "express";
-import ReycheckRouter from "./routes/reycheck";
+import RaycheckRouter from "./routes/raycheck";
 import { ErrorRequestHandler } from "express";
 const app: Express = express();
 const port = 3001;
 
 app.use(express.json());
 
-app.use("/reycheck", ReycheckRouter);
+app.use("/raycheck", RaycheckRouter);
 
 app.use(((error, req, res, next) => {
 	const status = error.statusCode || 500;

@@ -1,10 +1,10 @@
 import { RequestHandler } from "express";
 
-const computeReys: RequestHandler = (req, res, next) => {
+const computeRays: RequestHandler = (req, res, next) => {
 	res.status(200).json({
 		message: "Hello",
 	});
     return
 };
 
-export { computeReys };
+export { computeRays };
