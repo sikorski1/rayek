@@ -7,9 +7,22 @@ import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
 export default function SingleMap() {
-	const [popSettings, setPopSettings] = useState<boolean>();
+	const [popSettings, setPopSettings] = useState<boolean>(false);
+	const [frequency, setFrequency] = useState<string>("1000");
+	const [stationHeight, setStationHeight] = useState<string>("0");
 	const { id } = useParams();
 	const handleOnSettingsClose = () => {
+		setPopSettings(false);
+	};
+
+	const handleDialogFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const target = event.target as typeof event.target & {
+			frequency:{value:string},
+			stationHeight:{value:string}
+		}
+		setFrequency(target.frequency.value);
+		setStationHeight(target.stationHeight.value);
 		setPopSettings(false);
 	};
 	return (
@@ -22,7 +35,7 @@ export default function SingleMap() {
 								<IoMdClose />
 							</button>
 						</div>
-						<form className={styles.form}>
+						<form onSubmit={handleDialogFormSubmit} className={styles.form}>
 							<div className={styles.formBox}>
 								<div className={styles.formInputBox}>
 									<label htmlFor="frequency" className={styles.label}>
@@ -31,9 +44,10 @@ export default function SingleMap() {
 									<input
 										type="number"
 										name="frequency"
+										defaultValue={frequency}
 										className={styles.input}
 										placeholder="Enter frequency in MHz"
-										min="0"
+										min="100"
 										max="100000"
 										step="1"
 										required
@@ -46,6 +60,7 @@ export default function SingleMap() {
 									<input
 										type="number"
 										name="stationHeight"
+										defaultValue={stationHeight}
 										className={styles.input}
 										placeholder="Enter station height in meters"
 										min="0"
@@ -54,6 +69,9 @@ export default function SingleMap() {
 										required
 									/>
 								</div>
+								<button className={styles.submitBtn} type="submit">
+									Enter
+								</button>
 							</div>
 						</form>
 					</div>
