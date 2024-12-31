@@ -8,7 +8,7 @@ import { useState } from "react";
 import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
-
+import Map from "@/pages/SingleMap/Map/Map"
 type postComputeTypes = {
 	freq: string;
 	stationH: string;
@@ -121,7 +121,7 @@ export default function SingleMap() {
 							</button>
 						</div>
 						<div className={styles.imgBox}>
-							<img src={sampleImg} className={styles.img} alt="mapa" />
+							<Map/>
 						</div>
 						<button onClick={handleComputeBtn} className={styles.computeBtn}>
 							Compute
