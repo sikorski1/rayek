@@ -2,7 +2,9 @@ import { FeatureCollection } from "geojson";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
-export default function Map() {
+import { MapTypes } from "@/types/main";
+
+export default function Map({ title, coordinates, center, bounds }: MapTypes) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
 	const regionGeoJSON: FeatureCollection = {
@@ -13,15 +15,7 @@ export default function Map() {
 				properties: {},
 				geometry: {
 					type: "Polygon",
-					coordinates: [
-						[
-							[19.914029, 50.065311], // Southwest
-							[19.917527, 50.065311], // Southeast
-							[19.917527, 50.067556], // Northeast
-							[19.914029, 50.067556], // Northwest
-							[19.914029, 50.065311], // Zamknięcie pętli
-						],
-					],
+					coordinates: coordinates,
 				},
 			},
 		],
@@ -32,18 +26,14 @@ export default function Map() {
 
 		mapRef.current = new mapboxgl.Map({
 			style: "mapbox://styles/mapbox/light-v11",
-			center: [19.915778, 50.0664335],
+			center: center,
 			zoom: 15.5,
 			pitch: 45,
 			bearing: -17.6,
-			container: "map",
+			container: title,
 			antialias: true,
 		});
 
-		const bounds: mapboxgl.LngLatBoundsLike = [
-			[19.914029, 50.065311], // Southwest corner (dolny lewy róg)
-			[19.917527, 50.067556], // Northeast corner (górny prawy róg)
-		];
 		mapRef.current.fitBounds(bounds, { padding: 20 });
 
 		mapRef.current.on("style.load", () => {
@@ -90,5 +80,5 @@ export default function Map() {
 		});
 		return () => mapRef.current?.remove();
 	}, []);
-	return <div id="map" ref={mapContainerRef} style={{ height: "100%", width:"100%"}}></div>;
+	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
 }
