@@ -1,14 +1,12 @@
-import sampleImg from "@/assets/imgs/sampleMapImg.jpg";
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
 import Title from "@/components/Title/Title";
-import Wrapper from "@/components/Wrapper/Wrapper";
+import Map from "@/pages/SingleMap/Map/Map";
 import { url } from "@/utils/url";
 import axios from "axios";
 import { useState } from "react";
 import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
-import Map from "@/pages/SingleMap/Map/Map"
 type postComputeTypes = {
 	freq: string;
 	stationH: string;
@@ -29,7 +27,7 @@ const postCompute = async ({ freq, stationH }: postComputeTypes) => {
 	} catch (error) {
 		console.log(error);
 	}
-	return response
+	return response;
 };
 
 export default function SingleMap() {
@@ -54,7 +52,7 @@ export default function SingleMap() {
 
 	const handleComputeBtn = async () => {
 		const data = { freq: frequency, stationH: stationHeight };
-		const response = await postCompute(data)
+		const response = await postCompute(data);
 		console.log(response);
 	};
 	return (
@@ -109,26 +107,21 @@ export default function SingleMap() {
 					</div>
 				</SettingsDialog>
 			)}
-			<Wrapper>
-				<div className={styles.box}>
-					<div className={styles.titleBox}>
-						<Title>{id}</Title>
-					</div>
-					<div className={styles.mapBox}>
-						<div className={styles.btnsBox}>
-							<button className={styles.settingsBtn} onClick={() => setPopSettings(!popSettings)}>
-								<IoMdSettings />
-							</button>
-						</div>
-						<div className={styles.imgBox}>
-							<Map/>
-						</div>
-						<button onClick={handleComputeBtn} className={styles.computeBtn}>
-							Compute
-						</button>
-					</div>
+
+			<div className={styles.box}>
+				<div className={styles.titleBox}>
+					<Title>{id}</Title>
 				</div>
-			</Wrapper>
+				<div className={styles.mapBox}>
+					<Map />
+				</div>
+				<button className={styles.settingsBtn} onClick={() => setPopSettings(!popSettings)}>
+					<IoMdSettings />
+				</button>
+				<button onClick={handleComputeBtn} className={styles.computeBtn}>
+					Compute
+				</button>
+			</div>
 		</>
 	);
 }

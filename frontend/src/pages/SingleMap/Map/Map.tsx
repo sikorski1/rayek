@@ -1,10 +1,11 @@
-import mapboxgl from "mapbox-gl";
-import { useEffect, useRef } from "react";
 import { FeatureCollection } from "geojson";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { useEffect, useRef } from "react";
 export default function Map() {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
-    const regionGeoJSON: FeatureCollection = {
+	const regionGeoJSON: FeatureCollection = {
 		type: "FeatureCollection",
 		features: [
 			{
@@ -14,11 +15,11 @@ export default function Map() {
 					type: "Polygon",
 					coordinates: [
 						[
-							[-74.25909, 40.477399], // Southwest
-							[-73.700272, 40.477399], // Southeast
-							[-73.700272, 40.917576], // Northeast
-							[-74.25909, 40.917576], // Northwest
-							[-74.25909, 40.477399], // Zamknięcie pętli
+							[19.914029, 50.065311], // Southwest
+							[19.917527, 50.065311], // Southeast
+							[19.917527, 50.067556], // Northeast
+							[19.914029, 50.067556], // Northwest
+							[19.914029, 50.065311], // Zamknięcie pętli
 						],
 					],
 				},
@@ -31,7 +32,7 @@ export default function Map() {
 
 		mapRef.current = new mapboxgl.Map({
 			style: "mapbox://styles/mapbox/light-v11",
-			center: [-74.0066, 40.7135],
+			center: [19.915778, 50.0664335],
 			zoom: 15.5,
 			pitch: 45,
 			bearing: -17.6,
@@ -39,11 +40,11 @@ export default function Map() {
 			antialias: true,
 		});
 
-        const bounds: mapboxgl.LngLatBoundsLike = [
-			[-74.25909, 40.477399], // Southwest corner (dolny lewy róg)
-			[-73.700272, 40.917576], // Northeast corner (górny prawy róg)
+		const bounds: mapboxgl.LngLatBoundsLike = [
+			[19.914029, 50.065311], // Southwest corner (dolny lewy róg)
+			[19.917527, 50.067556], // Northeast corner (górny prawy róg)
 		];
-        mapRef.current.fitBounds(bounds, { padding: 20 });
+		mapRef.current.fitBounds(bounds, { padding: 20 });
 
 		mapRef.current.on("style.load", () => {
 			const layers = mapRef.current?.getStyle()?.layers;
@@ -54,20 +55,20 @@ export default function Map() {
 					layer => layer.type === "symbol" && layer.layout && typeof layer.layout["text-field"] !== "undefined"
 				)?.id;
 			}
-            mapRef.current?.addSource("region-mask", {
-                type: "geojson",
-                data: regionGeoJSON,
-            });
-            
-            mapRef.current?.addLayer({
-                id: "region-mask",
-                type: "fill",
-                source: "region-mask",
-                paint: {
-                    "fill-color": "#333",
-                    "fill-opacity": 0.3,
-                },
-            });
+			mapRef.current?.addSource("region-mask", {
+				type: "geojson",
+				data: regionGeoJSON,
+			});
+
+			mapRef.current?.addLayer({
+				id: "region-mask",
+				type: "fill",
+				source: "region-mask",
+				paint: {
+					"fill-color": "#333",
+					"fill-opacity": 0.3,
+				},
+			});
 
 			mapRef.current?.addLayer(
 				{
@@ -89,5 +90,5 @@ export default function Map() {
 		});
 		return () => mapRef.current?.remove();
 	}, []);
-	return <div id="map" ref={mapContainerRef} style={{ height: "100%" }}></div>;
+	return <div id="map" ref={mapContainerRef} style={{ height: "100%", width:"100%"}}></div>;
 }
