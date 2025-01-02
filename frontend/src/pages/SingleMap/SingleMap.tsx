@@ -1,13 +1,23 @@
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
 import Title from "@/components/Title/Title";
 import Map from "@/pages/SingleMap/Map/Map";
+import { MapTypes, postComputeTypes } from "@/types/main";
 import { url } from "@/utils/url";
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
-import { MapTypes, postComputeTypes } from "@/types/main";
+
+const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
+	try {
+		const response = await axios.get(url + `/raycheck/:${mapTitle}`);
+		return response.data;
+	} catch (error) {
+		console.log(error);
+	}
+};
+
 const postCompute = async ({ freq, stationH }: postComputeTypes) => {
 	let response;
 	const data = {
@@ -26,7 +36,7 @@ const postCompute = async ({ freq, stationH }: postComputeTypes) => {
 	return response;
 };
 
-const data:MapTypes[]= [
+const data: MapTypes[] = [
 	{
 		title: "AGH fragment",
 		coordinates: [
@@ -50,6 +60,8 @@ export default function SingleMap() {
 	const [popSettings, setPopSettings] = useState<boolean>(false);
 	const [frequency, setFrequency] = useState<string>("1000");
 	const [stationHeight, setStationHeight] = useState<string>("0");
+	const [mapData, setMapData] = useState<MapTypes | null>(null);
+	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const { id } = useParams();
 	const handleOnSettingsClose = () => {
 		setPopSettings(false);
@@ -71,6 +83,21 @@ export default function SingleMap() {
 		const response = await postCompute(data);
 		console.log(response);
 	};
+
+	useEffect(() => {
+		const fetchData = async () => {
+			let response;
+			try {
+				response = await getMapData({ mapTitle: id! });
+				setMapData(response);
+				setIsLoading(false);
+			} catch (error) {
+				console.log(error);
+			}
+			return response;
+		};
+		fetchData();
+	}, [id]);
 	return (
 		<>
 			{popSettings && (
@@ -123,21 +150,22 @@ export default function SingleMap() {
 					</div>
 				</SettingsDialog>
 			)}
-
-			<div className={styles.box}>
-				<div className={styles.titleBox}>
-					<Title>{id}</Title>
+			{!isLoading && (
+				<div className={styles.box}>
+					<div className={styles.titleBox}>
+						<Title>{id}</Title>
+					</div>
+					<div className={styles.mapBox}>
+						<Map {...mapData!} />
+					</div>
+					<button className={styles.settingsBtn} onClick={() => setPopSettings(!popSettings)}>
+						<IoMdSettings />
+					</button>
+					<button onClick={handleComputeBtn} className={styles.computeBtn}>
+						Compute
+					</button>
 				</div>
-				<div className={styles.mapBox}>
-					<Map {...data[0]} />
-				</div>
-				<button className={styles.settingsBtn} onClick={() => setPopSettings(!popSettings)}>
-					<IoMdSettings />
-				</button>
-				<button onClick={handleComputeBtn} className={styles.computeBtn}>
-					Compute
-				</button>
-			</div>
+			)}
 		</>
 	);
 }
