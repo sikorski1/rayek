@@ -42,7 +42,7 @@ export default function Maps() {
 				<Title>Available Maps</Title>
 				<div className={styles.cardsBox}>
 					{sampleData.map((item: MapData) => (
-						<div className={styles.card}>
+						<div className={styles.card} key={item.id}>
 							<div className={styles.titleBox}>
 								<h3 className={styles.cardTitle}>{item.name}</h3>
 							</div>

@@ -11,8 +11,9 @@ import styles from "./singleMap.module.scss";
 
 const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 	try {
-		const response = await axios.get(url + `/raycheck/:${mapTitle}`);
-		return response.data;
+		const response = await axios.get(url + `/raycheck/${mapTitle}`);
+		console.log(response);
+		return response.data.mapConf;
 	} catch (error) {
 		console.log(error);
 	}
@@ -35,26 +36,6 @@ const postCompute = async ({ freq, stationH }: postComputeTypes) => {
 	}
 	return response;
 };
-
-const data: MapTypes[] = [
-	{
-		title: "AGH fragment",
-		coordinates: [
-			[
-				[19.914029, 50.065311], // Southwest
-				[19.917527, 50.065311], // Southeast
-				[19.917527, 50.067556], // Northeast
-				[19.914029, 50.067556], // Northwest
-				[19.914029, 50.065311], // Zamknięcie pętli
-			],
-		],
-		center: [19.915778, 50.0664335],
-		bounds: [
-			[19.914029, 50.065311], // Southwest corner (dolny lewy róg)
-			[19.917527, 50.067556], // Northeast corner (górny prawy róg)
-		],
-	},
-];
 
 export default function SingleMap() {
 	const [popSettings, setPopSettings] = useState<boolean>(false);
@@ -88,7 +69,23 @@ export default function SingleMap() {
 		const fetchData = async () => {
 			let response;
 			try {
-				response = await getMapData({ mapTitle: id! });
+				response = (await getMapData({ mapTitle: id! })) || {
+					title: "AGH fragment",
+					coordinates: [
+						[
+							[19.914029, 50.065311], // Southwest
+							[19.917527, 50.065311], // Southeast
+							[19.917527, 50.067556], // Northeast
+							[19.914029, 50.067556], // Northwest
+							[19.914029, 50.065311], // Zamknięcie pętli
+						],
+					],
+					center: [19.915778, 50.0664335],
+					bounds: [
+						[19.914029, 50.065311], // Southwest corner (dolny lewy róg)
+						[19.917527, 50.067556], // Northeast corner (górny prawy róg)
+					],
+				};
 				setMapData(response);
 				setIsLoading(false);
 			} catch (error) {

@@ -1,25 +1,17 @@
-import express from "express";
-import { Express } from "express";
+import express, { ErrorRequestHandler, Express } from "express";
 import RaycheckRouter from "./routes/raycheck";
-import { ErrorRequestHandler } from "express";
-import cors from "cors"
+
+import cors from "cors";
 const app: Express = express();
 const port = 3001;
 
 app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-    allowedHeaders: [
-      "Origin",
-      "X-Requested-With",
-      "Content-Type",
-      "Authorization",
-      "Accept",
-      "input",
-    ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  }),
+	cors({
+		origin: "http://localhost:5173",
+		credentials: true,
+		allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Authorization", "Accept", "input"],
+		methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+	})
 );
 
 app.use(express.json());
