@@ -4,6 +4,7 @@ export type MapTypes = {
     coordinates: number[][][];
     center: mapboxgl.LngLatLike;
     bounds: mapboxgl.LngLatBoundsLike;
+    
 };
 
 export type postComputeTypes = {

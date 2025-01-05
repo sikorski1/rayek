@@ -4,11 +4,11 @@ import Map from "@/pages/SingleMap/Map/Map";
 import { MapTypes, postComputeTypes } from "@/types/main";
 import { url } from "@/utils/url";
 import axios from "axios";
+import { FeatureCollection } from "geojson";
 import { useEffect, useState } from "react";
 import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
-
 const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 	try {
 		const response = await axios.get(url + `/raycheck/${mapTitle}`);
@@ -18,12 +18,19 @@ const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 	}
 };
 
-const getBuildingsData = async ({ center, radius }: { center: number[]; radius: number }) => {
-	const tilequeryUrl = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${center[0]},${center[1]}.json?radius=${radius}&limit=50&layers=building&access_token=${import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}`;
-	console.log(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
+const getBuildingsData = async ({
+	center,
+	radius,
+}: {
+	center: number[];
+	radius: number;
+}): Promise<FeatureCollection | undefined> => {
+	const tilequeryUrl = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${center[0]},${
+		center[1]
+	}.json?radius=${radius}&limit=50&geometry=polygon&layers=building&access_token=${import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}`;
 	try {
 		const response = await axios.get(tilequeryUrl);
-		return response;
+		return response.data;
 	} catch (error) {
 		console.log(error);
 	}
@@ -53,9 +60,7 @@ export default function SingleMap() {
 	const [stationHeight, setStationHeight] = useState<string>("0");
 
 	const [mapData, setMapData] = useState<MapTypes | null>(null);
-	const [buildingData, setBuildingData] = useState<unknown>(null);
-
-	const [isLoading, setIsLoading] = useState<boolean>(true);
+	const [buildingsData, setBuildingsData] = useState<FeatureCollection | null>(null);
 
 	const { id } = useParams();
 	const handleOnSettingsClose = () => {
@@ -99,20 +104,32 @@ export default function SingleMap() {
 						[19.917527, 50.067556], // Northeast corner (górny prawy róg)
 					],
 				};
-				setMapData(mapResponse);
-
-				if (mapData) {
-					const buildingsResponse = await getBuildingsData({ center: mapData.center as number[], radius: 125 });
-					setBuildingData(buildingsResponse);
+				if (mapResponse) {
+					setMapData(mapResponse);
 				}
-
-				setIsLoading(false);
 			} catch (error) {
-				console.log(error);
+				console.error("Error fetching map data:", error);
 			}
 		};
 		fetchData();
 	}, [id]);
+
+	useEffect(() => {
+		if (mapData) {
+			const fetchBuildings = async () => {
+				try {
+					const buildingsResponse = await getBuildingsData({ center: mapData.center as number[], radius: 125 });
+					if (buildingsResponse) {
+						setBuildingsData(buildingsResponse);
+					}
+				} catch (error) {
+					console.error("Error fetching buildings data:", error);
+				}
+			};
+			fetchBuildings();
+		}
+	}, [mapData]);
+	console.log(buildingsData);
 	return (
 		<>
 			{popSettings && (
@@ -165,7 +182,7 @@ export default function SingleMap() {
 					</div>
 				</SettingsDialog>
 			)}
-			{!isLoading && (
+			{mapData && (
 				<div className={styles.box}>
 					<div className={styles.titleBox}>
 						<Title>{id}</Title>
