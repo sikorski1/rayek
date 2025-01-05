@@ -3,6 +3,7 @@ import Wrapper from "@/components/Wrapper/Wrapper";
 import { Link } from "react-router-dom";
 import sampleImg from "@/assets/imgs/sampleMapImg.jpg"
 import styles from "./maps.module.scss";
+import aghFragment from "@/assets/imgs/agh_fragment.png"
 type MapData = {
 	id: string;
 	name: string;
@@ -15,7 +16,7 @@ export default function Maps() {
 			id: "1",
 			name: "AGH fragment",
 			description: "",
-			img: "",
+			img: aghFragment,
 		},
 		{
 			id: "2",
@@ -50,7 +51,7 @@ export default function Maps() {
 								<Link key={item.id} to={item.name} className={styles.link}></Link>
 								<div className={styles.bgGradient}></div>
                                 <div className={styles.imgBox}>
-                                    <img className={styles.img} src={sampleImg} alt="map image" />
+                                    <img className={styles.img} src={item.img || sampleImg} alt="map image" />
                                 </div>
 							</div>
 						</div>

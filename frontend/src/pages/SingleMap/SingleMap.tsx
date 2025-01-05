@@ -12,8 +12,18 @@ import styles from "./singleMap.module.scss";
 const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 	try {
 		const response = await axios.get(url + `/raycheck/${mapTitle}`);
-		console.log(response);
 		return response.data.mapConf;
+	} catch (error) {
+		console.log(error);
+	}
+};
+
+const getBuildingsData = async ({ center, radius }: { center: number[]; radius: number }) => {
+	const tilequeryUrl = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${center[0]},${center[1]}.json?radius=${radius}&limit=50&layers=building&access_token=${import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}`;
+	console.log(import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
+	try {
+		const response = await axios.get(tilequeryUrl);
+		return response;
 	} catch (error) {
 		console.log(error);
 	}
@@ -41,8 +51,12 @@ export default function SingleMap() {
 	const [popSettings, setPopSettings] = useState<boolean>(false);
 	const [frequency, setFrequency] = useState<string>("1000");
 	const [stationHeight, setStationHeight] = useState<string>("0");
+
 	const [mapData, setMapData] = useState<MapTypes | null>(null);
+	const [buildingData, setBuildingData] = useState<unknown>(null);
+
 	const [isLoading, setIsLoading] = useState<boolean>(true);
+
 	const { id } = useParams();
 	const handleOnSettingsClose = () => {
 		setPopSettings(false);
@@ -67,9 +81,8 @@ export default function SingleMap() {
 
 	useEffect(() => {
 		const fetchData = async () => {
-			let response;
 			try {
-				response = (await getMapData({ mapTitle: id! })) || {
+				const mapResponse = (await getMapData({ mapTitle: id! })) || {
 					title: "AGH fragment",
 					coordinates: [
 						[
@@ -86,12 +99,17 @@ export default function SingleMap() {
 						[19.917527, 50.067556], // Northeast corner (górny prawy róg)
 					],
 				};
-				setMapData(response);
+				setMapData(mapResponse);
+
+				if (mapData) {
+					const buildingsResponse = await getBuildingsData({ center: mapData.center as number[], radius: 125 });
+					setBuildingData(buildingsResponse);
+				}
+
 				setIsLoading(false);
 			} catch (error) {
 				console.log(error);
 			}
-			return response;
 		};
 		fetchData();
 	}, [id]);

@@ -21,8 +21,7 @@ export default function Map({ title, coordinates, center, bounds }: MapTypes) {
 		],
 	};
 	useEffect(() => {
-		mapboxgl.accessToken =
-			"pk.eyJ1Ijoic2lrb3Jza2kxIiwiYSI6ImNtNWNjNW9vaDJycXYyanNnNjA2MG5rdGwifQ.w5aqAQkqzWFtkJF1_JelGg";
+		mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 		mapRef.current = new mapboxgl.Map({
 			style: "mapbox://styles/mapbox/light-v11",
