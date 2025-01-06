@@ -57,8 +57,8 @@ const postCompute = async ({ freq, stationH }: postComputeTypes) => {
 export default function SingleMap() {
 	const [popSettings, setPopSettings] = useState<boolean>(false);
 	const [frequency, setFrequency] = useState<string>("1000");
-	const [stationHeight, setStationHeight] = useState<string>("0");
-
+	const [stationHeight, setStationHeight] = useState<string>("0")
+	const [stationPos, setStationPos] = useState<mapboxgl.LngLatLike | null>(null)
 	const [mapData, setMapData] = useState<MapTypes | null>(null);
 	const [buildingsData, setBuildingsData] = useState<FeatureCollection | null>(null);
 
@@ -106,6 +106,7 @@ export default function SingleMap() {
 				};
 				if (mapResponse) {
 					setMapData(mapResponse);
+					setStationPos(mapResponse.center)
 				}
 			} catch (error) {
 				console.error("Error fetching map data:", error);
@@ -129,7 +130,7 @@ export default function SingleMap() {
 			fetchBuildings();
 		}
 	}, [mapData]);
-	console.log(buildingsData);
+
 	return (
 		<>
 			{popSettings && (
@@ -188,7 +189,7 @@ export default function SingleMap() {
 						<Title>{id}</Title>
 					</div>
 					<div className={styles.mapBox}>
-						<Map {...mapData!} />
+						<Map {...mapData!} stationPos={stationPos!} />
 					</div>
 					<button className={styles.settingsBtn} onClick={() => setPopSettings(!popSettings)}>
 						<IoMdSettings />

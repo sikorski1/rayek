@@ -1,10 +1,11 @@
+import { MapTypes } from "@/types/main";
 import { FeatureCollection } from "geojson";
-import mapboxgl from "mapbox-gl";
+import mapboxgl, { CustomLayerInterface } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
-import { MapTypes } from "@/types/main";
-
-export default function Map({ title, coordinates, center, bounds }: MapTypes) {
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+export default function Map({ title, coordinates, center, bounds, stationPos }: MapTypes) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
 	const regionGeoJSON: FeatureCollection = {
@@ -33,6 +34,72 @@ export default function Map({ title, coordinates, center, bounds }: MapTypes) {
 			antialias: true,
 		});
 
+		const towerModelOrigin = stationPos;
+		const towerModelAltitude = 0;
+		const towerModelRotate = [Math.PI / 2, 0, 0];
+
+		const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(towerModelOrigin!, towerModelAltitude);
+
+		const towerModelTransform = {
+			translateX: towerModelAsMercatorCoordinate.x,
+			translateY: towerModelAsMercatorCoordinate.y,
+			translateZ: towerModelAsMercatorCoordinate.z,
+			rotateX: towerModelRotate[0],
+			rotateY: towerModelRotate[1],
+			rotateZ: towerModelRotate[2],
+			scale: towerModelAsMercatorCoordinate.meterInMercatorCoordinateUnits() * 5,
+		};
+
+		const createCustomLayer = () => {
+			const camera = new THREE.Camera();
+			const scene = new THREE.Scene();
+
+			const directionalLight1 = new THREE.DirectionalLight(0xffffff);
+			directionalLight1.position.set(0, -70, 100).normalize();
+			scene.add(directionalLight1);
+
+			const directionalLight2 = new THREE.DirectionalLight(0xffffff);
+			directionalLight2.position.set(0, 70, 100).normalize();
+			scene.add(directionalLight2);
+
+			const loader = new GLTFLoader();
+			loader.load("/3dmodels/5_g_tower/scene.gltf", gltf => {
+				scene.add(gltf.scene);
+			});
+
+			const renderer = new THREE.WebGLRenderer({
+				canvas: mapRef.current?.getCanvas(),
+				context: mapRef.current?.painter.context.gl,
+				antialias: true,
+			});
+			renderer.autoClear = false;
+			return {
+				id: "3d-5gtower",
+				type: "custom",
+				renderingMode: "3d",
+				onAdd: () => {
+					// Add logic that runs on layer addition if necessary.
+				},
+				render: (gl:WebGLRenderingContext, matrix:THREE.Matrix4) => {
+					const rotationX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), towerModelTransform.rotateX);
+					const rotationY = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(0, 1, 0), towerModelTransform.rotateY);
+					const rotationZ = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(0, 0, 1), towerModelTransform.rotateZ);
+
+					const m = new THREE.Matrix4().fromArray(matrix as unknown as ArrayLike<number>);
+					const l = new THREE.Matrix4()
+						.makeTranslation(towerModelTransform.translateX, towerModelTransform.translateY, towerModelTransform.translateZ)
+						.scale(new THREE.Vector3(towerModelTransform.scale, -towerModelTransform.scale, towerModelTransform.scale))
+						.multiply(rotationX)
+						.multiply(rotationY)
+						.multiply(rotationZ);
+
+					camera.projectionMatrix = m.multiply(l);
+					renderer.resetState();
+					renderer.render(scene, camera);
+					mapRef.current?.triggerRepaint();
+				},
+			};
+		};
 		mapRef.current.fitBounds(bounds, { padding: 20 });
 
 		mapRef.current.on("style.load", () => {
@@ -59,6 +126,8 @@ export default function Map({ title, coordinates, center, bounds }: MapTypes) {
 				},
 			});
 
+			const customLayer = createCustomLayer();
+			mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, 'waterway-label');
 			mapRef.current?.addLayer(
 				{
 					id: "add-3d-buildings",
