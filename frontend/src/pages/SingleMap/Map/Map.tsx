@@ -1,13 +1,14 @@
 import { MapTypes } from "@/types/main";
-import { FeatureCollection } from "geojson";
+import { FeatureCollection, Position } from "geojson";
 import mapboxgl, { CustomLayerInterface } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 export default function Map({ title, coordinates, center, bounds, stationPos }: MapTypes) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
+	const [pos, setPos] = useState<mapboxgl.LngLatLike>(center);
 	const regionGeoJSON: FeatureCollection = {
 		type: "FeatureCollection",
 		features: [
@@ -21,6 +22,7 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 			},
 		],
 	};
+	console.log(pos);
 	useEffect(() => {
 		mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -33,12 +35,48 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 			container: title,
 			antialias: true,
 		});
+		const canvas = mapRef.current.getCanvasContainer();
+		const geojson: FeatureCollection = {
+			type: "FeatureCollection",
+			features: [
+				{
+					type: "Feature",
+					properties: {},
+					geometry: {
+						type: "Point",
+						coordinates: center as Position,
+					},
+				},
+			],
+		};
+		function onMove(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
+			const coords = e.lngLat;
 
-		const towerModelOrigin = stationPos;
+			canvas.style.cursor = "grabbing";
+
+			const pointGeometry = geojson.features[0].geometry as GeoJSON.Point;
+			pointGeometry.coordinates = [coords.lng, coords.lat];
+			const source = mapRef.current?.getSource("point") as mapboxgl.GeoJSONSource;
+			source.setData(geojson);
+		}
+
+		function onUp(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
+			const coords = e.lngLat;
+
+			setPos([coords.lng, coords.lat]);
+			canvas.style.cursor = "";
+			mapRef.current?.off("mousemove", onMove);
+			mapRef.current?.off("touchmove", onMove);
+		}
+
+		const towerModelOrigin = pos;
 		const towerModelAltitude = 0;
 		const towerModelRotate = [Math.PI / 2, 0, 0];
 
-		const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(towerModelOrigin!, towerModelAltitude);
+		const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
+			towerModelOrigin!,
+			towerModelAltitude
+		);
 
 		const towerModelTransform = {
 			translateX: towerModelAsMercatorCoordinate.x,
@@ -80,14 +118,27 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 				onAdd: () => {
 					// Add logic that runs on layer addition if necessary.
 				},
-				render: (gl:WebGLRenderingContext, matrix:THREE.Matrix4) => {
-					const rotationX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), towerModelTransform.rotateX);
-					const rotationY = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(0, 1, 0), towerModelTransform.rotateY);
-					const rotationZ = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(0, 0, 1), towerModelTransform.rotateZ);
+				render: (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+					const rotationX = new THREE.Matrix4().makeRotationAxis(
+						new THREE.Vector3(1, 0, 0),
+						towerModelTransform.rotateX
+					);
+					const rotationY = new THREE.Matrix4().makeRotationAxis(
+						new THREE.Vector3(0, 1, 0),
+						towerModelTransform.rotateY
+					);
+					const rotationZ = new THREE.Matrix4().makeRotationAxis(
+						new THREE.Vector3(0, 0, 1),
+						towerModelTransform.rotateZ
+					);
 
 					const m = new THREE.Matrix4().fromArray(matrix as unknown as ArrayLike<number>);
 					const l = new THREE.Matrix4()
-						.makeTranslation(towerModelTransform.translateX, towerModelTransform.translateY, towerModelTransform.translateZ)
+						.makeTranslation(
+							towerModelTransform.translateX,
+							towerModelTransform.translateY,
+							towerModelTransform.translateZ
+						)
 						.scale(new THREE.Vector3(towerModelTransform.scale, -towerModelTransform.scale, towerModelTransform.scale))
 						.multiply(rotationX)
 						.multiply(rotationY)
@@ -115,6 +166,10 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 				type: "geojson",
 				data: regionGeoJSON,
 			});
+			mapRef.current?.addSource("point", {
+				type: "geojson",
+				data: geojson,
+			});
 
 			mapRef.current?.addLayer({
 				id: "region-mask",
@@ -125,9 +180,18 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 					"fill-opacity": 0.3,
 				},
 			});
+			mapRef.current?.addLayer({
+				id: "point",
+				type: "circle",
+				source: "point",
+				paint: {
+					"circle-radius": 10,
+					"circle-color": "#F84C4C",
+				},
+			});
 
 			const customLayer = createCustomLayer();
-			mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, 'waterway-label');
+			mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
 			mapRef.current?.addLayer(
 				{
 					id: "add-3d-buildings",
@@ -145,8 +209,52 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 				},
 				labelLayerId
 			);
+			mapRef.current?.on("mouseenter", "point", () => {
+				mapRef.current?.setPaintProperty("point", "circle-color", "#3bb2d0");
+				canvas.style.cursor = "move";
+			});
+
+			mapRef.current?.on("mouseleave", "point", () => {
+				mapRef.current?.setPaintProperty("point", "circle-color", "#3887be");
+				canvas.style.cursor = "";
+			});
+
+			mapRef.current?.on("mousedown", "point", e => {
+				e.preventDefault();
+				canvas.style.cursor = "grab";
+				mapRef.current?.on("mousemove", onMove);
+				mapRef.current?.once("mouseup", onUp);
+			});
+
+			mapRef.current?.on("touchstart", "point", e => {
+				if (e.points.length !== 1) return;
+				e.preventDefault();
+				mapRef.current?.on("touchmove", onMove);
+				mapRef.current?.once("touchend", onUp);
+			});
 		});
 		return () => mapRef.current?.remove();
 	}, []);
-	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
+	return (
+		<div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}>
+			<div
+				style={{
+					background: "#000",
+					color: "#fff",
+					position: "absolute",
+					bottom: "40px",
+					left: "10px",
+					padding: "5px 10px",
+					margin: 0,
+					fontFamily: "monospace",
+					fontWeight: "bold",
+					fontSize: "11px",
+					lineHeight: "18px",
+					borderRadius: "3px",
+					display: coordinates ? "block" : "none",
+				}}>
+				{pos && (pos as number[]).map((coord: number) => <p style={{ marginBottom: 0 }}>{coord}</p>)}
+			</div>
+		</div>
+	);
 }
