@@ -5,7 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-export default function Map({ title, coordinates, center, bounds, stationPos }: MapTypes) {
+export default function Map({ title, coordinates, center, bounds }: MapTypes) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
 	const [pos, setPos] = useState<mapboxgl.LngLatLike>(center);
@@ -21,8 +21,7 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 				},
 			},
 		],
-	};
-	console.log(pos);
+	}
 	useEffect(() => {
 		mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -44,7 +43,7 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 					properties: {},
 					geometry: {
 						type: "Point",
-						coordinates: center as Position,
+						coordinates: pos as Position,
 					},
 				},
 			],
@@ -58,6 +57,14 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 			pointGeometry.coordinates = [coords.lng, coords.lat];
 			const source = mapRef.current?.getSource("point") as mapboxgl.GeoJSONSource;
 			source.setData(geojson);
+			
+			const towerModelOrigin = [coords.lng, coords.lat];
+			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(towerModelOrigin as mapboxgl.LngLatLike, 0);
+
+			towerModelTransform.translateX = towerModelAsMercatorCoordinate.x;
+			towerModelTransform.translateY = towerModelAsMercatorCoordinate.y;
+			towerModelTransform.translateZ = towerModelAsMercatorCoordinate.z;
+			towerModelTransform.scale = towerModelAsMercatorCoordinate.meterInMercatorCoordinateUnits() * 5;
 		}
 
 		function onUp(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
@@ -185,13 +192,14 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 				type: "circle",
 				source: "point",
 				paint: {
-					"circle-radius": 10,
+					"circle-radius": 5,
 					"circle-color": "#F84C4C",
 				},
 			});
 
 			const customLayer = createCustomLayer();
 			mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
+
 			mapRef.current?.addLayer(
 				{
 					id: "add-3d-buildings",
@@ -235,26 +243,9 @@ export default function Map({ title, coordinates, center, bounds, stationPos }: 
 		});
 		return () => mapRef.current?.remove();
 	}, []);
+
 	return (
 		<div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}>
-			<div
-				style={{
-					background: "#000",
-					color: "#fff",
-					position: "absolute",
-					bottom: "40px",
-					left: "10px",
-					padding: "5px 10px",
-					margin: 0,
-					fontFamily: "monospace",
-					fontWeight: "bold",
-					fontSize: "11px",
-					lineHeight: "18px",
-					borderRadius: "3px",
-					display: coordinates ? "block" : "none",
-				}}>
-				{pos && (pos as number[]).map((coord: number) => <p style={{ marginBottom: 0 }}>{coord}</p>)}
-			</div>
 		</div>
 	);
 }
