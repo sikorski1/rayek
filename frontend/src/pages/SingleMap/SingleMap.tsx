@@ -27,7 +27,9 @@ const getBuildingsData = async ({
 }): Promise<FeatureCollection | undefined> => {
 	const tilequeryUrl = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${center[0]},${
 		center[1]
-	}.json?radius=${radius}&limit=50&geometry=polygon&layers=building&access_token=${import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}`;
+	}.json?radius=${radius}&limit=50&geometry=polygon&layers=building&access_token=${
+		import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
+	}`;
 	try {
 		const response = await axios.get(tilequeryUrl);
 		return response.data;
@@ -57,8 +59,8 @@ const postCompute = async ({ freq, stationH }: postComputeTypes) => {
 export default function SingleMap() {
 	const [popSettings, setPopSettings] = useState<boolean>(false);
 	const [frequency, setFrequency] = useState<string>("1000");
-	const [stationHeight, setStationHeight] = useState<string>("0")
-	const [stationPos, setStationPos] = useState<mapboxgl.LngLatLike | null>(null)
+	const [stationHeight, setStationHeight] = useState<string>("0");
+	const [stationPos, setStationPos] = useState<mapboxgl.LngLatLike | null>(null);
 	const [mapData, setMapData] = useState<MapTypes | null>(null);
 	const [buildingsData, setBuildingsData] = useState<FeatureCollection | null>(null);
 
@@ -106,7 +108,7 @@ export default function SingleMap() {
 				};
 				if (mapResponse) {
 					setMapData(mapResponse);
-					setStationPos(mapResponse.center)
+					setStationPos(mapResponse.center);
 				}
 			} catch (error) {
 				console.error("Error fetching map data:", error);
@@ -186,10 +188,19 @@ export default function SingleMap() {
 			{mapData && (
 				<div className={styles.box}>
 					<div className={styles.titleBox}>
-						<Title>{id}</Title>
+						<h3>{id}</h3>
 					</div>
 					<div className={styles.mapBox}>
-						<Map {...mapData!} stationPos={stationPos!} />
+						<Map {...mapData!} stationPos={stationPos!} setStationPos={setStationPos} />
+						<div className={styles.stationPosContener}>
+							{stationPos && (
+								<>
+									<p>Longitude: {parseFloat(stationPos.toString().split(",")[0]).toFixed(6)}</p>
+									<p>Latitude: {parseFloat(stationPos.toString().split(",")[1]).toFixed(6)}</p>
+								</>
+							)}
+						</div>
+						<p className={styles.brandName}>ReyCheck</p>
 					</div>
 					<button className={styles.settingsBtn} onClick={() => setPopSettings(!popSettings)}>
 						<IoMdSettings />

@@ -9,8 +9,11 @@
 	height: 100vh;
 	.titleBox {
 		position: absolute;
-		top: 2rem;
+		top: 4rem;
 		left: 50%;
+		color: $white-shadow;
+		text-shadow: 1px 1px 1px $black-shadow;
+		font-size: 2rem;
 		transform: translateX(-50%);
 		z-index: 1;
 	}
@@ -36,6 +39,27 @@
 		position: relative;
 		height: 100%;
 		width: 100%;
+
+		.stationPosContener {
+			padding: 0.4rem 0.6rem;
+			position: absolute;
+			left: 2rem;
+			bottom: 4rem;
+			background-color: $black-shadow;
+			border-radius: 4px;
+			color: $white;
+			font-size: 1.2rem;
+			user-select: none;
+		}
+		.brandName {
+			position: absolute;
+			bottom: 0.8rem;
+			left: 10rem;
+			color: $white;
+			font-weight: bold;
+			text-shadow: 1px 1px 1px $green-400-shadow;
+			user-select: none;
+		}
 	}
 	.computeBtn {
 		position: absolute;
