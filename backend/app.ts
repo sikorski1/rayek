@@ -1,7 +1,8 @@
 import express, { ErrorRequestHandler, Express } from "express";
 import RaycheckRouter from "./routes/raycheck";
-
+import {exec} from "child_process"
 import cors from "cors";
+import path from "path";
 const app: Express = express();
 const port = 3001;
 
@@ -28,5 +29,16 @@ app.use(((error, req, res, next) => {
 }) as ErrorRequestHandler);
 
 app.listen(port, () => {
+	exec('python pythonscripts/main.py', { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+		if (error) {
+			console.error(`Error: ${error.message}`);
+			return;
+		}
+		if (stderr) {
+			console.error(`Stderr: ${stderr}`);
+			return;
+		}
+		console.log(`Output: ${stdout}`);
+	});
 	console.log(`Backend running at http://localhost:${port}`);
 });

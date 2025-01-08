@@ -1,5 +1,4 @@
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
-import Title from "@/components/Title/Title";
 import Map from "@/pages/SingleMap/Map/Map";
 import { MapTypes, postComputeTypes } from "@/types/main";
 import { url } from "@/utils/url";
@@ -195,6 +194,7 @@ export default function SingleMap() {
 						<div className={styles.stationPosContener}>
 							{stationPos && (
 								<>
+									<p>Station position</p>
 									<p>Longitude: {parseFloat(stationPos.toString().split(",")[0]).toFixed(6)}</p>
 									<p>Latitude: {parseFloat(stationPos.toString().split(",")[1]).toFixed(6)}</p>
 								</>
