@@ -18,20 +18,13 @@ const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 };
 
 const getBuildingsData = async ({
-	center,
-	radius,
+	mapTitle
 }: {
-	center: number[];
-	radius: number;
+	mapTitle:string
 }): Promise<FeatureCollection | undefined> => {
-	const tilequeryUrl = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${center[0]},${
-		center[1]
-	}.json?radius=${radius}&limit=50&geometry=polygon&layers=building&access_token=${
-		import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
-	}`;
 	try {
-		const response = await axios.get(tilequeryUrl);
-		return response.data;
+		const response = await axios.get(url + `/raycheck/buildings/${mapTitle}`);
+		return response.data.buildingsData;
 	} catch (error) {
 		console.log(error);
 	}
@@ -120,7 +113,7 @@ export default function SingleMap() {
 		if (mapData) {
 			const fetchBuildings = async () => {
 				try {
-					const buildingsResponse = await getBuildingsData({ center: mapData.center as number[], radius: 125 });
+					const buildingsResponse = await getBuildingsData({ mapTitle: id! });
 					if (buildingsResponse) {
 						setBuildingsData(buildingsResponse);
 					}

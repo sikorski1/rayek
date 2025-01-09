@@ -210,7 +210,7 @@ export default function Map({
 			});
 			mapRef.current?.addSource("buildings-polygon", {
 				type: "geojson",
-				data: buildingsData!
+				data: buildingsData!,
 			});
 			//add region-mask layer
 			mapRef.current?.addLayer({
@@ -221,7 +221,7 @@ export default function Map({
 					"fill-color": "#333",
 					"fill-opacity": 0.3,
 				},
-			}, );
+			});
 			//add dragdrop circle point layer
 			mapRef.current?.addLayer({
 				id: "point",
@@ -234,15 +234,14 @@ export default function Map({
 			});
 			//add buildings walls polygon layer
 			mapRef.current?.addLayer({
-				id:"buildings-polygon",
+				id: "buildings-polygon",
 				type: "line",
-				source:"buildings-polygon",
+				source: "buildings-polygon",
 				paint: {
 					"line-color": "#000",
-					"line-width": 2
-				}
-			}, "waterway-label")
-
+					"line-width": 1,
+				},
+			});
 
 			//add 3d 5gtower model layer
 			const customLayer = createCustomLayer();
@@ -291,7 +290,6 @@ export default function Map({
 				mapRef.current?.once("touchend", onUp);
 			});
 		});
-
 		return () => mapRef.current?.remove();
 	}, []);
 	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
