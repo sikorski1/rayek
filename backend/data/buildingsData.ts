@@ -1,4 +1,4 @@
-{
+export const buildingsData = {
     "type": "FeatureCollection",
     "features": [
       {
