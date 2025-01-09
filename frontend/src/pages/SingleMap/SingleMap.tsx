@@ -184,13 +184,13 @@ export default function SingleMap() {
 					</div>
 				</SettingsDialog>
 			)}
-			{mapData && (
+			{mapData && buildingsData && (
 				<div className={styles.box}>
 					<div className={styles.titleBox}>
 						<h3>{id}</h3>
 					</div>
 					<div className={styles.mapBox}>
-						<Map {...mapData!} stationPos={stationPos!} setStationPos={setStationPos} />
+						<Map {...mapData!} stationPos={stationPos!} setStationPos={setStationPos} buildingsData={buildingsData} />
 						<div className={styles.stationPosContener}>
 							{stationPos && (
 								<>

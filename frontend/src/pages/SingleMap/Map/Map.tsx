@@ -1,4 +1,4 @@
-import { MapTypes } from "@/types/main";
+import { MapTypesExtended } from "@/types/main";
 import { FeatureCollection, Position } from "geojson";
 import mapboxgl, { CustomLayerInterface } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -6,24 +6,27 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-const checkBounds = (coords: number[], bounds:number[][]) => {
+const checkBounds = (coords: number[], bounds: number[][]) => {
 	if (coords[0] > bounds[0][0] && coords[0] < bounds[1][0]) {
-		if (coords[1] > bounds[0][1] && coords[1] < bounds[1][1]){
-			return true
-		}
-		else 
-			return false
+		if (coords[1] > bounds[0][1] && coords[1] < bounds[1][1]) {
+			return true;
+		} else return false;
+	} else {
+		return false;
 	}
-	else {
-		return false
-	}
-}
+};
 
-
-export default function Map({ title, coordinates, center, bounds, stationPos, setStationPos }: MapTypes) {
+export default function Map({
+	title,
+	coordinates,
+	center,
+	bounds,
+	stationPos,
+	setStationPos,
+	buildingsData,
+}: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
-
 	const regionGeoJSON: FeatureCollection = {
 		type: "FeatureCollection",
 		features: [
@@ -38,7 +41,7 @@ export default function Map({ title, coordinates, center, bounds, stationPos, se
 		],
 	};
 
-	const dragDropGeojson: FeatureCollection = {
+	const dragDropGeoJSON: FeatureCollection = {
 		type: "FeatureCollection",
 		features: [
 			{
@@ -58,19 +61,18 @@ export default function Map({ title, coordinates, center, bounds, stationPos, se
 
 			canvas.style.cursor = "grabbing";
 
-			const pointGeometry = dragDropGeojson.features[0].geometry as GeoJSON.Point;
+			const pointGeometry = dragDropGeoJSON.features[0].geometry as GeoJSON.Point;
 			let towerModelOrigin;
 			if (checkBounds([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))], bounds as number[][])) {
 				pointGeometry.coordinates = [parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))];
 				towerModelOrigin = [parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))];
-			}
-			else {
+			} else {
 				pointGeometry.coordinates = center as Position;
 				towerModelOrigin = center;
 			}
 			const source = mapRef.current?.getSource("point") as mapboxgl.GeoJSONSource;
-			source.setData(dragDropGeojson);
-			
+			source.setData(dragDropGeoJSON);
+
 			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
 				towerModelOrigin as mapboxgl.LngLatLike,
 				0
@@ -85,9 +87,8 @@ export default function Map({ title, coordinates, center, bounds, stationPos, se
 			const coords = e.lngLat;
 			if (checkBounds([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))], bounds as number[][])) {
 				setStationPos!([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))]);
-			}
-			else {
-				setStationPos!(center)
+			} else {
+				setStationPos!(center);
 			}
 			canvas.style.cursor = "";
 			mapRef.current?.off("mousemove", onMove);
@@ -205,7 +206,11 @@ export default function Map({ title, coordinates, center, bounds, stationPos, se
 			});
 			mapRef.current?.addSource("point", {
 				type: "geojson",
-				data: dragDropGeojson,
+				data: dragDropGeoJSON,
+			});
+			mapRef.current?.addSource("buildings-polygon", {
+				type: "geojson",
+				data: buildingsData!
 			});
 			//add region-mask layer
 			mapRef.current?.addLayer({
@@ -216,7 +221,7 @@ export default function Map({ title, coordinates, center, bounds, stationPos, se
 					"fill-color": "#333",
 					"fill-opacity": 0.3,
 				},
-			});
+			}, );
 			//add dragdrop circle point layer
 			mapRef.current?.addLayer({
 				id: "point",
@@ -227,6 +232,17 @@ export default function Map({ title, coordinates, center, bounds, stationPos, se
 					"circle-color": "#F84C4C",
 				},
 			});
+			//add buildings walls polygon layer
+			mapRef.current?.addLayer({
+				id:"buildings-polygon",
+				type: "line",
+				source:"buildings-polygon",
+				paint: {
+					"line-color": "#000",
+					"line-width": 2
+				}
+			}, "waterway-label")
+
 
 			//add 3d 5gtower model layer
 			const customLayer = createCustomLayer();
