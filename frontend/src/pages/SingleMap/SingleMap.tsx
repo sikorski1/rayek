@@ -26,12 +26,8 @@ const getBuildingsData = async ({ mapTitle }: { mapTitle: string }): Promise<Fea
 	}
 };
 
-const postCompute = async ({ freq, stationH }: PostComputeTypes) => {
+const postCompute = async (data:PostComputeTypes) => {
 	let response;
-	const data = {
-		freq: freq,
-		stationH: stationH,
-	};
 	try {
 		response = await axios.post(url + "/raycheck/compute", data, {
 			headers: {
