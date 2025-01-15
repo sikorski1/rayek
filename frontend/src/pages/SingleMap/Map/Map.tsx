@@ -22,7 +22,7 @@ export default function Map({
 	center,
 	bounds,
 	stationPos,
-	setStationPos,
+	handleStationPosUpdate,
 	buildingsData,
 }: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -86,9 +86,9 @@ export default function Map({
 		function onUp(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
 			const coords = e.lngLat;
 			if (checkBounds([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))], bounds as number[][])) {
-				setStationPos!([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))]);
+				handleStationPosUpdate([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))]);
 			} else {
-				setStationPos!(center);
+				handleStationPosUpdate(center);
 			}
 			canvas.style.cursor = "";
 			mapRef.current?.off("mousemove", onMove);

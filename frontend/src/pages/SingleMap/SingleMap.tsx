@@ -1,6 +1,6 @@
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
 import Map from "@/pages/SingleMap/Map/Map";
-import { MapTypes, postComputeTypes } from "@/types/main";
+import { PopupDataTypes, PostComputeTypes, SingleMapDataTypes } from "@/types/main";
 import { url } from "@/utils/url";
 import axios from "axios";
 import { FeatureCollection } from "geojson";
@@ -17,11 +17,7 @@ const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 	}
 };
 
-const getBuildingsData = async ({
-	mapTitle
-}: {
-	mapTitle:string
-}): Promise<FeatureCollection | undefined> => {
+const getBuildingsData = async ({ mapTitle }: { mapTitle: string }): Promise<FeatureCollection | undefined> => {
 	try {
 		const response = await axios.get(url + `/raycheck/buildings/${mapTitle}`);
 		return response.data.buildingsData;
@@ -30,7 +26,7 @@ const getBuildingsData = async ({
 	}
 };
 
-const postCompute = async ({ freq, stationH }: postComputeTypes) => {
+const postCompute = async ({ freq, stationH }: PostComputeTypes) => {
 	let response;
 	const data = {
 		freq: freq,
@@ -48,17 +44,30 @@ const postCompute = async ({ freq, stationH }: postComputeTypes) => {
 	return response;
 };
 
+const initialPopupData: PopupDataTypes = {
+	isOpen: false,
+	frequency: "1000",
+	stationHeight: "0",
+};
+
 export default function SingleMap() {
-	const [popSettings, setPopSettings] = useState<boolean>(false);
-	const [frequency, setFrequency] = useState<string>("1000");
-	const [stationHeight, setStationHeight] = useState<string>("0");
-	const [stationPos, setStationPos] = useState<mapboxgl.LngLatLike | null>(null);
-	const [mapData, setMapData] = useState<MapTypes | null>(null);
-	const [buildingsData, setBuildingsData] = useState<FeatureCollection | null>(null);
+	const [popupData, setPopupData] = useState<PopupDataTypes>(initialPopupData);
+	const [singleMapData, setSingleMapData] = useState<SingleMapDataTypes>({} as SingleMapDataTypes);
 
 	const { id } = useParams();
+
+	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
+		setSingleMapData(prevSingleMapData => {
+			const updatedSingleMapData = { ...prevSingleMapData, stationPos: stationPos };
+			return updatedSingleMapData;
+		});
+	};
+
 	const handleOnSettingsClose = () => {
-		setPopSettings(false);
+		setPopupData(prevPopupData => {
+			const updatedPopupData = { ...prevPopupData, isOpen: false };
+			return updatedPopupData;
+		});
 	};
 
 	const handleDialogFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -67,13 +76,12 @@ export default function SingleMap() {
 			frequency: { value: string };
 			stationHeight: { value: string };
 		};
-		setFrequency(target.frequency.value);
-		setStationHeight(target.stationHeight.value);
-		setPopSettings(false);
+		setPopupData({ isOpen: false, frequency: target.frequency.value, stationHeight: target.stationHeight.value });
 	};
 
 	const handleComputeBtn = async () => {
-		const data = { freq: frequency, stationH: stationHeight };
+		const { frequency, stationHeight } = popupData;
+		const data: PostComputeTypes = { freq: frequency, stationH: stationHeight };
 		const response = await postCompute(data);
 		console.log(response);
 	};
@@ -99,8 +107,10 @@ export default function SingleMap() {
 					],
 				};
 				if (mapResponse) {
-					setMapData(mapResponse);
-					setStationPos(mapResponse.center);
+					setSingleMapData(prevSingleMapData => {
+						const updatedSingleMapData = { ...prevSingleMapData, stationPos: mapResponse.center, mapData: mapResponse };
+						return updatedSingleMapData;
+					});
 				}
 			} catch (error) {
 				console.error("Error fetching map data:", error);
@@ -110,12 +120,15 @@ export default function SingleMap() {
 	}, [id]);
 
 	useEffect(() => {
-		if (mapData) {
+		if (singleMapData.mapData) {
 			const fetchBuildings = async () => {
 				try {
 					const buildingsResponse = await getBuildingsData({ mapTitle: id! });
 					if (buildingsResponse) {
-						setBuildingsData(buildingsResponse);
+						setSingleMapData(prevSingleMapData => {
+							const updatedSingleMapData = { ...prevSingleMapData, buildingsData: buildingsResponse };
+							return updatedSingleMapData;
+						});
 					}
 				} catch (error) {
 					console.error("Error fetching buildings data:", error);
@@ -123,12 +136,12 @@ export default function SingleMap() {
 			};
 			fetchBuildings();
 		}
-	}, [mapData]);
+	}, [singleMapData.mapData]);
 
 	return (
 		<>
-			{popSettings && (
-				<SettingsDialog popState={popSettings} handleOnClose={handleOnSettingsClose}>
+			{popupData.isOpen && (
+				<SettingsDialog popState={popupData.isOpen} handleOnClose={handleOnSettingsClose}>
 					<div className={styles.dialogBox}>
 						<div className={styles.closeBtnBox}>
 							<button className={styles.closeBtn} onClick={handleOnSettingsClose}>
@@ -144,7 +157,7 @@ export default function SingleMap() {
 									<input
 										type="number"
 										name="frequency"
-										defaultValue={frequency}
+										defaultValue={popupData.frequency}
 										className={styles.input}
 										placeholder="Enter frequency in MHz"
 										min="100"
@@ -160,7 +173,7 @@ export default function SingleMap() {
 									<input
 										type="number"
 										name="stationHeight"
-										defaultValue={stationHeight}
+										defaultValue={popupData.stationHeight}
 										className={styles.input}
 										placeholder="Enter station height in meters"
 										min="0"
@@ -177,25 +190,37 @@ export default function SingleMap() {
 					</div>
 				</SettingsDialog>
 			)}
-			{mapData && buildingsData && (
+			{singleMapData.mapData && singleMapData.buildingsData && (
 				<div className={styles.box}>
 					<div className={styles.titleBox}>
 						<h3>{id}</h3>
 					</div>
 					<div className={styles.mapBox}>
-						<Map {...mapData!} stationPos={stationPos!} setStationPos={setStationPos} buildingsData={buildingsData} />
+						<Map
+							{...singleMapData.mapData!}
+							stationPos={singleMapData.stationPos!}
+							handleStationPosUpdate={handleStationPosUpdate}
+							buildingsData={singleMapData.buildingsData}
+						/>
 						<div className={styles.stationPosContener}>
-							{stationPos && (
+							{singleMapData.stationPos && (
 								<>
 									<p>Station position</p>
-									<p>Longitude: {parseFloat(stationPos.toString().split(",")[0]).toFixed(6)}</p>
-									<p>Latitude: {parseFloat(stationPos.toString().split(",")[1]).toFixed(6)}</p>
+									<p>Longitude: {parseFloat(singleMapData.stationPos.toString().split(",")[0]).toFixed(6)}</p>
+									<p>Latitude: {parseFloat(singleMapData.stationPos.toString().split(",")[1]).toFixed(6)}</p>
 								</>
 							)}
 						</div>
 						<p className={styles.brandName}>ReyCheck</p>
 					</div>
-					<button className={styles.settingsBtn} onClick={() => setPopSettings(!popSettings)}>
+					<button
+						className={styles.settingsBtn}
+						onClick={() =>
+							setPopupData(prevPopupData => {
+								const updatedPopupData = { ...prevPopupData, isOpen: !prevPopupData.isOpen };
+								return updatedPopupData;
+							})
+						}>
 						<IoMdSettings />
 					</button>
 					<button onClick={handleComputeBtn} className={styles.computeBtn}>
