@@ -9,7 +9,8 @@ export type PopupDataTypes = {
 export type SingleMapDataTypes = {
 	stationPos: mapboxgl.LngLatLike,
 	mapData: MapTypes,
-	buildingsData: FeatureCollection 
+	buildingsData: FeatureCollection,
+	computationResult: mapboxgl.LngLatLike[][]
 }  
 
 export type MapTypes = {
@@ -23,6 +24,7 @@ export type MapTypesExtended = MapTypes & {
     stationPos: mapboxgl.LngLatLike;
     handleStationPosUpdate: (value: mapboxgl.LngLatLike) => void;
     buildingsData: GeoJSON.FeatureCollection | null
+	computationResult: mapboxgl.LngLatLike[][]
 }
 
 export type PostComputeTypes = {

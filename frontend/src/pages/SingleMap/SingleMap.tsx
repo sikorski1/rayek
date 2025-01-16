@@ -79,7 +79,12 @@ export default function SingleMap() {
 		const { frequency, stationHeight } = popupData;
 		const data: PostComputeTypes = { freq: frequency, stationH: stationHeight };
 		const response = await postCompute(data);
-		console.log(response);
+		if (response) {
+			setSingleMapData((prevSingleMapData) => {
+				const updatedSingleMapData = {...prevSingleMapData, computationResult:response.data.positions}
+				return updatedSingleMapData
+			})
+		}
 	};
 
 	useEffect(() => {
@@ -197,6 +202,7 @@ export default function SingleMap() {
 							stationPos={singleMapData.stationPos!}
 							handleStationPosUpdate={handleStationPosUpdate}
 							buildingsData={singleMapData.buildingsData}
+							computationResult={singleMapData.computationResult}
 						/>
 						<div className={styles.stationPosContener}>
 							{singleMapData.stationPos && (

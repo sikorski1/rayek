@@ -24,6 +24,7 @@ export default function Map({
 	stationPos,
 	handleStationPosUpdate,
 	buildingsData,
+	computationResult,
 }: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -291,6 +292,89 @@ export default function Map({
 			});
 		});
 		return () => mapRef.current?.remove();
-	}, []);
+	}, [computationResult]);
+
+	useEffect(() => {
+		const createSphereLayer = (position: mapboxgl.LngLatLike) => {
+			const camera = new THREE.Camera();
+			const scene = new THREE.Scene();
+			const sphereModelOrigin = position;
+			const sphereModelAltitude = 0;
+			const sphereModelRotate = [Math.PI / 2, 0, 0];
+
+			const sphereModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
+				sphereModelOrigin!,
+				sphereModelAltitude
+			);
+
+			const sphereModelTransform = {
+				translateX: sphereModelAsMercatorCoordinate.x,
+				translateY: sphereModelAsMercatorCoordinate.y,
+				translateZ: sphereModelAsMercatorCoordinate.z,
+				rotateX: sphereModelRotate[0],
+				rotateY: sphereModelRotate[1],
+				rotateZ: sphereModelRotate[2],
+				scale: sphereModelAsMercatorCoordinate.meterInMercatorCoordinateUnits(),
+			};
+			const loader = new GLTFLoader();
+			loader.load("/3dmodels/sphere/scene.gltf", gltf => {
+				scene.add(gltf.scene);
+			});
+
+			const renderer = new THREE.WebGLRenderer({
+				canvas: mapRef.current?.getCanvas(),
+				context: mapRef.current?.painter.context.gl,
+				antialias: true,
+			});
+			renderer.autoClear = false;
+			return {
+				id: `sphere-${position.toString()}`,
+				type: "custom",
+				renderingMode: "3d",
+				onAdd: () => {},
+				render: (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+					const rotationX = new THREE.Matrix4().makeRotationAxis(
+						new THREE.Vector3(1, 0, 0),
+						sphereModelTransform.rotateX
+					);
+					const rotationY = new THREE.Matrix4().makeRotationAxis(
+						new THREE.Vector3(0, 1, 0),
+						sphereModelTransform.rotateY
+					);
+					const rotationZ = new THREE.Matrix4().makeRotationAxis(
+						new THREE.Vector3(0, 0, 1),
+						sphereModelTransform.rotateZ
+					);
+
+					const m = new THREE.Matrix4().fromArray(matrix as unknown as ArrayLike<number>);
+					const l = new THREE.Matrix4()
+						.makeTranslation(
+							sphereModelTransform.translateX,
+							sphereModelTransform.translateY,
+							sphereModelTransform.translateZ
+						)
+						.scale(
+							new THREE.Vector3(sphereModelTransform.scale, -sphereModelTransform.scale, sphereModelTransform.scale)
+						)
+						.multiply(rotationX)
+						.multiply(rotationY)
+						.multiply(rotationZ);
+
+					camera.projectionMatrix = m.multiply(l);
+					renderer.resetState();
+					renderer.render(scene, camera);
+					mapRef.current?.triggerRepaint();
+				},
+			};
+		};
+		if (!computationResult) return;
+		mapRef.current?.on("style.load", () => {
+			computationResult.forEach((position: mapboxgl.LngLatLike[]) => {
+				console.log(position);
+				const customLayer = createSphereLayer(position as unknown as mapboxgl.LngLatLike);
+				mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
+			});
+		});
+	}, [computationResult]);
 	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
 }
