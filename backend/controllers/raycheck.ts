@@ -40,7 +40,7 @@ const computeRays: RequestHandler = (req, res, next) => {
 	const southeast = [19.917527, 50.065311]
 	const northeast = [19.917527, 50.067556]
 	const northwest = [19.914029, 50.067556]
-	const numPoints = 50;
+	const numPoints = 250;
 
 	const xStep = (southeast[0] - southwest[0]) / (numPoints - 1);
 	const yStep = (northeast[1] - southeast[1]) / (numPoints - 1);
