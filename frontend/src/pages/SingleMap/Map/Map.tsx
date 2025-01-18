@@ -16,6 +16,7 @@ const checkBounds = (coords: number[], bounds: number[][]) => {
 	}
 };
 
+
 export default function Map({
 	title,
 	coordinates,
