@@ -3,7 +3,7 @@ from math import sqrt, log10,pi
 import matplotlib.pyplot as plt
 class Raytracing:
     def __init__(self, matrixDimensions, tPos, tPower, tFreq, rFactor, oPos):
-        self.matrix = self.createMatrix(matrixDimensions)
+        self.step = 0.1
         self.transmitterPos = tPos
         self.transmitterPower = tPower #mW
         self.transmitterFreq = tFreq # GHz
@@ -11,13 +11,11 @@ class Raytracing:
         self.reflectionFactor = rFactor
         self.obstaclesPos = oPos 
         self.powerMap = np.zeros((matrixDimensions[1]*10+1, matrixDimensions[0]*10+1))
+        self.matrix = self.createMatrix(matrixDimensions)
+        self.mirroredTransmittersPos = self.createMirroredTransmitters()
     def createMatrix(self, matrixDimensions):
-        nx, ny = (matrixDimensions[0], matrixDimensions[1])
-        step = 0.1
-        intStepX = int(nx / step) + 1
-        intStepY = int(ny / step) + 1
-        x = np.linspace(0, nx, intStepX)
-        y = np.linspace(0, ny, intStepY)
+        x = np.linspace(0, matrixDimensions[0], int(matrixDimensions[0]/self.step)+1)
+        y = np.linspace(0, matrixDimensions[1], int(matrixDimensions[1]/self.step)+1)
 
         xv, yv = np.meshgrid(x, y)
         matrix = np.stack((xv, yv), axis=-1)
@@ -52,12 +50,52 @@ class Raytracing:
         for i in range(len(self.matrix)):
             for j in range(len(self.matrix[0])):
                 receiverPos = self.matrix[i][j]
-                if self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) == 1: #checking collision with wall
-                    self.powerMap[i][j] = -150
-                elif self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) == 1:
-                    self.powerMap[i][j] = -150
+                score = 0
+                checkWall1LineOfSight = self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1])
+                checkWall2LineOfSight = self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1])
+                if checkWall1LineOfSight == 1 or checkWall2LineOfSight == 1: #checking collision with wall line of sight
+                    pass
                 else:
-                    self.powerMap[i][j] = self.calculatePower(receiverPos, self.transmitterPos)
+                    pass # add to score from line of sight
+                
+                #check reflection from first wall * check if second wall blocks
+                checkWall1Reflection = self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) * self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1])
+
+                #check reflection from second wall * check if first wall blocks
+                checkWall2Reflection = self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) * self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1])
+
+                if checkWall1Reflection == -1: # add to score from 1 wall reflection
+                    pass
+                if checkWall2Reflection == -1: # add to score from 2 wall reflection
+                    pass
+                if score == 0:
+                    score = -150
+                self.powerMap[i][j] = score 
+        
+
+            
+
+
+    def createMirroredTransmitters(self):
+        mirroredTransmittersPos = np.zeros((len(self.obstaclesPos), 2))
+        for i in range(len(self.obstaclesPos)):
+            if self.obstaclesPos[i][0][0] == self.obstaclesPos[i][1][0]:
+                mirroredTransmittersPos[i][1] = self.transmitterPos[1]
+                distance = abs(self.obstaclesPos[i][0][0] - self.transmitterPos[0])
+                if self.transmitterPos[0] < self.obstaclesPos[i][0][0]:
+                    mirroredTransmittersPos[i][0] = self.obstaclesPos[i][0][0] + distance
+                else:
+                    mirroredTransmittersPos[i][0] = self.obstaclesPos[i][0][0] - distance
+            elif self.obstaclesPos[i][0][1] == self.obstaclesPos[i][1][1]:
+                mirroredTransmittersPos[i][0] = self.transmitterPos[0]
+                distance = abs(self.obstaclesPos[i][0][1] - self.transmitterPos[1])
+                if self.transmitterPos[1] < self.obstaclesPos[i][0][1]:
+                    mirroredTransmittersPos[i][1] = self.obstaclesPos[i][0][1] + distance
+                else:
+                    mirroredTransmittersPos[i][1] = self.obstaclesPos[i][0][1] - distance
+        print(mirroredTransmittersPos)
+
+            
     def calculatePower(self, p1, p2):
         power = 10*log10(self.transmitterPower*(self.waveLength/(4*pi*self.calculateDist(p1, p2)))**2) #10log(Pt*(lambda/(4*pi*r))^2)
         return power
@@ -73,7 +111,7 @@ class Raytracing:
         plt.ylabel('Y Coordinate (m)')
         plt.show()
         
-raytracing = Raytracing([16, 28], [1.05, 7.05], 5, 3.6, 0.7, [[[0, 20.05],[10, 20.05]], [[11, 20.05],[16, 20.05]]])
+raytracing = Raytracing([16, 28], [1.05, 16.05], 5, 3.6, 0.7, [[[0, 20.05],[10, 20.05]], [[11, 10.05],[11, 15.05]]])
 raytracing.calculateRayTracing()
 raytracing.displayPowerMap()
-    
+raytracing.createMirroredTransmitters()
