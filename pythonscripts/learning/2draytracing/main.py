@@ -1,13 +1,16 @@
 import numpy as np
+from math import sqrt, log10,pi
+import matplotlib.pyplot as plt
 class Raytracing:
     def __init__(self, matrixDimensions, tPos, tPower, tFreq, rFactor, oPos):
         self.matrix = self.createMatrix(matrixDimensions)
         self.transmitterPos = tPos
         self.transmitterPower = tPower #mW
         self.transmitterFreq = tFreq # GHz
+        self.waveLength = 299792458 / tFreq / 10 ** 9;
         self.reflectionFactor = rFactor
         self.obstaclesPos = oPos 
-
+        self.powerMap = np.zeros((matrixDimensions[1]*10+1, matrixDimensions[0]*10+1))
     def createMatrix(self, matrixDimensions):
         nx, ny = (matrixDimensions[0], matrixDimensions[1])
         step = 0.1
@@ -46,10 +49,31 @@ class Raytracing:
             else:
                 return 0
     def calculateRayTracing(self):
-        pass
+        for i in range(len(self.matrix)):
+            for j in range(len(self.matrix[0])):
+                receiverPos = self.matrix[i][j]
+                if self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) == 1: #checking collision with wall
+                    self.powerMap[i][j] = -150
+                elif self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) == 1:
+                    self.powerMap[i][j] = -150
+                else:
+                    self.powerMap[i][j] = self.calculatePower(receiverPos, self.transmitterPos)
+    def calculatePower(self, p1, p2):
+        power = 10*log10(self.transmitterPower*(self.waveLength/(4*pi*self.calculateDist(p1, p2)))**2) #10log(Pt*(lambda/(4*pi*r))^2)
+        return power
+    def calculateDist(self, p1, p2):
+        dist = sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+        return dist    
+    def displayPowerMap(self):
+        plt.figure(figsize=(10, 8))
+        plt.imshow(self.powerMap, origin='lower', cmap='jet', extent=[0, self.matrix.shape[1]*0.1, 0, self.matrix.shape[0]*0.1])
+        plt.colorbar(label='Power (dBm)')
+        plt.title('Power Map')
+        plt.xlabel('X Coordinate (m)')
+        plt.ylabel('Y Coordinate (m)')
+        plt.show()
         
-    
-        
-raytracing = Raytracing([16, 28], [12.05, 7.05], 5, 3.6, 0.7, [[[0, 20.05],[10, 20.05]], [[13, 20.05],[16, 20.05]]])
-raytracing.createMatrix()
+raytracing = Raytracing([16, 28], [1.05, 7.05], 5, 3.6, 0.7, [[[0, 20.05],[10, 20.05]], [[11, 20.05],[16, 20.05]]])
+raytracing.calculateRayTracing()
+raytracing.displayPowerMap()
     
