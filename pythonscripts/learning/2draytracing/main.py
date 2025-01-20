@@ -49,26 +49,30 @@ class Raytracing:
     def calculateRayTracing(self):
         for i in range(len(self.matrix)):
             for j in range(len(self.matrix[0])):
+                H = 0
                 receiverPos = self.matrix[i][j]
                 checkWall1LineOfSight = self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1])
                 checkWall2LineOfSight = self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1])
-                if checkWall1LineOfSight == 1 or checkWall2LineOfSight == 1: #checking collision with wall line of sight
+                if checkWall1LineOfSight > 0.1 or checkWall2LineOfSight > 0.1: #checking collision with wall line of sight
                     pass
                 else:
-                    self.powerMap[i][j] += self.powerMap(receiverPos, self.transmitterPos)  # add to score from line of sight
-                
-                #check reflection from first wall * check if second wall blocks
-                checkWall1Reflection = self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) * self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1])
+                    H += self.calculateTransmitation(receiverPos, self.transmitterPos)  # add to score from line of sight
+                checkWall1Reflection = False
+                checkWall2Reflection = False
+                if self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) == 1 and self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) == -1:
+                        checkWall1Reflection = True
+                if self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) == 1 and self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) == -1:
+                        checkWall2Reflection = True
 
-                #check reflection from second wall * check if first wall blocks
-                checkWall2Reflection = self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) * self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1])
-
-                if checkWall1Reflection == -1: # add to score from 1 wall reflection
-                    self.powerMap[i][j] += self.powerMap(receiverPos, self.mirroredTransmittersPos[0])
-                if checkWall2Reflection == -1: # add to score from 2 wall reflection
-                    self.powerMap[i][j] += self.powerMap(receiverPos, self.mirroredTransmittersPos[1])
-                if score == 0:
-                    score = -15
+                if checkWall1Reflection: # add to score from 1 wall reflection
+                    H += self.calculateTransmitation(receiverPos, self.mirroredTransmittersPos[0])
+                if checkWall2Reflection: # add to score from 2 wall reflection
+                    H += self.calculateTransmitation(receiverPos, self.mirroredTransmittersPos[1])
+                    
+                if H == 0:
+                    self.powerMap[i][j] = -150
+                else:
+                    self.powerMap[i][j] = 10*log10(self.transmitterPower) + 20*log10(abs(H))
         
 
             
@@ -91,13 +95,12 @@ class Raytracing:
                     mirroredTransmittersPos[i][1] = self.obstaclesPos[i][0][1] + distance
                 else:
                     mirroredTransmittersPos[i][1] = self.obstaclesPos[i][0][1] - distance
-        print(mirroredTransmittersPos)
-
+        return mirroredTransmittersPos
             
-    def calculatePower(self, p1, p2, reflectionRef=1):
+    def calculateTransmitation(self, p1, p2, reflectionRef=1):
         r = self.calculateDist(p1, p2)
-        power = 10*log10(self.transmitterPower*abs(reflectionRef*self.waveLength/(4*pi*r)*e**(-1j*2*pi*r/self.waveLength))**2) #10log(Pt*(lambda/(4*pi*r))^2)
-        return power
+        H = reflectionRef*self.waveLength/(4*pi*r)*e**(-2j*pi*r/self.waveLength)
+        return H
     def calculateDist(self, p1, p2):
         dist = sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
         return dist    
@@ -110,7 +113,6 @@ class Raytracing:
         plt.ylabel('Y Coordinate (m)')
         plt.show()
         
-raytracing = Raytracing([16, 28], [1.05, 16.05], 5, 3.6, 0.7, [[[0, 20.05],[10, 20.05]], [[11, 10.05],[11, 15.05]]])
+raytracing = Raytracing([16, 28], [12.05, 16.05], 5, 3.6, 0.7, [[[0, 20.05],[10, 20.05]], [[14, 10.05],[14, 15.05]]])
 raytracing.calculateRayTracing()
 raytracing.displayPowerMap()
-raytracing.createMirroredTransmitters()
