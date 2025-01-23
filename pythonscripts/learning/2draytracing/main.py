@@ -21,13 +21,13 @@ class Raytracing:
         matrix = np.stack((xv, yv), axis=-1)
         return matrix
 
-    def twoVectors(self, A_x, A_y, B_x, B_y, C_x, C_y, D_x, D_y):
-        result = (((C_x - A_x)*(B_y - A_y) - (B_x - A_x)*(C_y - A_y)) * ((D_x - A_x) * (B_y - A_y) - (B_x - A_x) * (D_y - A_y)))  #[C_x-A-x, B_x-A_x, vector CA, BA
-                                                                                                                                   #C_y-A-y, B_y-A_y]
+    def twoVectors(self, A, B, C, D):
+        result = (((C[0] - A[0])*(B[1] - A[1]) - (B[0] - A[0])*(C[1] - A[1])) * ((D[0] - A[0]) * (B[1] - A[1]) - (B[0] - A[0]) * (D[1] - A[1])))  #[C[0]-A-x, B[0]-A[0], vector CA, BA
+                                                                                                                                   #C[1]-A-y, B[1]-A[1]]
         if result > 0:
             return -1
         else:
-            result2 = (((A_x - C_x)*(D_y - C_y) - (D_x - C_x)*(A_y - C_y)) * ((B_x - C_x) * (D_y - C_y) - (D_x - C_x) * (B_y - C_y)))
+            result2 = (((A[0] - C[0])*(D[1] - C[1]) - (D[0] - C[0])*(A[1] - C[1])) * ((B[0] - C[0]) * (D[1] - C[1]) - (D[0] - C[0]) * (B[1] - C[1])))
             if result2 > 0:
                 return -1
             elif result < 0 and result2 < 0:
@@ -36,13 +36,13 @@ class Raytracing:
                 return 0
             elif result < 0 and result2 == 0:
                 return 0
-            elif A_x < C_x and A_x < D_x and B_x < C_x and B_x < D_x:
+            elif A[0] < C[0] and A[0] < D[0] and B[0] < C[0] and B[0] < D[0]:
                 return -1
-            elif A_y < C_y and A_y < D_y and B_y < C_y and B_y < D_y:
+            elif A[1] < C[1] and A[1] < D[1] and B[1] < C[1] and B[1] < D[1]:
                 return -1
-            elif A_x > C_x and A_x > D_x and B_x > C_x and B_x > D_x:
+            elif A[0] > C[0] and A[0] > D[0] and B[0] > C[0] and B[0] > D[0]:
                 return -1
-            elif A_y > C_y and A_y > D_y and B_y > C_y and B_y > D_y:
+            elif A[1] > C[1] and A[1] > D[1] and B[1] > C[1] and B[1] > D[1]:
                 return -1
             else:
                 return 0
@@ -51,31 +51,30 @@ class Raytracing:
             for j in range(len(self.matrix[0])):
                 H = 0
                 receiverPos = self.matrix[i][j]
-                checkWall1LineOfSight = self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1])
-                checkWall2LineOfSight = self.twoVectors(receiverPos[0], receiverPos[1], self.transmitterPos[0], self.transmitterPos[1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1])
+                checkWall1LineOfSight = self.twoVectors(receiverPos, self.transmitterPos, self.obstaclesPos[0][0], self.obstaclesPos[0][1])
+                checkWall2LineOfSight = self.twoVectors(receiverPos, self.transmitterPos, self.obstaclesPos[1][0], self.obstaclesPos[1][1])
                 if checkWall1LineOfSight >= 0 or checkWall2LineOfSight >= 0: #checking collision with wall line of sight
                     pass
                 else:
                     H += self.calculateTransmitation(receiverPos, self.transmitterPos)  # add transmitantion from line of sight
                 checkWall1Reflection = False
                 checkWall2Reflection = False
-                if self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) == 1 and self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) == -1:
+                if self.twoVectors(receiverPos, self.mirroredTransmittersPos[0], self.obstaclesPos[0][0], self.obstaclesPos[0][1]) == 1 and self.twoVectors(receiverPos, self.mirroredTransmittersPos[0], self.obstaclesPos[1][0], self.obstaclesPos[1][1]) == -1:
                         distance = abs(self.obstaclesPos[1][1][1] - self.obstaclesPos[0][0][1])
                         bottomPoint = [self.obstaclesPos[1][0][0], self.obstaclesPos[0][0][1] + distance]
                         topPoint = [self.obstaclesPos[1][0][0], self.obstaclesPos[0][0][1] + distance + self.calculateDist(self.obstaclesPos[1][0], self.obstaclesPos[1][1])]
                         mirroredWall = [bottomPoint, topPoint]
-                        if self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[0][0], self.mirroredTransmittersPos[0][1], mirroredWall[0][0], mirroredWall[0][1], mirroredWall[1][0], mirroredWall[1][1]) == -1:
+                        if self.twoVectors(receiverPos, self.mirroredTransmittersPos[0], mirroredWall[0], mirroredWall[1]) == -1:
                             checkWall1Reflection = True 
                         
                     
-                if self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[1][0][0], self.obstaclesPos[1][0][1], self.obstaclesPos[1][1][0], self.obstaclesPos[1][1][1]) == 1 and self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], self.obstaclesPos[0][0][0], self.obstaclesPos[0][0][1], self.obstaclesPos[0][1][0], self.obstaclesPos[0][1][1]) == -1:
+                if self.twoVectors(receiverPos, self.mirroredTransmittersPos[1], self.obstaclesPos[1][0], self.obstaclesPos[1][1]) == 1 and self.twoVectors(receiverPos, self.mirroredTransmittersPos[1], self.obstaclesPos[0][0], self.obstaclesPos[0][1]) == -1:
                         distance = abs(self.obstaclesPos[0][1][0] - self.obstaclesPos[1][1][0])
                         leftPoint = [self.obstaclesPos[1][0][0]+distance,self.obstaclesPos[0][1][1]]
                         rightPoint = [self.obstaclesPos[1][0][0]+distance+self.calculateDist(self.obstaclesPos[0][0], self.obstaclesPos[0][1]),self.obstaclesPos[0][1][1]]
                         mirroredWall = [leftPoint, rightPoint]
-                        if self.twoVectors(receiverPos[0], receiverPos[1], self.mirroredTransmittersPos[1][0], self.mirroredTransmittersPos[1][1], mirroredWall[0][0], mirroredWall[0][1], mirroredWall[1][0], mirroredWall[1][1]) == -1:
+                        if self.twoVectors(receiverPos, self.mirroredTransmittersPos[1], mirroredWall[0], mirroredWall[1]) == -1:
                             checkWall2Reflection = True
-                    #TODO checking intersection with mirrored walls
 
                 if checkWall1Reflection: # add transmitation from 1 wall reflection
                     H += self.calculateTransmitation(receiverPos, self.mirroredTransmittersPos[0])
@@ -122,13 +121,22 @@ class Raytracing:
         return dist    
     def displayPowerMap(self):
         plt.figure(figsize=(10, 8))
-        plt.imshow(self.powerMap, origin='lower', cmap='jet', extent=[0, self.matrix.shape[1]*0.1, 0, self.matrix.shape[0]*0.1])
+        plt.imshow(self.powerMap, origin='lower', cmap='jet', 
+                extent=[0, self.matrix.shape[1]*self.step, 0, self.matrix.shape[0]*self.step])
         plt.colorbar(label='Power (dBm)')
         plt.title('Power Map')
         plt.xlabel('X Coordinate (m)')
         plt.ylabel('Y Coordinate (m)')
+
+        # Dodanie ścian na heatmapie
+        for wall in self.obstaclesPos:
+            x_coords = [wall[0][0], wall[1][0]]
+            y_coords = [wall[0][1], wall[1][1]]
+            plt.plot(x_coords, y_coords, color='black', linewidth=2, label='Wall')
+
+        plt.legend()
         plt.show()
         
-raytracing = Raytracing([16, 28], [13, 13.05], 5, 3.6, 0.7, [[[5, 20.05],[10, 20.05]], [[14, 10.05],[14, 15.05]]])
+raytracing = Raytracing([16, 28], [13, 13.05], 5, 3.6, 0.7, [[[8, 10.05],[13, 10.05]], [[14, 20.05],[14, 24.05]]])
 raytracing.calculateRayTracing()
 raytracing.displayPowerMap()
