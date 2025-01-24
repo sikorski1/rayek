@@ -87,6 +87,18 @@ class Raytracing:
             if self.twoVectors(receiverPos, self.transmitterPos, wall.A, wall.B) >= 0:  #checking collision with wall line of sight
                 return False
         return True
+    def checkSingleWallReflection(self, receiverPos, walls):
+        checkTable = [False for i in range(len(walls))]
+        for i, wall in enumerate(walls):
+            if self.twoVectors(receiverPos, self.mirroredTransmittersPos[i], wall.A, wall.B) < 0:
+                continue
+            for j in range(len(walls) - 1):
+                index = (i + j + 1) % len(walls)
+                if self.twoVectors(receiverPos, self.mirroredTransmittersPos[i], walls[index].A, walls[index].B) > 0:
+                    break
+            else:
+                checkTable[i] = True
+        return checkTable
 
 
     def createMirroredTransmitters(self):
@@ -139,5 +151,6 @@ wall1 = Vector([4, 20.05],[13, 20.05])
 wall2 = Vector([14, 15.05],[14, 22.05])
         
 raytracing = Raytracing([16, 28], [5, 13.05], 5, 3.6, 0.7, [wall1, wall2])
+print(raytracing.checkSingleWallReflection([11.5, 18], [wall1, wall2]))
 raytracing.calculateRayTracing()
 raytracing.displayPowerMap()
