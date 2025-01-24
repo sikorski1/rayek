@@ -94,12 +94,41 @@ class Raytracing:
                 continue
             for j in range(len(walls) - 1):
                 index = (i + j + 1) % len(walls)
-                if self.twoVectors(receiverPos, self.mirroredTransmittersPos[i], walls[index].A, walls[index].B) > 0:
+                mirroredWall = self.calculateMirroredWall(wall, walls[index])
+                if self.twoVectors(receiverPos, self.mirroredTransmittersPos[i], walls[index].A, walls[index].B) > 0 or \
+                self.twoVectors(receiverPos, self.mirroredTransmittersPos[i], mirroredWall.A, mirroredWall.B) > 0:
                     break
+                
             else:
                 checkTable[i] = True
+        print(checkTable)
         return checkTable
 
+    def calculateMirroredWall(self, mainWall, wallThatIsMirrored):
+        if mainWall.B[0] == mainWall.A[0]:
+            aPrimX = 2 * mainWall.A[0] - wallThatIsMirrored.A[0]
+            bPrimX = 2 * mainWall.A[0] - wallThatIsMirrored.B[0]
+            mirroredWall = Vector([aPrimX, wallThatIsMirrored.A[1]], [bPrimX, wallThatIsMirrored.A[1]])
+            print(mirroredWall.A, mirroredWall.B)
+            return mirroredWall
+        if mainWall.B[1] == mainWall.A[1]:  
+            y_prim = mainWall.A[1] 
+            aPrimY = 2 * y_prim - wallThatIsMirrored.A[1]
+            bPrimY = 2 * y_prim - wallThatIsMirrored.B[1]
+            mirroredWall = Vector([wallThatIsMirrored.A[0], aPrimY], [wallThatIsMirrored.B[0], bPrimY])
+            print(mirroredWall.A)
+            print(mirroredWall.B)
+            return mirroredWall
+        m = (mainWall.B[1] - mainWall.A[1])/(mainWall.B[0] - mainWall.A[0])
+        b =  mainWall.A[1] - m * mainWall.A[0]
+        aPrimX = (wallThatIsMirrored.A[0] + m * (wallThatIsMirrored.A[1] - b)) / (1 + m**2)
+        aPrimY = (m * wallThatIsMirrored.A[0] + m**2 * wallThatIsMirrored.A[1] - m * b) / (1 + m**2)
+        bPrimX = (wallThatIsMirrored.B[0] + m * (wallThatIsMirrored.B[1] - b)) / (1 + m**2)
+        bPrimY = (m * wallThatIsMirrored.B[0] + m**2 * wallThatIsMirrored.B[1] - m * b) / (1 + m**2)
+        mirroredWall = Vector([aPrimX, aPrimY], [bPrimX, bPrimY])
+        print(mirroredWall.A)
+        print(mirroredWall.B)
+        return mirroredWall
 
     def createMirroredTransmitters(self):
         mirroredTransmittersPos = np.zeros((len(self.obstaclesPos), 2))
@@ -147,10 +176,11 @@ class Raytracing:
         plt.legend()
         plt.show()
 
-wall1 = Vector([4, 20.05],[13, 20.05])
-wall2 = Vector([14, 15.05],[14, 22.05])
+wall1 = Vector([0, 20],[10, 20])
+wall2 = Vector([12, 6],[12, 12])
         
-raytracing = Raytracing([16, 28], [5, 13.05], 5, 3.6, 0.7, [wall1, wall2])
-print(raytracing.checkSingleWallReflection([11.5, 18], [wall1, wall2]))
+raytracing = Raytracing([16, 28], [13, 7.85], 5, 3.6, 0.7, [wall1, wall2])
+raytracing.calculateMirroredWall(wall1, wall2)
+raytracing.checkSingleWallReflection([5,7.5], [wall1, wall2])
 raytracing.calculateRayTracing()
 raytracing.displayPowerMap()
