@@ -3,8 +3,9 @@ class Vector:
     def __init__(self, firstPoint, secondPoint):
         self.A = firstPoint
         self.B = secondPoint
-        self.length = self.calculateLength(self.A, self.B)
+        self.AB = [secondPoint[0]-firstPoint[0], secondPoint[1]-firstPoint[1]]
+        self.length = self.calculateLength()
         pass
     def calculateLength(self):
-        length = sqrt((self.A[0] - self.B[0]) ** 2 + (self.A[1] - self.B[1]) ** 2)
+        length = sqrt(self.AB[0] ** 2 + self.AB[1] ** 2)
         return length
