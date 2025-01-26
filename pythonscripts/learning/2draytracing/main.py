@@ -12,10 +12,9 @@ class Raytracing:
         self.waveLength = 299792458 / tFreq / 10 ** 9;
         self.reflectionFactor = rFactor
         self.walls = oPos 
-        self.powerMap = np.zeros((matrixDimensions[1]*int((1/self.step))+1, matrixDimensions[0]*int((1/self.step))+1))
+        self.powerMap = np.zeros((int(matrixDimensions[1]*(1/self.step)+1), int(matrixDimensions[0]*(1/self.step))+1))
         self.matrix = self.createMatrix(matrixDimensions)
         self.mirroredTransmittersPos = self.createMirroredTransmitters(self.walls)
-        
     def createMatrix(self, matrixDimensions):
         x = np.linspace(0, matrixDimensions[0], int(matrixDimensions[0]/self.step)+1)
         y = np.linspace(0, matrixDimensions[1], int(matrixDimensions[1]/self.step)+1)
