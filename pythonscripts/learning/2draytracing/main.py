@@ -2,6 +2,7 @@ import numpy as np
 from math import sqrt, log10,pi,e
 import matplotlib.pyplot as plt
 from Vector import Vector
+import time
 class Raytracing:
     def __init__(self, matrixDimensions, tPos, tPower, tFreq, rFactor, oPos):
         self.step = 0.1
@@ -10,10 +11,11 @@ class Raytracing:
         self.transmitterFreq = tFreq # GHz
         self.waveLength = 299792458 / tFreq / 10 ** 9;
         self.reflectionFactor = rFactor
-        self.obstaclesPos = oPos 
+        self.walls = oPos 
         self.powerMap = np.zeros((matrixDimensions[1]*int((1/self.step))+1, matrixDimensions[0]*int((1/self.step))+1))
         self.matrix = self.createMatrix(matrixDimensions)
-        self.mirroredTransmittersPos = self.createMirroredTransmitters()
+        self.mirroredTransmittersPos = self.createMirroredTransmitters(self.walls)
+        
     def createMatrix(self, matrixDimensions):
         x = np.linspace(0, matrixDimensions[0], int(matrixDimensions[0]/self.step)+1)
         y = np.linspace(0, matrixDimensions[1], int(matrixDimensions[1]/self.step)+1)
@@ -47,15 +49,16 @@ class Raytracing:
                 return -1
             else:
                 return 0
+            
     def calculateRayTracing(self):
         for i in range(len(self.matrix)):
             for j in range(len(self.matrix[0])):
                 H = 0
                 receiverPos = self.matrix[i][j]
-                if self.checkLineOfSight(receiverPos, self.obstaclesPos):
+                if self.checkLineOfSight(receiverPos, self.walls):
                     H += self.calculateTransmitation(receiverPos, self.transmitterPos) # add transmitantion from line of sight
                     
-                H += self.calculateSingleWallReflection(receiverPos, self.obstaclesPos)
+                H += self.calculateSingleWallReflection(receiverPos, self.walls)
                 if H == 0:
                     self.powerMap[i][j] = -150
                 else:
@@ -66,6 +69,7 @@ class Raytracing:
             if self.twoVectors(receiverPos, self.transmitterPos, wall.A, wall.B) >= 0:  #checking collision with wall line of sight
                 return False
         return True
+    
     def calculateSingleWallReflection(self, receiverPos, walls):
         H = 0
         for i, wall in enumerate(walls): # main wall, vectors should colliding
@@ -83,7 +87,7 @@ class Raytracing:
                 H += self.calculateTransmitation(receiverPos, self.mirroredTransmittersPos[i], self.reflectionFactor)
         return H
 
-    def calculateCrossPoint(self, A, B, C, D):
+    def calculateCrossPoint(self, A, B, C, D): #calc cross point single reflection
         if A[0] == B[0]:
             # First line is vertical
             x = A[0]
@@ -106,10 +110,10 @@ class Raytracing:
         y = a1 * x + b1
         return [x, y]
 
-    def createMirroredTransmitters(self):
-        mirroredTransmittersPos = np.zeros((len(self.obstaclesPos), 2))
-        for i in range(len(self.obstaclesPos)):
-            wall = self.obstaclesPos[i]
+    def createMirroredTransmitters(self, walls):
+        mirroredTransmittersPos = np.zeros((len(walls), 2))
+        for i in range(len(walls)):
+            wall = walls[i]
             if wall.A[0] == wall.B[0]: 
                 mirroredTransmittersPos[i][1] = self.transmitterPos[1]
                 distance = abs(wall.A[0] - self.transmitterPos[0])
@@ -118,7 +122,6 @@ class Raytracing:
                 else:
                     mirroredTransmittersPos[i][0] = wall.A[0] - distance
                 continue
-
             if wall.A[1] == wall.B[1]: 
                 mirroredTransmittersPos[i][0] = self.transmitterPos[0]
                 distance = abs(wall.A[1] - self.transmitterPos[1])
@@ -135,8 +138,7 @@ class Raytracing:
             y = m*x + b
     
             mirroredTransmittersPos[i][0] = 2*x - self.transmitterPos[0]
-            mirroredTransmittersPos[i][1] = 2*y - self.transmitterPos[1] 
-
+            mirroredTransmittersPos[i][1] = 2*y - self.transmitterPos[1]
         return mirroredTransmittersPos
             
     def calculateTransmitation(self, p1, p2, reflectionRef=1):
@@ -146,9 +148,11 @@ class Raytracing:
         else:
             H = 0
         return H
+    
     def calculateDist(self, p1, p2):
         dist = sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
         return dist    
+    
     def displayPowerMap(self):
         plt.figure(figsize=(10, 8))
         plt.imshow(self.powerMap, origin='lower', cmap='jet', 
@@ -157,23 +161,21 @@ class Raytracing:
         plt.title('Power Map')
         plt.xlabel('X Coordinate (m)')
         plt.ylabel('Y Coordinate (m)')
-
         # Plot walls
-        for wall in self.obstaclesPos:
+        for wall in self.walls:
             x_coords = [wall.A[0], wall.B[0]]
             y_coords = [wall.A[1], wall.B[1]]
             plt.plot(x_coords, y_coords, color='black', linewidth=1)
-
         # Plot transmitter
         plt.scatter(self.transmitterPos[0], self.transmitterPos[1], color='red', label='Transmitter', zorder=5)
-
-        for idx, mirroredPos in enumerate(self.mirroredTransmittersPos):
-            plt.scatter(mirroredPos[0], mirroredPos[1], color='black', label=f'Mirrored Transmitter {idx+1}', zorder=5)
+        # Plot mirrored transmitters pos
+        # for idx, mirroredPos in enumerate(self.mirroredTransmittersPos):
+        #     plt.scatter(mirroredPos[0], mirroredPos[1], color='black', zorder=5)
         plt.legend()
-
         # Display the plot
         plt.show()
 
+# start = time.time()
 # wall1 = Vector([5, 16],[8, 16])
 # wall2 = Vector([10, 8],[16, 10])
 # wall3 = Vector([1, 14],[1, 17])
@@ -184,7 +186,11 @@ class Raytracing:
 # wall8 = Vector([12.1, 13],[12, 16])
 # raytracing = Raytracing([30, 30], [12, 12], 5, 3.6, 0.7, [wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8])
 # raytracing.calculateRayTracing()
+# end = time.time() - start
+# print(f"Computation time: {end}")
 # raytracing.displayPowerMap()
+
+start = time.time()
 wall1 = Vector([10, 3], [15, 3])
 wall2 = Vector([15, 3], [15, 0])
 wall3 = Vector([10, 3], [10, 0])
@@ -197,8 +203,10 @@ wall9 = Vector([25, 10], [25, 5])
 wall10 = Vector([25, 5], [30, 5])
 wall11 = Vector([0, 15], [4, 10])
 wall12 = Vector([4, 24], [8, 20])
-raytracing = Raytracing([30, 30], [12, 12], 5, 3.6, 0.7, [wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8, wall9, wall10, wall11, wall12])
+raytracing = Raytracing([30, 30], [16, 16.5], 5, 3.6, 0.7, [wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8, wall9, wall10, wall11, wall12])
 raytracing.calculateRayTracing()
+end = time.time() - start
+print(f"Computation time: {end}")
 raytracing.displayPowerMap()
 
         
