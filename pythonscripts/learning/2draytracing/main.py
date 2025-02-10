@@ -5,7 +5,7 @@ from Vector import Vector
 import time
 class Raytracing:
     def __init__(self, matrixDimensions, tPos, tPower, tFreq, rFactor, oPos):
-        self.step = 0.1
+        self.step = 0.05
         self.transmitterPos = tPos
         self.transmitterPower = tPower #mW
         self.transmitterFreq = tFreq # GHz
@@ -200,9 +200,14 @@ wall7 = Vector([20, 24], [20, 20])
 wall8 = Vector([25, 10], [30, 10])
 wall9 = Vector([25, 10], [25, 5])
 wall10 = Vector([25, 5], [30, 5])
-wall11 = Vector([0, 15], [4, 10])
+wall11 = Vector([0, 7], [4, 1])
 wall12 = Vector([4, 24], [8, 20])
-raytracing = Raytracing([30, 30], [16, 16.5], 5, 3.6, 0.7, [wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8, wall9, wall10, wall11, wall12])
+wall13 = Vector([10, 12], [10, 16])
+wall14 = Vector([10, 16], [8, 16])
+wall15 = Vector([8, 16], [8, 12])
+wall16 = Vector([8, 12], [10, 12])
+wall17 = Vector([23, 13], [27, 17])
+raytracing = Raytracing([30, 30], [18, 16.5], 5, 10, 0.7, [wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8, wall9, wall10, wall11, wall12, wall13, wall14, wall15, wall16, wall17])
 raytracing.calculateRayTracing()
 end = time.time() - start
 print(f"Computation time: {end}")
