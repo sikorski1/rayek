@@ -1,16 +1,23 @@
 package main
 
+package main
+
 import (
+	"backendGo/config"
+	"backendGo/routes"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func main() {
+	config.LoadEnv()
+	config.ConnectDB()
+
 	r := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
-	})
+	
+	routes.SetupRoutes(r)
 
-	r.Run(":8080") 
+
+	r.Run(":8080")
 }
+

@@ -1,0 +1,19 @@
+# Pliki binarne i kompilowane
+/backendGo
+*.exe
+*.out
+*.test
+
+# Moduły Go (jeśli korzystasz z proxy, lepiej zostawić go.mod i go.sum)
+vendor/
+go.sum
+
+# Pliki konfiguracyjne i zależności
+.env
+config.yaml
+
+# Pliki edytora i systemowe
+.idea/
+.vscode/
+.DS_Store
+*.swp
