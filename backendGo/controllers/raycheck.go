@@ -20,7 +20,7 @@ type MapConfiguration struct {
 
 type Features struct {
 	Type string `json:"type"`
-	Properties interface{} `json:"properites"`
+	Properties interface{} `json:"properties"`
 	Geometry interface{} `json:"geometry"`
 	Id string `json:"id"`
 }
@@ -82,10 +82,24 @@ func GetBuildings(context *gin.Context) {
 		log.Print("Buildings configuration not found")
 		context.JSON(http.StatusNotFound, gin.H{"error": "Buildings configuration not found"})
 	}
-
-	
 }
 
 func ComputeRays(context *gin.Context) {
-	return
+	southwest :=  [2]float64{19.914029, 50.065311}
+	southeast := [2]float64{19.917527, 50.065311}
+	northeast := [2]float64{19.917527, 50.067556}
+	numPoints := 500
+
+	xStep := (southeast[0] - southwest[0]) / (float64(numPoints - 1));
+	yStep := (northeast[1] - southeast[1]) / (float64(numPoints - 1));
+	points := make([][2]float64, 0, numPoints*numPoints)
+	for i := 0; i < numPoints; i++ {
+		for j := 0; j < numPoints; j++ {
+			x := southwest[0] + float64(i)*xStep
+			y := southwest[1] + float64(j)*yStep
+			points = append(points, [2]float64{x, y})
+		}
+	}
+	context.JSON(http.StatusOK, points)
+
 }
