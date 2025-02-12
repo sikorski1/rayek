@@ -17,6 +17,18 @@ type MapConfiguration struct {
 }
 
 
+
+type Features struct {
+	Type string `json:"type"`
+	Properties interface{} `json:"properites"`
+	Geometry interface{} `json:"geometry"`
+	Id string `json:"id"`
+}
+type BuildingsConfiguration struct {
+	Type string `json:"type"`
+	Features []Features `json:"features"`
+}
+
 func GetMapConfiguration(context *gin.Context) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -45,7 +57,33 @@ func GetMapConfiguration(context *gin.Context) {
 }
 
 func GetBuildings(context *gin.Context) {
-	return
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	mapTitle := context.Param("mapTitle")
+	data, err := os.ReadFile(cwd + "/data/buildingsData.json")
+	if err != nil {
+		log.Print("Failed to read data file")
+		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
+	}
+	var buildingData map[string]BuildingsConfiguration
+	err = json.Unmarshal(data, &buildingData)
+
+	if err != nil {
+		log.Print("Failed to parse JSON")
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON"})
+		return
+	}
+
+	if config, exists := buildingData[mapTitle]; exists {
+		context.JSON(http.StatusOK, config)
+	} else {
+		log.Print("Buildings configuration not found")
+		context.JSON(http.StatusNotFound, gin.H{"error": "Buildings configuration not found"})
+	}
+
+	
 }
 
 func ComputeRays(context *gin.Context) {
