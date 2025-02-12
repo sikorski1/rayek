@@ -56,6 +56,7 @@ export default function Map({
 			},
 		],
 	};
+	
 
 	useEffect(() => {
 		function onMove(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
@@ -96,7 +97,6 @@ export default function Map({
 			mapRef.current?.off("mousemove", onMove);
 			mapRef.current?.off("touchmove", onMove);
 		}
-
 		const createCustomLayer = () => {
 			const camera = new THREE.Camera();
 			const scene = new THREE.Scene();

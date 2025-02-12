@@ -10,6 +10,6 @@ func SetupRayCheckRoutes (router *gin.Engine) {
 	{
 		raycheckRouter.GET("/:mapTitle", controllers.GetMapConfiguration)
 		raycheckRouter.GET("/buildings/:mapTitle", controllers.GetBuildings)
-		raycheckRouter.GET("/compute", controllers.ComputeRays)
+		raycheckRouter.POST("/compute", controllers.ComputeRays)
 	}
 }

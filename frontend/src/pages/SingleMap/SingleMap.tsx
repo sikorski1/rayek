@@ -11,7 +11,7 @@ import styles from "./singleMap.module.scss";
 const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 	try {
 		const response = await axios.get(url + `/raycheck/${mapTitle}`);
-		return response.data.mapConf;
+		return response.data;
 	} catch (error) {
 		console.log(error);
 	}
@@ -20,7 +20,7 @@ const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
 const getBuildingsData = async ({ mapTitle }: { mapTitle: string }): Promise<FeatureCollection | undefined> => {
 	try {
 		const response = await axios.get(url + `/raycheck/buildings/${mapTitle}`);
-		return response.data.buildingsData;
+		return response.data;
 	} catch (error) {
 		console.log(error);
 	}
@@ -81,7 +81,7 @@ export default function SingleMap() {
 		const response = await postCompute(data);
 		if (response) {
 			setSingleMapData((prevSingleMapData) => {
-				const updatedSingleMapData = {...prevSingleMapData, computationResult:response.data.positions}
+				const updatedSingleMapData = {...prevSingleMapData, computationResult:response.data}
 				return updatedSingleMapData
 			})
 		}
@@ -138,7 +138,6 @@ export default function SingleMap() {
 			fetchBuildings();
 		}
 	}, [singleMapData.mapData]);
-
 	return (
 		<>
 			{popupData.isOpen && (
