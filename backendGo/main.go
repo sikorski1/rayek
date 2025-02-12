@@ -1,23 +1,24 @@
 package main
 
-package main
-
 import (
-	"backendGo/config"
-	"backendGo/routes"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"backendGo/routes"
 )
 
 func main() {
-	config.LoadEnv()
-	config.ConnectDB()
+	router := gin.Default()
 
-	r := gin.Default()
+	config := cors.Config{
+		AllowOrigins:    []string{"http://localhost:5173"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}
+	router.Use(cors.New(config))
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	routes.SetupRayCheckRoutes(router)
 
-	
-	routes.SetupRoutes(r)
-
-
-	r.Run(":8080")
+	router.Run(":3000")
 }
-

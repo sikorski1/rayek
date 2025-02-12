@@ -4,7 +4,6 @@
 *.out
 *.test
 
-# Moduły Go (jeśli korzystasz z proxy, lepiej zostawić go.mod i go.sum)
 vendor/
 go.sum
 
