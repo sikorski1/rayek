@@ -174,20 +174,6 @@ class Raytracing:
         # Display the plot
         plt.show()
 
-# start = time.time()
-# wall1 = Vector([5, 16],[8, 16])
-# wall2 = Vector([10, 8],[16, 10])
-# wall3 = Vector([1, 14],[1, 17])
-# wall4 = Vector([5, 1],[5, 1])
-# wall5 = Vector([25, 25],[30, 15])
-# wall6 = Vector([25, 10],[25, 16])
-# wall7 = Vector([16, 10],[20, 12])
-# wall8 = Vector([12.1, 13],[12, 16])
-# raytracing = Raytracing([30, 30], [12, 12], 5, 3.6, 0.7, [wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8])
-# raytracing.calculateRayTracing()
-# end = time.time() - start
-# print(f"Computation time: {end}")
-# raytracing.displayPowerMap()
 
 start = time.time()
 wall1 = Vector([10, 3], [15, 3])
