@@ -1,10 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"math"
+    "fmt"
+    "math"
+    "gonum.org/v1/plot"
+    "gonum.org/v1/plot/plotter"
+    "gonum.org/v1/plot/vg"
+    "image/color"
 )
-
 type Point struct {
 	X, Y float64
 }
@@ -70,6 +73,18 @@ func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq flo
 			}
 			continue
 		}
+		a1 := (wall.B.Y - wall.A.Y) / (wall.B.X -  wall.A.X)
+		b1 := wall.A.Y  -  a1 * wall.A.X
+
+		a2 := -1/a1
+		b2 := tPos.Y - a2 * tPos.X
+
+		x := (b2-b1)/(a1-a2)
+		y := a1*x + b1
+
+		mirroredTransmitters[i].X = math.Round((2*x - tPos.X) * 10)/10
+		mirroredTransmitters[i].Y = math.Round((2*y - tPos.Y) * 10)/10
+
 	}
 	return &RayTracing{
 		Step:             step,
@@ -85,14 +100,96 @@ func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq flo
 	}
 }
 
+func (rt *RayTracing) PlotVisualization(filename string) error {
+    p := plot.New()
+    p.Title.Text = "RayTracing Visualization"
+    p.X.Label.Text = "X"
+    p.Y.Label.Text = "Y"
+
+    // Ustawienie zakresu wykresu
+    p.X.Min = 0
+    p.X.Max = rt.Matrix[0][len(rt.Matrix[0])-1].X
+    p.Y.Min = 0
+    p.Y.Max = rt.Matrix[len(rt.Matrix)-1][0].Y
+
+    // Rysowanie ścian
+    for _, wall := range rt.Walls {
+        line := plotter.XYs{
+            {X: wall.A.X, Y: wall.A.Y},
+            {X: wall.B.X, Y: wall.B.Y},
+        }
+        l, err := plotter.NewLine(line)
+        if err != nil {
+            return err
+        }
+        l.Color = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+        l.Width = vg.Points(2)
+        p.Add(l)
+    }
+
+    // Rysowanie transmitera
+    transmitter := plotter.XYs{
+        {X: rt.TransmitterPos.X, Y: rt.TransmitterPos.Y},
+    }
+    transmitterScatter, err := plotter.NewScatter(transmitter)
+    if err != nil {
+        return err
+    }
+    transmitterScatter.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
+    transmitterScatter.Radius = vg.Points(5)
+    p.Add(transmitterScatter)
+
+    // Rysowanie odbitych transmiterów
+    for _, mt := range rt.MirroredTransmitters {
+        mirroredTransmitter := plotter.XYs{
+            {X: mt.X, Y: mt.Y},
+        }
+        mtScatter, err := plotter.NewScatter(mirroredTransmitter)
+        if err != nil {
+            return err
+        }
+        mtScatter.Color = color.RGBA{R: 0, G: 0, B: 255, A: 255}
+        mtScatter.Radius = vg.Points(3)
+        p.Add(mtScatter)
+    }
+
+    // Dodanie legendy
+    p.Legend.Add("Transmitter", transmitterScatter)
+    
+    // Tworzymy linię dla legendy
+    legendLine, err := plotter.NewLine(plotter.XYs{{X: 0, Y: 0}, {X: 1, Y: 1}})
+    if err != nil {
+        return err
+    }
+    p.Legend.Add("Walls", legendLine)
+    
+    // Tworzymy punkt dla legendy
+    legendPoint, err := plotter.NewScatter(plotter.XYs{{X: 0, Y: 0}})
+    if err != nil {
+        return err
+    }
+    p.Legend.Add("Mirrored Transmitters", legendPoint)
+    
+    p.Legend.Top = true
+    p.Legend.Left = true
+
+    // Zapisanie wykresu do pliku
+    return p.Save(10*vg.Inch, 10*vg.Inch, filename)
+}
 func main() {
 	matrixDimensions := Point{X:20, Y:30}
-	transmitterPos := Point{X:5, Y:5}
+	transmitterPos := Point{X:10, Y:10}
 	transmitterPower := 10.0 // mW
 	transmitterFreq := 2.4   // GHz
 	reflectionFactor := 0.8
-	walls := []Vector{{A:Point{X:3,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}}
+	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:6,Y:10}, B:Point{X:12,Y:12}}, {A:Point{X:15,Y:15}, B:Point{X:15,Y:3}}}
 
 	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
-	fmt.Println("Raytracing instance created:", raytracing.MirroredTransmitters)
+	fmt.Printf("%v", raytracing.MirroredTransmitters)
+	err := raytracing.PlotVisualization("raytracing.png")
+    if err != nil {
+        fmt.Printf("Error creating visualization: %v\n", err)
+        return
+    }
+    fmt.Println("Visualization saved to raytracing.png")
 }
