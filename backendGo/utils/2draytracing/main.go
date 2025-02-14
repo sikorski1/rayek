@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"image/color"
 	"math"
+	"math/cmplx"
 
 	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
+    "gonum.org/v1/plot/plotter"
+    "gonum.org/v1/plot/vg"
+    "gonum.org/v1/plot/palette"
 )
 type Point struct {
 	X, Y float64
@@ -101,33 +103,149 @@ func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq flo
 	}
 }
 
+func (rt *RayTracing) calculateRayTracing() {
+	for i := range(len(rt.Matrix)) {
+		for j := range(len(rt.Matrix[0])) {
+			H := complex(0,0)
+			receiverPos := rt.Matrix[i][j]
+			if checkLineOfSight(rt.TransmitterPos, receiverPos, rt.Walls) {
+				H += calculateTransmittance(receiverPos, rt.TransmitterPos, rt.WaveLength, 1.0)
+			}
+			if H == 0 {
+				rt.PowerMap[i][j] = -150
+			} else {
+				rt.PowerMap[i][j] = 10*math.Log10(rt.TransmitterPower) + 20*math.Log10(cmplx.Abs(H))
+			}
+		}
+	}
+}
+
+func checkLineOfSight(transmitterPos, receiverPos Point, walls []Vector) bool {
+	for _, wall := range(walls) {
+		if twoVectors(receiverPos, transmitterPos,wall.A, wall.B) >= 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func calculateTransmittance(p1, p2 Point, waveLength, reflectionRef float64) complex128 {
+	r := calculateDist(p1, p2)
+	if r > 0 {
+		i := complex(0, 1) 
+		H := complex(reflectionRef, 0) * complex(waveLength/(4*math.Pi*r), 0) *
+			cmplx.Exp(complex(-2*math.Pi*r/waveLength,0)*i) 
+		return H
+	} else {
+		return 0
+	}
+}
+func calculateDist(p1, p2 Point) float64 {
+	dist := math.Sqrt(math.Pow(p1.X  - p2.X, 2) +  math.Pow(p1.Y - p2.Y, 2))
+	return dist
+}
+func twoVectors(A, B, C, D Point) int8 {
+	result := (((C.X - A.X)*(B.Y - A.Y) - (B.X - A.X)*(C.Y - A.Y)) * ((D.X - A.X) * (B.Y - A.Y) - (B.X - A.X) * (D.Y - A.Y)))  
+        if result > 0{
+            return -1
+		} else {
+            result2 := (((A.X - C.X)*(D.Y - C.Y) - (D.X - C.X)*(A.Y - C.Y)) * ((B.X - C.X) * (D.Y - C.Y) - (D.X - C.X) * (B.Y - C.Y)))
+            if result2 > 0 {
+                return -1
+			} else if result < 0 && result2 < 0 {
+                return 1
+			} else if result == 0 && result2 < 0 {
+                return 0
+			} else if result < 0 &&  result2 == 0 {
+                return 0
+			} else if A.X < C.X && A.X < D.X && B.X < C.X && B.X < D.X {
+                return -1
+			} else if A.Y < C.Y && A.Y < D.Y && B.Y < C.Y && B.Y < D.Y {
+                return -1
+			} else if A.X > C.X && A.X > D.X && B.X > C.X && B.X > D.X {
+                return -1
+			} else if A.Y > C.Y && A.Y > D.Y && B.Y > C.Y && B.Y > D.Y {
+                return -1
+			}  else {
+				return 0
+			}
+		}
+}
+
+// Interpolacja kolorów między niebieskim a czerwonym
+func interpolateColor(value, min, max float64) color.RGBA {
+    norm := (value - min) / (max - min) // Normalizacja do zakresu [0,1]
+    r := uint8(255 * norm)
+    g := uint8(0)
+    b := uint8(255 * (1 - norm))
+    return color.RGBA{R: r, G: g, B: b, A: 255}
+}
+
 func (rt *RayTracing) PlotVisualization(filename string) error {
     p := plot.New()
-    p.Title.Text = "RayTracing Visualization"
+    p.Title.Text = "RayTracing Heatmap"
     p.X.Label.Text = "X"
     p.Y.Label.Text = "Y"
 
-	// Ustalanie jednakowej skali dla osi X i Y
-	xMin, xMax := 0.0, rt.Matrix[0][len(rt.Matrix[0])-1].X
-	yMin, yMax := 0.0, rt.Matrix[len(rt.Matrix)-1][0].Y
+    // Określenie zakresu wykresu
+    xMin, xMax := 0.0, rt.Matrix[0][len(rt.Matrix[0])-1].X
+    yMin, yMax := 0.0, rt.Matrix[len(rt.Matrix)-1][0].Y
 
-	xRange := xMax - xMin
-	yRange := yMax - yMin
+    // Normalizacja osi
+    xRange := xMax - xMin
+    yRange := yMax - yMin
+    if xRange > yRange {
+        diff := (xRange - yRange) / 2
+        yMin -= diff
+        yMax += diff
+    } else {
+        diff := (yRange - xRange) / 2
+        xMin -= diff
+        xMax += diff
+    }
+    p.X.Min, p.X.Max = xMin, xMax
+    p.Y.Min, p.Y.Max = yMin, yMax
 
-	// Wybieramy większy zakres i dopasowujemy mniejszy
-	if xRange > yRange {
-		diff := (xRange - yRange) / 2
-		yMin -= diff
-		yMax += diff
-	} else {
-		diff := (yRange - xRange) / 2
-		xMin -= diff
-		xMax += diff
-	}
+    // Znalezienie minimalnej i maksymalnej wartości mocy
+    minPower, maxPower := math.Inf(1), math.Inf(-1)
+    for i := range rt.PowerMap {
+        for j := range rt.PowerMap[i] {
+            if rt.PowerMap[i][j] < minPower {
+                minPower = rt.PowerMap[i][j]
+            }
+            if rt.PowerMap[i][j] > maxPower {
+                maxPower = rt.PowerMap[i][j]
+            }
+        }
+    }
 
-	// Ustawienie zakresu wykresu po korekcie
-	p.X.Min, p.X.Max = xMin, xMax
-	p.Y.Min, p.Y.Max = yMin, yMax
+    // Rysowanie mapy cieplnej
+    heatmap := make(plotter.XYs, 0)
+    colors := make([]color.RGBA, 0)
+    for i := range rt.Matrix {
+        for j := range rt.Matrix[i] {
+            heatmap = append(heatmap, plotter.XY{
+                X: rt.Matrix[i][j].X,
+                Y: rt.Matrix[i][j].Y,
+            })
+            colors = append(colors, interpolateColor(rt.PowerMap[i][j], minPower, maxPower))
+        }
+    }
+    scatter, err := plotter.NewScatter(heatmap)
+    if err != nil {
+        return err
+    }
+    scatter.GlyphStyle.Radius = vg.Points(2)
+    scatter.GlyphStyle.Color = color.Transparent // Ustawienie koloru przez własną mapę
+    scatter.ColorMap = plotter.ColorMapFunc(func(x, y float64) color.Color {
+        for k, pt := range heatmap {
+            if pt.X == x && pt.Y == y {
+                return colors[k]
+            }
+        }
+        return color.Black
+    })
+    p.Add(scatter)
 
     // Rysowanie ścian
     for _, wall := range rt.Walls {
@@ -139,60 +257,24 @@ func (rt *RayTracing) PlotVisualization(filename string) error {
         if err != nil {
             return err
         }
-        l.Color = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+        l.Color = color.Black
         l.Width = vg.Points(2)
         p.Add(l)
     }
 
     // Rysowanie transmitera
-    transmitter := plotter.XYs{
-        {X: rt.TransmitterPos.X, Y: rt.TransmitterPos.Y},
-    }
-    transmitterScatter, err := plotter.NewScatter(transmitter)
+    transmitter := plotter.XYs{{X: rt.TransmitterPos.X, Y: rt.TransmitterPos.Y}}
+    tScatter, err := plotter.NewScatter(transmitter)
     if err != nil {
         return err
     }
-    transmitterScatter.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
-    transmitterScatter.Radius = vg.Points(5)
-    p.Add(transmitterScatter)
+    tScatter.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
+    tScatter.Radius = vg.Points(5)
+    p.Add(tScatter)
 
-    // Rysowanie odbitych transmiterów
-    for _, mt := range rt.MirroredTransmitters {
-        mirroredTransmitter := plotter.XYs{
-            {X: mt.X, Y: mt.Y},
-        }
-        mtScatter, err := plotter.NewScatter(mirroredTransmitter)
-        if err != nil {
-            return err
-        }
-        mtScatter.Color = color.RGBA{R: 0, G: 0, B: 255, A: 255}
-        mtScatter.Radius = vg.Points(3)
-        p.Add(mtScatter)
-    }
-
-    // Dodanie legendy
-    p.Legend.Add("Transmitter", transmitterScatter)
-    
-    // Tworzymy linię dla legendy
-    legendLine, err := plotter.NewLine(plotter.XYs{{X: 0, Y: 0}, {X: 1, Y: 1}})
-    if err != nil {
-        return err
-    }
-    p.Legend.Add("Walls", legendLine)
-    
-    // Tworzymy punkt dla legendy
-    legendPoint, err := plotter.NewScatter(plotter.XYs{{X: 0, Y: 0}})
-    if err != nil {
-        return err
-    }
-    p.Legend.Add("Mirrored Transmitters", legendPoint)
-    
-    p.Legend.Top = true
-    p.Legend.Left = true
-
-    // Zapisanie wykresu do pliku
     return p.Save(10*vg.Inch, 10*vg.Inch, filename)
 }
+
 func main() {
 	matrixDimensions := Point{X:20, Y:30}
 	transmitterPos := Point{X:17, Y:7}
@@ -203,6 +285,7 @@ func main() {
 
 	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	fmt.Printf("%v", raytracing.MirroredTransmitters)
+	raytracing.calculateRayTracing()
 	err := raytracing.PlotVisualization("raytracing.png")
     if err != nil {
         fmt.Printf("Error creating visualization: %v\n", err)
