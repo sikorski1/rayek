@@ -1,12 +1,13 @@
 package main
 
 import (
-    "fmt"
-    "math"
-    "gonum.org/v1/plot"
-    "gonum.org/v1/plot/plotter"
-    "gonum.org/v1/plot/vg"
-    "image/color"
+	"fmt"
+	"image/color"
+	"math"
+
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
 )
 type Point struct {
 	X, Y float64
@@ -106,11 +107,27 @@ func (rt *RayTracing) PlotVisualization(filename string) error {
     p.X.Label.Text = "X"
     p.Y.Label.Text = "Y"
 
-    // Ustawienie zakresu wykresu
-    p.X.Min = 0
-    p.X.Max = rt.Matrix[0][len(rt.Matrix[0])-1].X
-    p.Y.Min = 0
-    p.Y.Max = rt.Matrix[len(rt.Matrix)-1][0].Y
+	// Ustalanie jednakowej skali dla osi X i Y
+	xMin, xMax := 0.0, rt.Matrix[0][len(rt.Matrix[0])-1].X
+	yMin, yMax := 0.0, rt.Matrix[len(rt.Matrix)-1][0].Y
+
+	xRange := xMax - xMin
+	yRange := yMax - yMin
+
+	// Wybieramy większy zakres i dopasowujemy mniejszy
+	if xRange > yRange {
+		diff := (xRange - yRange) / 2
+		yMin -= diff
+		yMax += diff
+	} else {
+		diff := (yRange - xRange) / 2
+		xMin -= diff
+		xMax += diff
+	}
+
+	// Ustawienie zakresu wykresu po korekcie
+	p.X.Min, p.X.Max = xMin, xMax
+	p.Y.Min, p.Y.Max = yMin, yMax
 
     // Rysowanie ścian
     for _, wall := range rt.Walls {
@@ -178,7 +195,7 @@ func (rt *RayTracing) PlotVisualization(filename string) error {
 }
 func main() {
 	matrixDimensions := Point{X:20, Y:30}
-	transmitterPos := Point{X:10, Y:10}
+	transmitterPos := Point{X:17, Y:7}
 	transmitterPower := 10.0 // mW
 	transmitterFreq := 2.4   // GHz
 	reflectionFactor := 0.8
