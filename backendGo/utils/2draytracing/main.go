@@ -1,15 +1,16 @@
 package main
 
 import (
+	"os"
 	"fmt"
-	"image/color"
 	"math"
 	"math/cmplx"
-
+	"image"
+    "image/color"
+    "image/png"
 	"gonum.org/v1/plot"
     "gonum.org/v1/plot/plotter"
     "gonum.org/v1/plot/vg"
-    "gonum.org/v1/plot/palette"
 )
 type Point struct {
 	X, Y float64
@@ -173,80 +174,30 @@ func twoVectors(A, B, C, D Point) int8 {
 }
 
 // Interpolacja kolorów między niebieskim a czerwonym
-func interpolateColor(value, min, max float64) color.RGBA {
-    norm := (value - min) / (max - min) // Normalizacja do zakresu [0,1]
-    r := uint8(255 * norm)
-    g := uint8(0)
-    b := uint8(255 * (1 - norm))
-    return color.RGBA{R: r, G: g, B: b, A: 255}
-}
 
 func (rt *RayTracing) PlotVisualization(filename string) error {
     p := plot.New()
-    p.Title.Text = "RayTracing Heatmap"
+    p.Title.Text = "RayTracing Visualization"
     p.X.Label.Text = "X"
     p.Y.Label.Text = "Y"
-
-    // Określenie zakresu wykresu
-    xMin, xMax := 0.0, rt.Matrix[0][len(rt.Matrix[0])-1].X
-    yMin, yMax := 0.0, rt.Matrix[len(rt.Matrix)-1][0].Y
-
-    // Normalizacja osi
-    xRange := xMax - xMin
-    yRange := yMax - yMin
-    if xRange > yRange {
-        diff := (xRange - yRange) / 2
-        yMin -= diff
-        yMax += diff
-    } else {
-        diff := (yRange - xRange) / 2
-        xMin -= diff
-        xMax += diff
-    }
-    p.X.Min, p.X.Max = xMin, xMax
-    p.Y.Min, p.Y.Max = yMin, yMax
-
-    // Znalezienie minimalnej i maksymalnej wartości mocy
-    minPower, maxPower := math.Inf(1), math.Inf(-1)
-    for i := range rt.PowerMap {
-        for j := range rt.PowerMap[i] {
-            if rt.PowerMap[i][j] < minPower {
-                minPower = rt.PowerMap[i][j]
-            }
-            if rt.PowerMap[i][j] > maxPower {
-                maxPower = rt.PowerMap[i][j]
-            }
-        }
-    }
-
-    // Rysowanie mapy cieplnej
-    heatmap := make(plotter.XYs, 0)
-    colors := make([]color.RGBA, 0)
-    for i := range rt.Matrix {
-        for j := range rt.Matrix[i] {
-            heatmap = append(heatmap, plotter.XY{
-                X: rt.Matrix[i][j].X,
-                Y: rt.Matrix[i][j].Y,
-            })
-            colors = append(colors, interpolateColor(rt.PowerMap[i][j], minPower, maxPower))
-        }
-    }
-    scatter, err := plotter.NewScatter(heatmap)
-    if err != nil {
-        return err
-    }
-    scatter.GlyphStyle.Radius = vg.Points(2)
-    scatter.GlyphStyle.Color = color.Transparent // Ustawienie koloru przez własną mapę
-    scatter.ColorMap = plotter.ColorMapFunc(func(x, y float64) color.Color {
-        for k, pt := range heatmap {
-            if pt.X == x && pt.Y == y {
-                return colors[k]
-            }
-        }
-        return color.Black
-    })
-    p.Add(scatter)
-
+    // Ustalanie jednakowej skali dla osi X i Y
+	xMin, xMax := 0.0, rt.Matrix[0][len(rt.Matrix[0])-1].X
+	yMin, yMax := 0.0, rt.Matrix[len(rt.Matrix)-1][0].Y
+	xRange := xMax - xMin
+	yRange := yMax - yMin
+	// Wybieramy większy zakres i dopasowujemy mniejszy
+	if xRange > yRange {
+		diff := (xRange - yRange) / 2
+		yMin -= diff
+		yMax += diff
+	} else {
+		diff := (yRange - xRange) / 2
+		xMin -= diff
+		xMax += diff
+	}
+	// Ustawienie zakresu wykresu po korekcie
+	p.X.Min, p.X.Max = xMin, xMax
+	p.Y.Min, p.Y.Max = yMin, yMax
     // Rysowanie ścian
     for _, wall := range rt.Walls {
         line := plotter.XYs{
@@ -257,31 +208,123 @@ func (rt *RayTracing) PlotVisualization(filename string) error {
         if err != nil {
             return err
         }
-        l.Color = color.Black
+        l.Color = color.RGBA{R: 0, G: 0, B: 0, A: 255}
         l.Width = vg.Points(2)
         p.Add(l)
     }
-
     // Rysowanie transmitera
-    transmitter := plotter.XYs{{X: rt.TransmitterPos.X, Y: rt.TransmitterPos.Y}}
-    tScatter, err := plotter.NewScatter(transmitter)
+    transmitter := plotter.XYs{
+        {X: rt.TransmitterPos.X, Y: rt.TransmitterPos.Y},
+    }
+    transmitterScatter, err := plotter.NewScatter(transmitter)
     if err != nil {
         return err
     }
-    tScatter.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
-    tScatter.Radius = vg.Points(5)
-    p.Add(tScatter)
-
+    transmitterScatter.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
+    transmitterScatter.Radius = vg.Points(5)
+    p.Add(transmitterScatter)
+    // Rysowanie odbitych transmiterów
+    for _, mt := range rt.MirroredTransmitters {
+        mirroredTransmitter := plotter.XYs{
+            {X: mt.X, Y: mt.Y},
+        }
+        mtScatter, err := plotter.NewScatter(mirroredTransmitter)
+        if err != nil {
+            return err
+        }
+        mtScatter.Color = color.RGBA{R: 0, G: 0, B: 255, A: 255}
+        mtScatter.Radius = vg.Points(3)
+        p.Add(mtScatter)
+    }
+    // Dodanie legendy
+    p.Legend.Add("Transmitter", transmitterScatter)
+    
+    // Tworzymy linię dla legendy
+    legendLine, err := plotter.NewLine(plotter.XYs{{X: 0, Y: 0}, {X: 1, Y: 1}})
+    if err != nil {
+        return err
+    }
+    p.Legend.Add("Walls", legendLine)
+    
+    // Tworzymy punkt dla legendy
+    legendPoint, err := plotter.NewScatter(plotter.XYs{{X: 0, Y: 0}})
+    if err != nil {
+        return err
+    }
+    p.Legend.Add("Mirrored Transmitters", legendPoint)
+    
+    p.Legend.Top = true
+    p.Legend.Left = true
+    // Zapisanie wykresu do pliku
     return p.Save(10*vg.Inch, 10*vg.Inch, filename)
+}
+// GenerateHeatmap tworzy mapę ciepła z tablicy 2D wartości
+func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
+    height := len(powerMap)
+    width := len(powerMap[0])
+    
+    // Znajdź min i max wartości do normalizacji
+    minVal, maxVal := math.Inf(1), math.Inf(-1)
+    for y := 0; y < height; y++ {
+        for x := 0; x < width; x++ {
+            val := powerMap[y][x]
+            if val < minVal {
+                minVal = val
+            }
+            if val > maxVal {
+                maxVal = val
+            }
+        }
+    }
+    
+    // Utwórz nowy obraz
+    img := image.NewRGBA(image.Rect(0, 0, width, height))
+    
+    // Wypełnij obraz kolorami
+    for y := 0; y < height; y++ {
+        // Odwracamy współrzędną Y
+        yFlipped := height - 1 - y
+        
+        for x := 0; x < width; x++ {
+            // Normalizuj wartość do zakresu 0-1
+            normalizedVal := (powerMap[y][x] - minVal) / (maxVal - minVal)
+            
+            // Konwertuj na kolor (używając przejścia od niebieskiego przez zielony do czerwonego)
+            r, g, b := getHeatmapColor(normalizedVal)
+            // Używamy odwróconej współrzędnej Y
+            img.Set(x, yFlipped, color.RGBA{r, g, b, 255})
+        }
+    }
+    
+    return img
+}
+
+// getHeatmapColor zwraca kolor RGB dla znormalizowanej wartości (0-1)
+func getHeatmapColor(value float64) (uint8, uint8, uint8) {
+    // Przejście kolorów: niebieski -> cyjan -> zielony -> żółty -> czerwony
+    switch {
+    case value < 0.25:
+        // niebieski do cyjan
+        return 0, uint8(255 * value * 4), 255
+    case value < 0.5:
+        // cyjan do zielony
+        return 0, 255, uint8(255 * (2 - value*4))
+    case value < 0.75:
+        // zielony do żółty
+        return uint8(255 * (value*4 - 2)), 255, 0
+    default:
+        // żółty do czerwony
+        return 255, uint8(255 * (4 - value*4)), 0
+    }
 }
 
 func main() {
-	matrixDimensions := Point{X:20, Y:30}
-	transmitterPos := Point{X:17, Y:7}
+	matrixDimensions := Point{X:40, Y:40}
+	transmitterPos := Point{X:20, Y:20}
 	transmitterPower := 10.0 // mW
 	transmitterFreq := 2.4   // GHz
 	reflectionFactor := 0.8
-	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:6,Y:10}, B:Point{X:12,Y:12}}, {A:Point{X:15,Y:15}, B:Point{X:15,Y:3}}}
+	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:6,Y:10}, B:Point{X:12,Y:12}}, {A:Point{X:15,Y:15}, B:Point{X:15,Y:3}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:30}},{A:Point{X:5,Y:30}, B:Point{X:10,Y:35}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}}}
 
 	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	fmt.Printf("%v", raytracing.MirroredTransmitters)
@@ -292,4 +335,10 @@ func main() {
         return
     }
     fmt.Println("Visualization saved to raytracing.png")
+	heatmap := GenerateHeatmap(raytracing.PowerMap)
+    
+    // Zapisz do pliku
+    f, _ := os.Create("heatmap.png")
+    defer f.Close()
+    png.Encode(f, heatmap)
 }
