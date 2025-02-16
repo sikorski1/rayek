@@ -112,6 +112,7 @@ func (rt *RayTracing) calculateRayTracing() {
 			if checkLineOfSight(rt.TransmitterPos, receiverPos, rt.Walls) {
 				H += calculateTransmittance(receiverPos, rt.TransmitterPos, rt.WaveLength, 1.0)
 			}
+			H += calculateSingleWallReflection(rt.MirroredTransmitters, rt.TransmitterPos, receiverPos, rt.Walls, rt.WaveLength, rt.ReflectionFactor)
 			if H == 0 {
 				rt.PowerMap[i][j] = -150
 			} else {
@@ -130,6 +131,32 @@ func checkLineOfSight(transmitterPos, receiverPos Point, walls []Vector) bool {
 	return true
 }
 
+func calculateSingleWallReflection(mirroredTransmitters []Point, transmitterPos, receiverPos Point, walls []Vector, waveLength, reflectionFactor float64) complex128 {
+	H := complex(0,0)
+	for i, wall := range walls {
+		if twoVectors(receiverPos, mirroredTransmitters[i], wall.A, wall.B) <= 0 {
+			continue
+		} 
+		reflectionPoint := calculateCrossPoint(receiverPos, mirroredTransmitters[i], wall.A, wall.B)
+		collision := false
+		for j := range(len(walls)-1) {
+			index := (i+j+1) % len(walls)
+			if twoVectors(transmitterPos, reflectionPoint, walls[index].A, walls[index].B) >= 0 {
+				collision = true
+				break
+			}
+			if twoVectors(reflectionPoint, receiverPos, walls[index].A, walls[index].B) >= 0{
+				collision = true
+				break
+			}
+		}
+		if !collision {
+			H += calculateTransmittance(receiverPos, mirroredTransmitters[i], waveLength, reflectionFactor)
+		}
+	}
+	return H
+}
+
 func calculateTransmittance(p1, p2 Point, waveLength, reflectionRef float64) complex128 {
 	r := calculateDist(p1, p2)
 	if r > 0 {
@@ -139,6 +166,29 @@ func calculateTransmittance(p1, p2 Point, waveLength, reflectionRef float64) com
 		return H
 	} else {
 		return 0
+	}
+}
+func calculateCrossPoint (A, B, C, D Point) Point {
+	if A.X == B.X {
+		x := A.X
+		a2 := (D.Y - C.Y)/(D.X - C.X)
+		b2 := C.Y - a2 * C.X
+		y := a2 * x + b2
+		return Point{X:x, Y:y}
+	} else if C.X == D.X{
+		x := C.X
+		a1 := (B.Y-A.Y)/(B.X-A.X)
+		b1 := A.Y - a1*A.X
+		y := a1 * x + b1
+		return Point{X:x, Y:y}
+	} else {
+		a1 := (B.Y-A.Y)/(B.X-A.X)
+		b1 := A.Y - a1*A.X
+		a2 := (D.Y - C.Y)/(D.X - C.X)
+		b2 := C.Y - a2 * C.X
+		x := (b2-b1)/(a1-a2)
+		y := a1 * x + b1
+		return Point{X:x, Y:y}
 	}
 }
 func calculateDist(p1, p2 Point) float64 {
@@ -320,11 +370,11 @@ func getHeatmapColor(value float64) (uint8, uint8, uint8) {
 
 func main() {
 	matrixDimensions := Point{X:40, Y:40}
-	transmitterPos := Point{X:20, Y:20}
-	transmitterPower := 10.0 // mW
-	transmitterFreq := 2.4   // GHz
-	reflectionFactor := 0.8
-	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:6,Y:10}, B:Point{X:12,Y:12}}, {A:Point{X:15,Y:15}, B:Point{X:15,Y:3}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:30}},{A:Point{X:5,Y:30}, B:Point{X:10,Y:35}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}}}
+	transmitterPos := Point{X:18, Y:5}
+	transmitterPower := 5.0 // mW
+	transmitterFreq := 3.4   // GHz
+	reflectionFactor := 0.7
+	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:6,Y:10}, B:Point{X:12,Y:12}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:30}},{A:Point{X:5,Y:30}, B:Point{X:10,Y:35}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}}}
 
 	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	fmt.Printf("%v", raytracing.MirroredTransmitters)
