@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/cmplx"
+	"time"
 	"image"
     "image/color"
     "image/png"
@@ -34,7 +35,7 @@ type RayTracing struct {
 }
 //create RayTracingObject
 func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayTracing {
-	step := 0.1
+	step := 0.01
 	rows := int(matrixDimensions.Y*(1/step))+1
 	cols := int(matrixDimensions.X*(1/step))+1
 	powerMap := make([][]float64, rows)
@@ -369,6 +370,7 @@ func getHeatmapColor(value float64) (uint8, uint8, uint8) {
 }
 
 func main() {
+	start := time.Now()
 	matrixDimensions := Point{X:40, Y:40}
 	transmitterPos := Point{X:18, Y:5}
 	transmitterPower := 5.0 // mW
@@ -377,8 +379,10 @@ func main() {
 	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:6,Y:10}, B:Point{X:12,Y:12}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:30}},{A:Point{X:5,Y:30}, B:Point{X:10,Y:35}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}}}
 
 	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
-	fmt.Printf("%v", raytracing.MirroredTransmitters)
+	fmt.Printf("%v \n", raytracing.MirroredTransmitters)
 	raytracing.calculateRayTracing()
+	stop := time.Since(start)
+	fmt.Printf("Computation time: %v \n", stop)
 	err := raytracing.PlotVisualization("raytracing.png")
     if err != nil {
         fmt.Printf("Error creating visualization: %v\n", err)
