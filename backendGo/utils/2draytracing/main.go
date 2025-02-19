@@ -239,7 +239,7 @@ func (rt *RayTracing) PlotVisualization(filename string) error {
 
 func main() {
 	start := time.Now()
-	matrixDimensions := Point{X:30, Y:40}
+	matrixDimensions := Point{X:40, Y:40}
 	transmitterPos := Point{X:5, Y:20}
 	transmitterPower := 5.0 // mW
 	transmitterFreq := 3.4   // GHz

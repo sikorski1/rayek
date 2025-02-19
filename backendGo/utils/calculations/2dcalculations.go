@@ -73,7 +73,6 @@ func TwoVectors(A, B, C, D Point) int8 {
 			}
 		}
 }
-// GenerateHeatmap tworzy mapę ciepła z tablicy 2D wartości
 func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
     height := len(powerMap)
     width := len(powerMap[0])
@@ -83,11 +82,14 @@ func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
     for y := 0; y < height; y++ {
         for x := 0; x < width; x++ {
             val := powerMap[y][x]
-            if val < minVal {
-                minVal = val
-            }
-            if val > maxVal {
-                maxVal = val
+            // Pomijamy wartości 1000 i 0 przy ustalaniu zakresu
+            if val != 1000 && val != 0 {
+                if val < minVal {
+                    minVal = val
+                }
+                if val > maxVal {
+                    maxVal = val
+                }
             }
         }
     }
@@ -101,19 +103,27 @@ func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
         yFlipped := height - 1 - y
         
         for x := 0; x < width; x++ {
-            // Normalizuj wartość do zakresu 0-1
-            normalizedVal := (powerMap[y][x] - minVal) / (maxVal - minVal)
+            val := powerMap[y][x]
             
-            // Konwertuj na kolor (używając przejścia od niebieskiego przez zielony do czerwonego)
-            r, g, b := getHeatmapColor(normalizedVal)
-            // Używamy odwróconej współrzędnej Y
-            img.Set(x, yFlipped, color.RGBA{r, g, b, 255})
+            if val == 1000 {
+                // Wartości równe 1000 są czarne
+                img.Set(x, yFlipped, color.RGBA{0, 0, 0, 255})
+            } else if val == 0 {
+                // Wartości równe 0 są białe
+                img.Set(x, yFlipped, color.RGBA{255, 255, 255, 255})
+            } else {
+                // Normalizuj wartość do zakresu 0-1
+                normalizedVal := (val - minVal) / (maxVal - minVal)
+                
+                // Konwertuj na kolor (używając przejścia od niebieskiego przez zielony do czerwonego)
+                r, g, b := getHeatmapColor(normalizedVal)
+                img.Set(x, yFlipped, color.RGBA{r, g, b, 255})
+            }
         }
     }
     
     return img
 }
-
 // getHeatmapColor zwraca kolor RGB dla znormalizowanej wartości (0-1)
 func getHeatmapColor(value float64) (uint8, uint8, uint8) {
     // Przejście kolorów: niebieski -> cyjan -> zielony -> żółty -> czerwony
