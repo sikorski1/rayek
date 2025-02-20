@@ -26,7 +26,7 @@ type RayLaunching struct {
 
 func NewRayLaunching(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayLaunching {
 	step := 0.1
-	numberOfRays := 720
+	numberOfRays := 2880
 	numberOfInteracitons := 3
 	minimalPower := -120.0
 	rows := int(matrixDimensions.Y*(1/step))+1
@@ -58,7 +58,9 @@ func (rl *RayLaunching) calculateRayLaunching() {
 	for i := range rl.NumberOfRays {
 		currInteracitons := 0
 		currPower := 0.0
-		dx, dy := math.Cos(float64(i))*rl.Step, math.Sin(float64(i))*rl.Step
+		dRadians := (2*math.Pi)/float64(rl.NumberOfRays)*float64(i)  // calculating angle change for every ray
+		dx, dy := math.Cos(dRadians)*rl.Step, math.Sin(dRadians)*rl.Step // calculating x, y change for every step
+		dx, dy = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15 // floating point numbers correction
 		x, y := rl.TransmitterPos.X + dx, rl.TransmitterPos.Y + dy 
 		for (x >= 0 && x <= maxSizeX) && (y >= 0 && y <= maxSizeY) && currInteracitons <= rl.NumberOfInteracitons && currPower >= rl.MinimalPower {
 			xIdx := int(math.Round(x / rl.Step))
@@ -113,12 +115,19 @@ func setWallsIn2DMap(Map *[][]float64, walls []Vector, step float64) {
 			dx := x2 - x1
 			dy := y2 - y1
 			steps := int(math.Max(math.Abs(dx/step), math.Abs(dy/step)))
+			prevXIdx := int(math.Round(x1 / step))
+			prevYIdx := int(math.Round(y1 / step))
 			for i := 0; i <= steps; i++ {
 				x := x1 + (dx*float64(i))/float64(steps)
 				y := y1 + (dy*float64(i))/float64(steps)
 				xIdx := int(math.Round(x / step))
 				yIdx := int(math.Round(y / step))
+				if prevXIdx < xIdx && prevYIdx < yIdx || prevXIdx < xIdx && prevYIdx > yIdx  ||  prevXIdx > xIdx && prevYIdx < yIdx  || prevXIdx > xIdx && prevYIdx > yIdx  {
+					(*Map)[prevYIdx][xIdx] = 1000
+				}
 				(*Map)[yIdx][xIdx] = 1000
+				prevXIdx = xIdx
+				prevYIdx = yIdx
 			} 
 		}
 	}
@@ -128,7 +137,7 @@ func setWallsIn2DMap(Map *[][]float64, walls []Vector, step float64) {
 func main() {
 	start := time.Now()
 	matrixDimensions := Point{X:40, Y:40}
-	transmitterPos := Point{X:5, Y:20}
+	transmitterPos := Point{X:20, Y:30}
 	transmitterPower := 5.0 
 	transmitterFreq := 1.4  
 	reflectionFactor := 0.7
