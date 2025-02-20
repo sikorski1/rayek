@@ -29,8 +29,8 @@ type RayLaunching struct {
 
 func NewRayLaunching(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayLaunching {
 	step := 0.1
-	numberOfRays := 36000
-	numberOfInteractions := 4
+	numberOfRays := 3600
+	numberOfInteractions := 10
 	minimalPower := -150.0
 	wallMapNumber := 1000
 	rows := int(matrixDimensions.Y*(1/step))+1
@@ -136,6 +136,7 @@ func setWallsIn2DMap(Map *[][]float64, WallNormals  *[]Normal, walls []Vector, s
 				x1Idx, x2Idx = x2Idx, x1Idx
 			}
 			for x := x1Idx; x <= x2Idx; x++ {
+				
 				(*Map)[y1Idx][x] = float64(wallMapNumber + i)
 			}
 		} else {
@@ -182,32 +183,108 @@ func SaveMapToCSV(Map [][]float64, filename string) error {
 func main() {
 	start := time.Now()
 	matrixDimensions := Point{X:40, Y:40}
-	transmitterPos := Point{X:20, Y:10}
+	transmitterPos := Point{X:16, Y:20}
 	transmitterPower := 5.0 
 	transmitterFreq := 2.4
 	reflectionFactor := 0.8
-	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:12,Y:12}, B:Point{X:6,Y:10}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:15}},{A:Point{X:10,Y:36}, B:Point{X:5,Y:30}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}},{A:Point{X:1,Y:24}, B:Point{X:1,Y:26}},{A:Point{X:1,Y:28}, B:Point{X:1,Y:30}},{A:Point{X:1,Y:37}, B:Point{X:1,Y:40}},{A:Point{X:35,Y:36}, B:Point{X:30,Y:28}},{A:Point{X:40,Y:1}, B:Point{X:36,Y:2}},{A:Point{X:24,Y:3}, B:Point{X:25,Y:6}},{A:Point{X:16,Y:21}, B:Point{X:18,Y:22}},{A:Point{X:12,Y:18}, B:Point{X:12,Y:20}},{A:Point{X:18,Y:36}, B:Point{X:12,Y:36}}}
+	walls1 := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:12,Y:12}, B:Point{X:6,Y:10}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:15}},{A:Point{X:10,Y:36}, B:Point{X:5,Y:30}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}},{A:Point{X:1,Y:24}, B:Point{X:1,Y:26}},{A:Point{X:1,Y:28}, B:Point{X:1,Y:30}},{A:Point{X:1,Y:37}, B:Point{X:1,Y:40}},{A:Point{X:35,Y:36}, B:Point{X:30,Y:28}},{A:Point{X:40,Y:1}, B:Point{X:36,Y:2}},{A:Point{X:24,Y:3}, B:Point{X:25,Y:6}},{A:Point{X:16,Y:21}, B:Point{X:18,Y:22}},{A:Point{X:12,Y:18}, B:Point{X:12,Y:20}},{A:Point{X:18,Y:36}, B:Point{X:12,Y:36}}}
+	walls2 := []Vector{
+		{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, 
+		{A:Point{X:12,Y:12}, B:Point{X:6,Y:10}}, {A:Point{X:25,Y:10}, B:Point{X:25,Y:15}}, 
+		{A:Point{X:10,Y:36}, B:Point{X:5,Y:30}}, {A:Point{X:23,Y:36}, B:Point{X:25,Y:39}}, 
+		{A:Point{X:1,Y:24}, B:Point{X:1,Y:26}}, {A:Point{X:1,Y:28}, B:Point{X:1,Y:30}}, 
+		{A:Point{X:1,Y:37}, B:Point{X:1,Y:40}}, {A:Point{X:35,Y:36}, B:Point{X:30,Y:28}}, 
+		{A:Point{X:40,Y:1}, B:Point{X:36,Y:2}}, {A:Point{X:24,Y:3}, B:Point{X:25,Y:6}}, 
+		{A:Point{X:16,Y:21}, B:Point{X:18,Y:22}}, {A:Point{X:12,Y:18}, B:Point{X:12,Y:20}}, 
+		{A:Point{X:18,Y:36}, B:Point{X:12,Y:36}}, {A:Point{X:5,Y:5}, B:Point{X:10,Y:5}}, 
+		{A:Point{X:15,Y:15}, B:Point{X:20,Y:15}}, {A:Point{X:25,Y:20}, B:Point{X:30,Y:20}}, 
+		{A:Point{X:35,Y:25}, B:Point{X:40,Y:25}}, {A:Point{X:12,Y:30}, B:Point{X:14,Y:32}}, 
+		{A:Point{X:22,Y:8}, B:Point{X:22,Y:12}}, {A:Point{X:28,Y:18}, B:Point{X:28,Y:22}}, 
+		{A:Point{X:34,Y:28}, B:Point{X:34,Y:32}}, {A:Point{X:10,Y:10}, B:Point{X:12,Y:12}}, 
+		{A:Point{X:14,Y:14}, B:Point{X:16,Y:16}}, {A:Point{X:18,Y:18}, B:Point{X:20,Y:20}}, 
+		{A:Point{X:22,Y:22}, B:Point{X:24,Y:24}}, {A:Point{X:26,Y:26}, B:Point{X:28,Y:28}}, 
+		{A:Point{X:30,Y:30}, B:Point{X:32,Y:32}}, {A:Point{X:34,Y:34}, B:Point{X:36,Y:36}},
+	}
+	walls3 := []Vector{
+		{A:Point{X:2,Y:4}, B:Point{X:6,Y:8}}, {A:Point{X:5,Y:2}, B:Point{X:9,Y:5}}, 
+		{A:Point{X:10,Y:12}, B:Point{X:14,Y:15}}, {A:Point{X:18,Y:22}, B:Point{X:22,Y:25}}, 
+		{A:Point{X:26,Y:30}, B:Point{X:30,Y:35}}, {A:Point{X:5,Y:10}, B:Point{X:10,Y:15}}, 
+		{A:Point{X:15,Y:18}, B:Point{X:20,Y:22}}, {A:Point{X:22,Y:26}, B:Point{X:26,Y:30}}, 
+		{A:Point{X:30,Y:32}, B:Point{X:34,Y:36}}, {A:Point{X:36,Y:40}, B:Point{X:40,Y:34}},
+	}
+	walls4 := []Vector{
+		
+		{A: Point{X: 2, Y: 2}, B: Point{X: 8, Y: 2}},
+		{A: Point{X: 8, Y: 2}, B: Point{X: 8, Y: 8}},
+		{A: Point{X: 8, Y: 8}, B: Point{X: 2, Y: 8}},
+		{A: Point{X: 2, Y: 8}, B: Point{X: 2, Y: 2}},
+
+		{A: Point{X: 12, Y: 4}, B: Point{X: 18, Y: 4}},
+		{A: Point{X: 18, Y: 4}, B: Point{X: 18, Y: 10}},
+		{A: Point{X: 18, Y: 10}, B: Point{X: 12, Y: 10}},
+		{A: Point{X: 12, Y: 10}, B: Point{X: 12, Y: 4}},
+
+
+		{A: Point{X: 22, Y: 6}, B: Point{X: 30, Y: 6}},
+		{A: Point{X: 30, Y: 6}, B: Point{X: 30, Y: 14}},
+		{A: Point{X: 30, Y: 14}, B: Point{X: 22, Y: 14}},
+		{A: Point{X: 22, Y: 14}, B: Point{X: 22, Y: 6}},
+
+
+		{A: Point{X: 4, Y: 12}, B: Point{X: 10, Y: 12}},
+		{A: Point{X: 10, Y: 12}, B: Point{X: 10, Y: 18}},
+		{A: Point{X: 10, Y: 18}, B: Point{X: 4, Y: 18}},
+		{A: Point{X: 4, Y: 18}, B: Point{X: 4, Y: 12}},
+
+
+
+
+		{A: Point{X: 26, Y: 18}, B: Point{X: 34, Y: 18}},
+		{A: Point{X: 34, Y: 18}, B: Point{X: 34, Y: 26}},
+		{A: Point{X: 34, Y: 26}, B: Point{X: 26, Y: 26}},
+		{A: Point{X: 26, Y: 26}, B: Point{X: 26, Y: 18}},
+
+	
+		{A: Point{X: 6, Y: 22}, B: Point{X: 12, Y: 22}},
+		{A: Point{X: 12, Y: 22}, B: Point{X: 12, Y: 30}},
+		{A: Point{X: 12, Y: 30}, B: Point{X: 6, Y: 30}},
+		{A: Point{X: 6, Y: 30}, B: Point{X: 6, Y: 22}},
+
+		{A: Point{X: 16, Y: 26}, B: Point{X: 24, Y: 26}},
+		{A: Point{X: 24, Y: 26}, B: Point{X: 24, Y: 34}},
+		{A: Point{X: 24, Y: 34}, B: Point{X: 16, Y: 34}},
+		{A: Point{X: 16, Y: 34}, B: Point{X: 16, Y: 26}},
+
+		{A: Point{X: 28, Y: 30}, B: Point{X: 36, Y: 30}},
+		{A: Point{X: 36, Y: 30}, B: Point{X: 36, Y: 38}},
+		{A: Point{X: 36, Y: 38}, B: Point{X: 28, Y: 38}},
+		{A: Point{X: 28, Y: 38}, B: Point{X: 28, Y: 30}},
+
+
+		{A: Point{X: 10, Y: 34}, B: Point{X: 18, Y: 34}},
+		{A: Point{X: 18, Y: 34}, B: Point{X: 18, Y: 40}},
+		{A: Point{X: 18, Y: 40}, B: Point{X: 10, Y: 40}},
+		{A: Point{X: 10, Y: 40}, B: Point{X: 10, Y: 34}},
+	}
+	wallsSet := [][]Vector{walls1,walls2,walls3,walls4}
+	walls := wallsSet[3]
 	raylaunching := NewRayLaunching(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	raylaunching.calculateRayLaunching()
 	stop := time.Since(start)
 	fmt.Printf("Computation time: %v \n", stop)
-	 // Zapisz mapę do pliku CSV
 	 err := SaveMapToCSV(raylaunching.Map, "ray_map.csv")
 	 if err != nil {
 		 fmt.Printf("Error saving map: %v\n", err)
 	 }
 	 
-	 // Zapisz też pozycję nadajnika i ściany
 	 saveConfigToJSON(transmitterPos, walls, "ray_config.json")
 	 
-	 // Możesz też wygenerować obrazek jak dotychczas
 	 heatmap := GenerateHeatmap(raylaunching.Map)
 	 f, _ := os.Create("heatmap.png")
 	 defer f.Close()
 	 png.Encode(f, heatmap)
  }
  
- // Funkcja do zapisywania konfiguracji
  func saveConfigToJSON(transmitter Point, walls []Vector, filename string) error {
 	 type Config struct {
 		 TransmitterX float64   `json:"tx"`
