@@ -7,3 +7,7 @@ type Point struct {
 type Vector struct {
 	A, B Point
 }
+
+type Normal struct {
+	Nx, Ny float64
+}

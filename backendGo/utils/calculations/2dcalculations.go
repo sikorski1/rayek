@@ -76,34 +76,33 @@ func TwoVectors(A, B, C, D Point) int8 {
 func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
     height := len(powerMap)
     width := len(powerMap[0])
-    minVal := -120.0  
-    maxVal := math.Inf(-1)
-    for y := 0; y < height; y++ {
-        for x := 0; x < width; x++ {
-            val := powerMap[y][x]
-            if val != 1000 && val != 0 {
-                if val > maxVal {
-                    maxVal = val
-                }
-            }
-        }
-    }
-    if maxVal < minVal {
-        maxVal = minVal
-    }
+    
+    // Fixed range values
+    minVal := -150.0  
+    maxVal := 0.0
+    
     img := image.NewRGBA(image.Rect(0, 0, width, height))
     for y := 0; y < height; y++ {
         yFlipped := height - 1 - y
         for x := 0; x < width; x++ {
             val := powerMap[y][x]
-            if val == 1000 {
+            
+            if val >= 1000 {
+                // Walls are black
                 img.Set(x, yFlipped, color.RGBA{0, 0, 0, 255})
             } else if val == 0 {
+                // Empty space is white
                 img.Set(x, yFlipped, color.RGBA{255, 255, 255, 255})
             } else {
+                // Clamp values to range
                 if val < minVal {
                     val = minVal
                 }
+                if val > maxVal {
+                    val = maxVal
+                }
+                
+                // Normalize to 0-1 range
                 normalizedVal := (val - minVal) / (maxVal - minVal)
                 r, g, b := getHeatmapColor(normalizedVal)
                 img.Set(x, yFlipped, color.RGBA{r, g, b, 255})
@@ -113,6 +112,7 @@ func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
 
     return img
 }
+
 func getHeatmapColor(value float64) (uint8, uint8, uint8) {
     switch {
     case value < 0.25:
