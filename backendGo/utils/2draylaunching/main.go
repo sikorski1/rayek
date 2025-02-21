@@ -29,8 +29,8 @@ type RayLaunching struct {
 
 func NewRayLaunching(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayLaunching {
 	step := 0.1
-	numberOfRays := 3600
-	numberOfInteractions := 10
+	numberOfRays := 18000
+	numberOfInteractions := 4
 	minimalPower := -150.0
 	wallMapNumber := 1000
 	rows := int(matrixDimensions.Y*(1/step))+1
@@ -182,12 +182,13 @@ func SaveMapToCSV(Map [][]float64, filename string) error {
 
 func main() {
 	start := time.Now()
-	matrixDimensions := Point{X:40, Y:40}
-	transmitterPos := Point{X:16, Y:20}
+	matrixDimensions := Point{X:10, Y:10}
+	transmitterPos := Point{X:4, Y:9}
 	transmitterPower := 5.0 
 	transmitterFreq := 2.4
 	reflectionFactor := 0.8
 	walls1 := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:12,Y:12}, B:Point{X:6,Y:10}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:15}},{A:Point{X:10,Y:36}, B:Point{X:5,Y:30}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}},{A:Point{X:1,Y:24}, B:Point{X:1,Y:26}},{A:Point{X:1,Y:28}, B:Point{X:1,Y:30}},{A:Point{X:1,Y:37}, B:Point{X:1,Y:40}},{A:Point{X:35,Y:36}, B:Point{X:30,Y:28}},{A:Point{X:40,Y:1}, B:Point{X:36,Y:2}},{A:Point{X:24,Y:3}, B:Point{X:25,Y:6}},{A:Point{X:16,Y:21}, B:Point{X:18,Y:22}},{A:Point{X:12,Y:18}, B:Point{X:12,Y:20}},{A:Point{X:18,Y:36}, B:Point{X:12,Y:36}}}
+	walls5 := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}}
 	walls2 := []Vector{
 		{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, 
 		{A:Point{X:12,Y:12}, B:Point{X:6,Y:10}}, {A:Point{X:25,Y:10}, B:Point{X:25,Y:15}}, 
@@ -266,10 +267,11 @@ func main() {
 		{A: Point{X: 18, Y: 40}, B: Point{X: 10, Y: 40}},
 		{A: Point{X: 10, Y: 40}, B: Point{X: 10, Y: 34}},
 	}
-	wallsSet := [][]Vector{walls1,walls2,walls3,walls4}
-	walls := wallsSet[3]
+	wallsSet := [][]Vector{walls1,walls2,walls3,walls4,walls5}
+	walls := wallsSet[4]
 	raylaunching := NewRayLaunching(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	raylaunching.calculateRayLaunching()
+	fmt.Printf("%v \n", raylaunching.Map)
 	stop := time.Since(start)
 	fmt.Printf("Computation time: %v \n", stop)
 	 err := SaveMapToCSV(raylaunching.Map, "ray_map.csv")

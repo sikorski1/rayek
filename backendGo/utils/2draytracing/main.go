@@ -240,11 +240,64 @@ func (rt *RayTracing) PlotVisualization(filename string) error {
 func main() {
 	start := time.Now()
 	matrixDimensions := Point{X:40, Y:40}
-	transmitterPos := Point{X:5, Y:20}
+	transmitterPos := Point{X:16, Y:20}
 	transmitterPower := 5.0 // mW
-	transmitterFreq := 3.4   // GHz
-	reflectionFactor := 0.7
-	walls := []Vector{{A:Point{X:0,Y:3}, B:Point{X:3,Y:6}}, {A:Point{X:1,Y:3}, B:Point{X:6,Y:3}}, {A:Point{X:6,Y:10}, B:Point{X:12,Y:12}},{A:Point{X:25,Y:10}, B:Point{X:25,Y:15}},{A:Point{X:5,Y:30}, B:Point{X:10,Y:35}},{A:Point{X:23,Y:36}, B:Point{X:25,Y:39}},{A:Point{X:1,Y:24}, B:Point{X:1,Y:26}},{A:Point{X:1,Y:28}, B:Point{X:1,Y:30}},{A:Point{X:1,Y:37}, B:Point{X:1,Y:40}},{A:Point{X:35,Y:36}, B:Point{X:30,Y:28}},{A:Point{X:40,Y:1}, B:Point{X:36,Y:2}},{A:Point{X:24,Y:3}, B:Point{X:25,Y:6}},{A:Point{X:16,Y:21}, B:Point{X:18,Y:22}},{A:Point{X:12,Y:18}, B:Point{X:12,Y:20}},{A:Point{X:18,Y:36}, B:Point{X:12,Y:36}}}
+	transmitterFreq := 2.4   // GHz
+	reflectionFactor := 0.8
+	walls := []Vector{
+		
+		{A: Point{X: 2, Y: 2}, B: Point{X: 8, Y: 2}},
+		{A: Point{X: 8, Y: 2}, B: Point{X: 8, Y: 8}},
+		{A: Point{X: 8, Y: 8}, B: Point{X: 2, Y: 8}},
+		{A: Point{X: 2, Y: 8}, B: Point{X: 2, Y: 2}},
+
+		{A: Point{X: 12, Y: 4}, B: Point{X: 18, Y: 4}},
+		{A: Point{X: 18, Y: 4}, B: Point{X: 18, Y: 10}},
+		{A: Point{X: 18, Y: 10}, B: Point{X: 12, Y: 10}},
+		{A: Point{X: 12, Y: 10}, B: Point{X: 12, Y: 4}},
+
+
+		{A: Point{X: 22, Y: 6}, B: Point{X: 30, Y: 6}},
+		{A: Point{X: 30, Y: 6}, B: Point{X: 30, Y: 14}},
+		{A: Point{X: 30, Y: 14}, B: Point{X: 22, Y: 14}},
+		{A: Point{X: 22, Y: 14}, B: Point{X: 22, Y: 6}},
+
+
+		{A: Point{X: 4, Y: 12}, B: Point{X: 10, Y: 12}},
+		{A: Point{X: 10, Y: 12}, B: Point{X: 10, Y: 18}},
+		{A: Point{X: 10, Y: 18}, B: Point{X: 4, Y: 18}},
+		{A: Point{X: 4, Y: 18}, B: Point{X: 4, Y: 12}},
+
+
+
+
+		{A: Point{X: 26, Y: 18}, B: Point{X: 34, Y: 18}},
+		{A: Point{X: 34, Y: 18}, B: Point{X: 34, Y: 26}},
+		{A: Point{X: 34, Y: 26}, B: Point{X: 26, Y: 26}},
+		{A: Point{X: 26, Y: 26}, B: Point{X: 26, Y: 18}},
+
+	
+		{A: Point{X: 6, Y: 22}, B: Point{X: 12, Y: 22}},
+		{A: Point{X: 12, Y: 22}, B: Point{X: 12, Y: 30}},
+		{A: Point{X: 12, Y: 30}, B: Point{X: 6, Y: 30}},
+		{A: Point{X: 6, Y: 30}, B: Point{X: 6, Y: 22}},
+
+		{A: Point{X: 16, Y: 26}, B: Point{X: 24, Y: 26}},
+		{A: Point{X: 24, Y: 26}, B: Point{X: 24, Y: 34}},
+		{A: Point{X: 24, Y: 34}, B: Point{X: 16, Y: 34}},
+		{A: Point{X: 16, Y: 34}, B: Point{X: 16, Y: 26}},
+
+		{A: Point{X: 28, Y: 30}, B: Point{X: 36, Y: 30}},
+		{A: Point{X: 36, Y: 30}, B: Point{X: 36, Y: 38}},
+		{A: Point{X: 36, Y: 38}, B: Point{X: 28, Y: 38}},
+		{A: Point{X: 28, Y: 38}, B: Point{X: 28, Y: 30}},
+
+
+		{A: Point{X: 10, Y: 34}, B: Point{X: 18, Y: 34}},
+		{A: Point{X: 18, Y: 34}, B: Point{X: 18, Y: 40}},
+		{A: Point{X: 18, Y: 40}, B: Point{X: 10, Y: 40}},
+		{A: Point{X: 10, Y: 40}, B: Point{X: 10, Y: 34}},
+	}
 
 	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	fmt.Printf("%v \n", raytracing.MirroredTransmitters)

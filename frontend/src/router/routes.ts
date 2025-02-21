@@ -1,3 +1,4 @@
+import ReactHeatMap from "@/components/ReactHeatMap/ReactHeatMap"
 import Home from "@/pages/Home/Home"
 import Maps from "@/pages/Maps/Maps"
 import SingleMap from "@/pages/SingleMap/SingleMap"
@@ -17,4 +18,9 @@ export const routes = [
       component: SingleMap,
       isPrivate: false,
     },
+    {
+      path:"/sampleMap",
+      component: ReactHeatMap,
+      isPrivate: false,
+    }
 ]
