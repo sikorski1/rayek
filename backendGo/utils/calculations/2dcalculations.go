@@ -19,6 +19,15 @@ func CalculateTransmittance(p1, p2 Point, waveLength, reflectionRef float64) com
 		return 0
 	}
 }
+func CalculateTransmittanceWithLength(r, waveLength, reflectionRef float64) complex128 {
+	if r > 0 {
+		H := complex(reflectionRef, 0) * complex(waveLength/(4*math.Pi*r), 0) *
+			cmplx.Exp(complex(0,-2*math.Pi*r/waveLength)) 
+		return H
+	} else {
+		return 0
+	}
+}
 func CalculateCrossPoint (A, B, C, D Point) Point {
 	if A.X == B.X {
 		x := A.X

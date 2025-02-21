@@ -29,8 +29,8 @@ type RayLaunching struct {
 
 func NewRayLaunching(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayLaunching {
 	step := 0.1
-	numberOfRays := 18000
-	numberOfInteractions := 4
+	numberOfRays := 36000
+	numberOfInteractions := 5
 	minimalPower := -150.0
 	wallMapNumber := 1000
 	rows := int(matrixDimensions.Y*(1/step))+1
@@ -73,6 +73,9 @@ func (rl *RayLaunching) calculateRayLaunching() {
 		dx, dy = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15 // floating point numbers correction
 		x, y := rl.TransmitterPos.X + dx, rl.TransmitterPos.Y + dy
 		currWallIndex := 0
+		currRayLength := 0.0
+		sumRayLength := 0.0
+		currStartLengthPos := rl.TransmitterPos
 		for (x >= 0 && x <= maxSizeX) && (y >= 0 && y <= maxSizeY) && currInteractions < rl.NumberOfInteracitons && currPower >= rl.MinimalPower {
 			xIdx := int(math.Round(x / rl.Step))
 			yIdx := int(math.Round(y / rl.Step))
@@ -85,9 +88,14 @@ func (rl *RayLaunching) calculateRayLaunching() {
 				dx = dx - dot*nx
 				dy = dy - dot*ny
 				currInteractions++
+				sumRayLength += CalculateDist(currStartLengthPos, Point{X:x,Y:y})
 				// fmt.Printf("ray%v: %v \n", i,rl.Map[yIdx][xIdx])
+				// fmt.Printf("%v \n",  sumRayLength)
+				currStartLengthPos = Point{X:x,Y:y}
+				
 			} else {
-				H := CalculateTransmittance(Point{X:rl.TransmitterPos.X,Y:rl.TransmitterPos.Y},Point{X:x,Y:y},rl.WaveLength,math.Pow(rl.ReflectionFactor, float64(currInteractions)))
+				currRayLength = CalculateDist(currStartLengthPos, Point{X:x,Y:y}) + sumRayLength
+				H := CalculateTransmittanceWithLength(currRayLength,rl.WaveLength,math.Pow(rl.ReflectionFactor, float64(currInteractions)))
 				currPower = 10*math.Log10(rl.TransmitterPower) + 20*math.Log10(cmplx.Abs(H))
 				if rl.Map[yIdx][xIdx] != -150 {
 					existingPowerLin := math.Pow(10, rl.Map[yIdx][xIdx]/10)
@@ -182,8 +190,8 @@ func SaveMapToCSV(Map [][]float64, filename string) error {
 
 func main() {
 	start := time.Now()
-	matrixDimensions := Point{X:10, Y:10}
-	transmitterPos := Point{X:4, Y:9}
+	matrixDimensions := Point{X:40, Y:40}
+	transmitterPos := Point{X:20, Y:30}
 	transmitterPower := 5.0 
 	transmitterFreq := 2.4
 	reflectionFactor := 0.8
@@ -268,10 +276,10 @@ func main() {
 		{A: Point{X: 10, Y: 40}, B: Point{X: 10, Y: 34}},
 	}
 	wallsSet := [][]Vector{walls1,walls2,walls3,walls4,walls5}
-	walls := wallsSet[4]
+	walls := wallsSet[0]
 	raylaunching := NewRayLaunching(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	raylaunching.calculateRayLaunching()
-	fmt.Printf("%v \n", raylaunching.Map)
+	// fmt.Printf("%v \n", raylaunching.Map)
 	stop := time.Since(start)
 	fmt.Printf("Computation time: %v \n", stop)
 	 err := SaveMapToCSV(raylaunching.Map, "ray_map.csv")
