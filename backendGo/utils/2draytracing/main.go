@@ -145,7 +145,8 @@ func calculateSingleWallReflection(mirroredTransmitters []Point, transmitterPos,
 			}
 		}
 		if !collision {
-			H += CalculateTransmittance(receiverPos, mirroredTransmitters[i], waveLength, reflectionFactor)
+			r := CalculateDist(transmitterPos,  reflectionPoint) + CalculateDist(reflectionPoint, receiverPos)
+			H += CalculateTransmittanceWithLength(r, waveLength, reflectionFactor)
 		}
 	}
 	return H
