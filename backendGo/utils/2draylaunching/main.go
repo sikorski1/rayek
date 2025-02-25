@@ -29,8 +29,8 @@ type RayLaunching struct {
 
 func NewRayLaunching(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayLaunching {
 	step := 0.1
-	numberOfRays := 36000
-	numberOfInteractions := 5
+	numberOfRays := 7200
+	numberOfInteractions := 6
 	minimalPower := -150.0
 	wallMapNumber := 1000
 	rows := int(matrixDimensions.Y*(1/step))+1
@@ -191,7 +191,8 @@ func SaveMapToCSV(Map [][]float64, filename string) error {
 func main() {
 	start := time.Now()
 	matrixDimensions := Point{X:40, Y:40}
-	transmitterPos := Point{X:20, Y:30}
+	// transmitterPos := Point{X:20, Y:30}
+	transmitterPos := Point{X:20, Y:20}
 	transmitterPower := 5.0 
 	transmitterFreq := 2.4
 	reflectionFactor := 0.8
@@ -276,7 +277,7 @@ func main() {
 		{A: Point{X: 10, Y: 40}, B: Point{X: 10, Y: 34}},
 	}
 	wallsSet := [][]Vector{walls1,walls2,walls3,walls4,walls5}
-	walls := wallsSet[0]
+	walls := wallsSet[3]
 	raylaunching := NewRayLaunching(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	raylaunching.calculateRayLaunching()
 	// fmt.Printf("%v \n", raylaunching.Map)
