@@ -28,7 +28,7 @@ type RayTracing struct {
 }
 //create RayTracingObject
 func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayTracing {
-	step := 0.1
+	step := 0.01
 	rows := int(matrixDimensions.Y*(1/step))+1
 	cols := int(matrixDimensions.X*(1/step))+1
 	powerMap := make([][]float64, rows)
