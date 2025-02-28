@@ -103,3 +103,30 @@ func ComputeRays(context *gin.Context) {
 	context.JSON(http.StatusOK, points)
 
 }
+
+type RayLaunchRequest struct {
+	MapNumber      int     `json:"mapNumber" binding:"required"`
+	StationHeight  float64 `json:"stationHeight" binding:"required"`
+	Frequency      float64 `json:"freq" binding:"required"`
+}
+
+func Create3DRayLaunching(context *gin.Context) {
+	var request RayLaunchRequest
+
+	if err := context.ShouldBindJSON(&request); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	println("Launching ray with params:")
+	println("Map Number:", request.MapNumber)
+	println("Station Height:", request.StationHeight)
+	println("Frequency:", request.Frequency)
+
+	context.JSON(http.StatusOK, gin.H{
+		"message":       "Request received successfully",
+		"mapNumber":     request.MapNumber,
+		"stationHeight": request.StationHeight,
+		"frequency":     request.Frequency,
+	})
+}
