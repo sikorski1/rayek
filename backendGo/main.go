@@ -4,6 +4,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"backendGo/routes"
+	"backendGo/db"
 )
 
 func main() {
@@ -19,6 +20,6 @@ func main() {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	routes.SetupRayCheckRoutes(router)
-
+	db.ConnectDB()
 	router.Run(":3000")
 }
