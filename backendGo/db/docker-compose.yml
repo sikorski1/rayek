@@ -1,7 +1,6 @@
-
 services:
   db:
-    image: postgres:15
+    image: postgis/postgis:15-3.3
     container_name: postgres_db
     restart: always
     env_file:
@@ -10,6 +9,7 @@ services:
       - "5000:5000"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./initDb.sql:/docker-entrypoint-initdb.d/initDb.sql
 
 volumes:
   postgres_data:
