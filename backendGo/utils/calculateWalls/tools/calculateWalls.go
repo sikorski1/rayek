@@ -27,7 +27,7 @@ type Geometry struct {
 	Coordinates [][][]float64 `json:"coordinates"`
 }
 
-func CalculateWalls(filePath string) {
+func CalculateWalls(filePath string) string {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Fatalf("Failed to read data file: %v", err)
@@ -99,4 +99,5 @@ func CalculateWalls(filePath string) {
 	}
 	fmt.Printf("Saved all buildings to %s\n", outputFilename)
 	fmt.Println("Processing complete")
+	return outputFilename
 }
