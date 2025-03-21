@@ -12,6 +12,10 @@ type Normal struct {
 	Nx, Ny float64
 }
 
+type MapConfig struct {
+	LatMin, LatMax, LonMin, LonMax float64
+	Size, HeightMaxLevels int
+}
 
 type Point3D struct {
 	X float64 `json:"x"`
