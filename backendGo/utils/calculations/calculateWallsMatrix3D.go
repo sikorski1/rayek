@@ -221,8 +221,8 @@ func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 	matrix := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
 	saveMatrixBinary(matrix, folderPath)
 }
-func LoadMatrixBinary(filename string) ([][][]float64, error) {
-	file, err := os.Open(filename)
+func LoadMatrixBinary(path string) ([][][]float64, error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}

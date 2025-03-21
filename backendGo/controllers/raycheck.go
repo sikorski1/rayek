@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,8 +17,6 @@ type MapConfiguration struct {
 	Center [2]float64 `json:"center"`
 	Bounds [2][2]float64 `json:"bounds"`
 }
-
-
 
 type Features struct {
 	Type string `json:"type"`
@@ -34,25 +35,27 @@ func GetMapConfiguration(context *gin.Context) {
 		log.Fatal(err)
 	}
 	mapTitle := context.Param("mapTitle")
-	data, err := os.ReadFile(cwd + "/data/mapData.json") 
+	fmt.Println(filepath.Join(cwd, "data", mapTitle,"mapData.json"))
+	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle,"mapData.json")) 
 	if err != nil {
 		log.Print("Failed to read data file")
 		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
 		return
 	}
-	var mapData map[string]MapConfiguration
+	var mapData MapConfiguration
 	err = json.Unmarshal(data, &mapData)
 	if err != nil {
 		log.Print("Failed to parse JSON")
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON"})
 		return
 	}
-	if config, exists := mapData[mapTitle]; exists {
-		context.JSON(http.StatusOK, config)
-	} else {
+	if mapData.Title == "" || len(mapData.Coordinates) == 0 {
 		log.Print("Map configuration not found")
 		context.JSON(http.StatusNotFound, gin.H{"error": "Map configuration not found"})
+		return
 	}
+
+	context.JSON(http.StatusOK, mapData)
 }
 
 func GetBuildings(context *gin.Context) {
@@ -61,12 +64,12 @@ func GetBuildings(context *gin.Context) {
 		log.Fatal(err)
 	}
 	mapTitle := context.Param("mapTitle")
-	data, err := os.ReadFile(cwd + "/data/buildingsData.json")
+	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle,"rawBuildings.json"))
 	if err != nil {
 		log.Print("Failed to read data file")
 		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
 	}
-	var buildingData map[string]BuildingsConfiguration
+	var buildingData BuildingsConfiguration
 	err = json.Unmarshal(data, &buildingData)
 
 	if err != nil {
@@ -74,13 +77,12 @@ func GetBuildings(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON"})
 		return
 	}
-
-	if config, exists := buildingData[mapTitle]; exists {
-		context.JSON(http.StatusOK, config)
-	} else {
+	if len(buildingData.Features) == 0 {
 		log.Print("Buildings configuration not found")
 		context.JSON(http.StatusNotFound, gin.H{"error": "Buildings configuration not found"})
+		return
 	}
+	context.JSON(http.StatusOK, buildingData)
 }
 
 func ComputeRays(context *gin.Context) {
@@ -116,7 +118,8 @@ func Create3DRayLaunching(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	matrixPath := fmt.Sprintf("../data/%v/wallsMatrix3D.bin", request.MapNumber)
+	fmt.Printf(matrixPath)
 	println("Launching ray with params:")
 	println("Map Number:", request.MapNumber)
 	println("Station Height:", request.StationHeight)

@@ -14,7 +14,7 @@ export default function Maps() {
 	const sampleData: MapData[] = [
 		{
 			id: "1",
-			name: "AGH fragment",
+			name: "AGHFragment",
 			description: "",
 			img: aghFragment,
 		},

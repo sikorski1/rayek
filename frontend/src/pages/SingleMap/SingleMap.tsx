@@ -91,7 +91,7 @@ export default function SingleMap() {
 		const fetchData = async () => {
 			try {
 				const mapResponse = (await getMapData({ mapTitle: id! })) || {
-					title: "AGH fragment",
+					title: "AGHFragment",
 					coordinates: [
 						[
 							[19.914029, 50.065311], // Southwest
