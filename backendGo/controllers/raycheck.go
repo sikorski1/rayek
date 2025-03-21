@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"backendGo/utils/calculations"
+	"backendGo/utils/raylaunching"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -32,25 +34,25 @@ type BuildingsConfiguration struct {
 func GetMapConfiguration(context *gin.Context) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	mapTitle := context.Param("mapTitle")
 	fmt.Println(filepath.Join(cwd, "data", mapTitle,"mapData.json"))
 	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle,"mapData.json")) 
 	if err != nil {
-		log.Print("Failed to read data file")
+		log.Println("Failed to read data file")
 		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
 		return
 	}
 	var mapData MapConfiguration
 	err = json.Unmarshal(data, &mapData)
 	if err != nil {
-		log.Print("Failed to parse JSON")
+		log.Println("Failed to parse JSON")
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON"})
 		return
 	}
 	if mapData.Title == "" || len(mapData.Coordinates) == 0 {
-		log.Print("Map configuration not found")
+		log.Println("Map configuration not found")
 		context.JSON(http.StatusNotFound, gin.H{"error": "Map configuration not found"})
 		return
 	}
@@ -61,24 +63,24 @@ func GetMapConfiguration(context *gin.Context) {
 func GetBuildings(context *gin.Context) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	mapTitle := context.Param("mapTitle")
 	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle,"rawBuildings.json"))
 	if err != nil {
-		log.Print("Failed to read data file")
+		log.Println("Failed to read data file")
 		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
 	}
 	var buildingData BuildingsConfiguration
 	err = json.Unmarshal(data, &buildingData)
 
 	if err != nil {
-		log.Print("Failed to parse JSON")
+		log.Println("Failed to parse JSON")
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON"})
 		return
 	}
 	if len(buildingData.Features) == 0 {
-		log.Print("Buildings configuration not found")
+		log.Println("Buildings configuration not found")
 		context.JSON(http.StatusNotFound, gin.H{"error": "Buildings configuration not found"})
 		return
 	}
@@ -106,28 +108,36 @@ func ComputeRays(context *gin.Context) {
 }
 
 type RayLaunchRequest struct {
-	MapNumber      int     `json:"mapNumber" binding:"required"`
-	StationHeight  float64 `json:"stationHeight" binding:"required"`
-	Frequency      float64 `json:"freq" binding:"required"`
+	StationHeight  float64 `json:"stationHeight"`
+	Frequency      float64 `json:"freq"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
+	mapTitle := context.Param("mapTitle")
 	var request RayLaunchRequest
-
 	if err := context.ShouldBindJSON(&request); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	matrixPath := fmt.Sprintf("../data/%v/wallsMatrix3D.bin", request.MapNumber)
-	fmt.Printf(matrixPath)
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+	}
+	matrix, err := calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D.bin"))
+	if err != nil {
+		log.Println("Failed to load matrix:", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
+		return
+	}	
+	raylaunching.Calculate3DRayLaunch(matrix)
 	println("Launching ray with params:")
-	println("Map Number:", request.MapNumber)
+	println("Map Number:", mapTitle)
 	println("Station Height:", request.StationHeight)
 	println("Frequency:", request.Frequency)
 
 	context.JSON(http.StatusOK, gin.H{
 		"message":       "Request received successfully",
-		"mapNumber":     request.MapNumber,
+		"mapTitle":     mapTitle,
 		"stationHeight": request.StationHeight,
 		"frequency":     request.Frequency,
 	})

@@ -1,3 +1,0 @@
-type RayLaunching struct {
-	
-}
