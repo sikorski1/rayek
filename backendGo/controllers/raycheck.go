@@ -130,11 +130,6 @@ func Create3DRayLaunching(context *gin.Context) {
 		return
 	}	
 	raylaunching.Calculate3DRayLaunch(matrix)
-	println("Launching ray with params:")
-	println("Map Number:", mapTitle)
-	println("Station Height:", request.StationHeight)
-	println("Frequency:", request.Frequency)
-
 	context.JSON(http.StatusOK, gin.H{
 		"message":       "Request received successfully",
 		"mapTitle":     mapTitle,
