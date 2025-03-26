@@ -137,7 +137,7 @@ export default function SingleMap() {
 			};
 			fetchBuildings();
 		}
-	}, [singleMapData.mapData]);
+	}, [singleMapData.mapData])
 	return (
 		<>
 			{popupData.isOpen && (
@@ -193,7 +193,7 @@ export default function SingleMap() {
 			{singleMapData.mapData && singleMapData.buildingsData && (
 				<div className={styles.box}>
 					<div className={styles.titleBox}>
-						<h3>{id}</h3>
+						<h3>{singleMapData.mapData.title}</h3>
 					</div>
 					<div className={styles.mapBox}>
 						<Map

@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
 	"github.com/gin-gonic/gin"
+	."backendGo/types"
 )
 
 type MapConfiguration struct {
@@ -123,17 +123,26 @@ func Create3DRayLaunching(context *gin.Context) {
 	if err != nil {
 		log.Println(err)
 	}
-	matrix, err := calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D.bin"))
+	var matrix [][][]float64
+	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D.bin"), &matrix)
 	if err != nil {
 		log.Println("Failed to load matrix:", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
 		return
-	}	
-	raylaunching.Calculate3DRayLaunch(matrix)
+	}
+	var wallNormals []Normal3D
+	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallNormals3D.bin"), &wallNormals)
+	if err != nil {
+		log.Println("Failed to load matrix:", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
+		return
+	}
+	powerMap := raylaunching.RayLaunching3D(matrix, wallNormals)
 	context.JSON(http.StatusOK, gin.H{
 		"message":       "Request received successfully",
 		"mapTitle":     mapTitle,
 		"stationHeight": request.StationHeight,
 		"frequency":     request.Frequency,
+		"powerMap": powerMap,
 	})
 }

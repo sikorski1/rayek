@@ -1,9 +1,9 @@
+import aghWiet from "@/assets/imgs/agh_fragment.png";
+import sampleImg from "@/assets/imgs/sampleMapImg.jpg";
 import Title from "@/components/Title/Title";
 import Wrapper from "@/components/Wrapper/Wrapper";
 import { Link } from "react-router-dom";
-import sampleImg from "@/assets/imgs/sampleMapImg.jpg"
 import styles from "./maps.module.scss";
-import aghFragment from "@/assets/imgs/agh_fragment.png"
 type MapData = {
 	id: string;
 	name: string;
@@ -14,13 +14,13 @@ export default function Maps() {
 	const sampleData: MapData[] = [
 		{
 			id: "1",
-			name: "AGHFragment",
+			name: "AGH WIET",
 			description: "",
-			img: aghFragment,
+			img: aghWiet,
 		},
 		{
 			id: "2",
-			name: "Cracow Main Market Square",
+			name: "AGH Library",
 			description: "",
 			img: "",
 		},
@@ -48,11 +48,11 @@ export default function Maps() {
 								<h3 className={styles.cardTitle}>{item.name}</h3>
 							</div>
 							<div className={styles.cardBox}>
-								<Link key={item.id} to={item.name} className={styles.link}></Link>
+								<Link key={item.id} to={item.name.replace(/\s+/g, "").toLocaleLowerCase()} className={styles.link}></Link>
 								<div className={styles.bgGradient}></div>
-                                <div className={styles.imgBox}>
-                                    <img className={styles.img} src={item.img || sampleImg} alt="map image" />
-                                </div>
+								<div className={styles.imgBox}>
+									<img className={styles.img} src={item.img || sampleImg} alt="map image" />
+								</div>
 							</div>
 						</div>
 					))}
