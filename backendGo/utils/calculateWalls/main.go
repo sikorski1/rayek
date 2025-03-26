@@ -38,13 +38,21 @@ func main() {
 	//calculating walls matrix
 	calculations.CalculateWallsMatrix3D(mapFolderPath, config)
 	wallsMatrixPath := filepath.Join(mapFolderPath, "wallsMatrix3D.bin")
+	wallNormalsPath := filepath.Join(mapFolderPath, "wallNormals3D.bin")
 	//check if matrix calculated properly
-	matrix, err := calculations.LoadMatrixBinary(wallsMatrixPath)
+	var matrix [][][]float64
+	var wallNormals []Normal3D
+	err = calculations.LoadMatrixBinary(wallsMatrixPath, &matrix)
 	if err != nil {
 		log.Fatalf("Error loading matrix %v", err)
 	}
+	err = calculations.LoadMatrixBinary(wallNormalsPath, &wallNormals)
+	if err != nil {
+		log.Fatalf("Error loading matrix %v", err)
+	}
+	fmt.Printf("Wall normals: %v", wallNormals)
 	mapName := filepath.Base(mapFolderPath)	
-	HEIGHT := 15
+	HEIGHT := 0
 	outputFileName := fmt.Sprintf("%s-%dm.png", strings.ReplaceAll(mapName, " ", "_"), HEIGHT)
 	outputFilePath := filepath.Join(mapFolderPath, outputFileName)
 	heatmap := calculations.GenerateHeatmap(matrix[HEIGHT])

@@ -115,7 +115,7 @@ func geoToMatrixIndex(lat, lon, latMin, latMax, lonMin, lonMax float64, size int
 	return i, j
 }
 
-func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels int) {
+func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIndex int) {
 	dx := x2 - x1
 	dy := y2 - y1
 	if z1 >= heightLevels {
@@ -130,7 +130,7 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels int) {
 		}
 		for y := y1; y <= y2; y++ {
 			for z := 0; z <= z1; z++ {
-				matrix[z][y][x1] = 1
+				matrix[z][y][x1] = float64(1000 + wallIndex)
 			}
 		}
 	} else if y1 == y2 {
@@ -139,7 +139,7 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels int) {
 		}
 		for x := x1; x <= x2; x++ {
 			for z := 0; z <= z1; z++ {
-				matrix[z][y1][x] = 1
+				matrix[z][y1][x] = float64(1000 + wallIndex)
 			}
 		}
 	} else {
@@ -153,16 +153,16 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels int) {
 			yIdx := y
 			if prevXIdx < xIdx && prevYIdx < yIdx || prevXIdx < xIdx && prevYIdx > yIdx  {
 				for z := 0; z <= z1; z++ {
-					matrix[z][yIdx][prevXIdx] = 1
+					matrix[z][yIdx][prevXIdx] = float64(1000 + wallIndex)
 				}
 			}
 			if prevXIdx > xIdx && prevYIdx < yIdx  || prevXIdx > xIdx && prevYIdx > yIdx  {
 				for z := 0; z <= z1; z++ {
-					matrix[z][prevYIdx][xIdx] = 1
+					matrix[z][prevYIdx][xIdx] = float64(1000 + wallIndex)
 				}
 			} // walls continuity
 			for z := 0; z <= z1; z++ {
-				matrix[z][yIdx][xIdx] = 1
+				matrix[z][yIdx][xIdx] = float64(1000 + wallIndex)
 			}
 			prevXIdx = xIdx
 			prevYIdx = yIdx
@@ -170,41 +170,64 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels int) {
 	}
 }
 
-func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax float64, size, heightLevels int) [][][]float64{
+func calculateNormal3D( x1, y1, z1, x2, y2, z2 int) Normal3D {
+	dx := x2 - x1
+	dy := y2 - y1
+	length := math.Hypot(float64(dx), float64(dy))
+	fmt.Printf("length: %v\n", length)
+		if length == 0  {
+			return Normal3D{Nx:0, Ny:0, Nz:0}
+		}
+		nx := -float64(dy)/length
+		ny := float64(dx)/length
+		return Normal3D{Nx:nx, Ny:ny, Nz:0}
+}
+
+func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax float64, size, heightLevels int) ([][][]float64, []Normal3D){
 	matrix := make([][][]float64, heightLevels)
+	wallNormals := []Normal3D{}
 	for z := range matrix {
 		matrix[z] = make([][]float64, size)
 		for y := range matrix[z] {
 			matrix[z][y] = make([]float64, size)
 		}
 	}
-
+	wallsMapIndex := 0
 	for _, building := range buildings {
 		for _, wall := range building.Walls {
 			i1, j1 := geoToMatrixIndex(wall.Start.Y, wall.Start.X, latMin, latMax, lonMin, lonMax, size)
 			i2, j2 := geoToMatrixIndex(wall.End.Y, wall.End.X, latMin, latMax, lonMin, lonMax, size)
+			fmt.Printf("x: %v \n y: %v \n", i2-i1, j2-j1)
+			
 			if i1 == -1 || i2 == -1 || j1 == -1 || j2 == -1 {
 				continue
 			}
 			z1 := int(math.Round(wall.Start.Z))
 			z2 := int(math.Round(wall.End.Z))
-			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels)
+			normal := calculateNormal3D( i1, j1, z1, i2, j2, z2)
+			if normal.Nx == 0 && normal.Ny == 0 {
+				continue
+			} 
+			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex)
+			wallNormals = append(wallNormals, normal)
+			wallsMapIndex++
 		}
 	}
-	return matrix
+	fmt.Printf("walls: %v \n", wallsMapIndex)
+	return matrix, wallNormals
 }
 
 
-func saveMatrixBinary(matrix [][][]float64, folderPath string) error {
-	matrixPath := filepath.Join(folderPath, "wallsMatrix3D.bin")
-	file, err := os.Create(matrixPath)
+func saveBinary(data interface{}, folderPath, filename string) error {
+	finalPath := filepath.Join(folderPath, filename)
+	file, err := os.Create(finalPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 	
 	encoder := gob.NewEncoder(file)
-	return encoder.Encode(matrix)
+	return encoder.Encode(data)
 }
 
 func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
@@ -218,18 +241,16 @@ func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 	if err != nil {
 		log.Fatalf("Error parsing JSON: %v", err)
 	}
-	matrix := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
-	saveMatrixBinary(matrix, folderPath)
+	matrix, wallNormals := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
+	saveBinary(matrix, folderPath, "wallsMatrix3D.bin")
+	saveBinary(wallNormals, folderPath, "wallNormals3D.bin")
 }
-func LoadMatrixBinary(path string) ([][][]float64, error) {
+func LoadMatrixBinary(path string, data interface{}) error {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
-
-	var matrix [][][]float64
 	decoder := gob.NewDecoder(file)
-	err = decoder.Decode(&matrix)
-	return matrix, err
+	return decoder.Decode(data)
 }

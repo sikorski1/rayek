@@ -11,6 +11,9 @@ type Vector struct {
 type Normal struct {
 	Nx, Ny float64
 }
+type Normal3D struct {
+	Nx, Ny, Nz float64
+}
 
 type MapConfig struct {
 	LatMin, LatMax, LonMin, LonMax float64
