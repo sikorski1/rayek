@@ -203,9 +203,6 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 		for _, wall := range building.Walls {
 			i1, j1 := geoToMatrixIndex(wall.Start.Y, wall.Start.X, latMin, latMax, lonMin, lonMax, size)
 			i2, j2 := geoToMatrixIndex(wall.End.Y, wall.End.X, latMin, latMax, lonMin, lonMax, size)			
-			if i1 == -1 || i2 == -1 || j1 == -1 || j2 == -1 {
-				continue
-			}
 			z1 := int(math.Round(wall.Start.Z))
 			z2 := int(math.Round(wall.End.Z))
 			normal := calculateNormal3D( i1, j1, z1, i2, j2, z2)
