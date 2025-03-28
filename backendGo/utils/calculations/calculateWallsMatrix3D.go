@@ -105,9 +105,6 @@ func calculateWalls(folderPath string) string {
 	return outputFilePath
 }
 func geoToMatrixIndex(lat, lon, latMin, latMax, lonMin, lonMax float64, size int) (int, int) {
-	if lat < latMin || lat > latMax || lon < lonMin || lon > lonMax {
-		return -1, -1
-	}
 	y := (lat - latMin) / (latMax - latMin) * float64(size-1)
 	x := (lon - lonMin) / (lonMax - lonMin) * float64(size-1)
 	i := int(math.Round(x))
@@ -115,7 +112,7 @@ func geoToMatrixIndex(lat, lon, latMin, latMax, lonMin, lonMax float64, size int
 	return i, j
 }
 
-func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIndex int) {
+func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIndex, sizeX, sizeY int) {
 	dx := x2 - x1
 	dy := y2 - y1
 	if z1 >= heightLevels {
@@ -124,22 +121,26 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 	if z2 >= heightLevels {
 		z2 = heightLevels - 1
 	}
-	if x1 == x2 {
+	if x1 == x2 && x1 >= 0 && x1 < sizeX{
 		if y1 > y2 {
 			y1, y2 = y2, y1 
 		}
 		for y := y1; y <= y2; y++ {
-			for z := 0; z <= z1; z++ {
-				matrix[z][y][x1] = float64(1000 + wallIndex)
+			if y >= 0 && y < sizeY{
+				for z := 0; z <= z1; z++ {
+					matrix[z][y][x1] = float64(1000 + wallIndex)
+				}
 			}
 		}
-	} else if y1 == y2 {
+	} else if y1 == y2  && y1 >= 0 && y1 < sizeY {
 		if x1 > x2 {
 			x1, x2 = x2, x1
 		}
 		for x := x1; x <= x2; x++ {
-			for z := 0; z <= z1; z++ {
-				matrix[z][y1][x] = float64(1000 + wallIndex)
+			if x >= 0 && x < sizeX {
+				for z := 0; z <= z1; z++ {
+					matrix[z][y1][x] = float64(1000 + wallIndex)
+				}
 			}
 		}
 	} else {
@@ -152,17 +153,23 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 			xIdx := x
 			yIdx := y
 			if prevXIdx < xIdx && prevYIdx < yIdx || prevXIdx < xIdx && prevYIdx > yIdx  {
-				for z := 0; z <= z1; z++ {
-					matrix[z][yIdx][prevXIdx] = float64(1000 + wallIndex)
+				if yIdx >= 0 && yIdx < sizeY && prevXIdx >= 0 && prevXIdx < sizeX {
+					for z := 0; z <= z1; z++ {
+						matrix[z][yIdx][prevXIdx] = float64(1000 + wallIndex)
+					}
 				}
 			}
 			if prevXIdx > xIdx && prevYIdx < yIdx  || prevXIdx > xIdx && prevYIdx > yIdx  {
-				for z := 0; z <= z1; z++ {
-					matrix[z][prevYIdx][xIdx] = float64(1000 + wallIndex)
+				if xIdx >=0 && xIdx < sizeX && prevYIdx >= 0 && prevYIdx < sizeY {
+					for z := 0; z <= z1; z++ {
+						matrix[z][prevYIdx][xIdx] = float64(1000 + wallIndex)
+					}
 				}
 			} // walls continuity
-			for z := 0; z <= z1; z++ {
-				matrix[z][yIdx][xIdx] = float64(1000 + wallIndex)
+			if xIdx >= 0 && xIdx < sizeX && yIdx >= 0 && yIdx < sizeY {
+				for z := 0; z <= z1; z++ {
+					matrix[z][yIdx][xIdx] = float64(1000 + wallIndex)
+				}
 			}
 			prevXIdx = xIdx
 			prevYIdx = yIdx
@@ -174,7 +181,6 @@ func calculateNormal3D( x1, y1, z1, x2, y2, z2 int) Normal3D {
 	dx := x2 - x1
 	dy := y2 - y1
 	length := math.Hypot(float64(dx), float64(dy))
-	fmt.Printf("length: %v\n", length)
 		if length == 0  {
 			return Normal3D{Nx:0, Ny:0, Nz:0}
 		}
@@ -196,9 +202,7 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 	for _, building := range buildings {
 		for _, wall := range building.Walls {
 			i1, j1 := geoToMatrixIndex(wall.Start.Y, wall.Start.X, latMin, latMax, lonMin, lonMax, size)
-			i2, j2 := geoToMatrixIndex(wall.End.Y, wall.End.X, latMin, latMax, lonMin, lonMax, size)
-			fmt.Printf("x: %v \n y: %v \n", i2-i1, j2-j1)
-			
+			i2, j2 := geoToMatrixIndex(wall.End.Y, wall.End.X, latMin, latMax, lonMin, lonMax, size)			
 			if i1 == -1 || i2 == -1 || j1 == -1 || j2 == -1 {
 				continue
 			}
@@ -208,12 +212,13 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 			if normal.Nx == 0 && normal.Ny == 0 {
 				continue
 			} 
-			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex)
+			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex, 250, 250)
 			wallNormals = append(wallNormals, normal)
 			wallsMapIndex++
 		}
 	}
 	fmt.Printf("walls: %v \n", wallsMapIndex)
+	fmt.Printf("normals: %v \n", len(wallNormals))
 	return matrix, wallNormals
 }
 

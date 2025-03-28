@@ -50,7 +50,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading matrix %v", err)
 	}
-	fmt.Printf("Wall normals: %v", wallNormals)
 	mapName := filepath.Base(mapFolderPath)	
 	HEIGHT := 0
 	outputFileName := fmt.Sprintf("%s-%dm.png", strings.ReplaceAll(mapName, " ", "_"), HEIGHT)
