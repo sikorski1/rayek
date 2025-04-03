@@ -14,6 +14,9 @@ type Normal struct {
 type Normal3D struct {
 	Nx, Ny, Nz float64
 }
+type TransmitterPos3D struct {
+	X, Y, Z float64
+}
 
 type MapConfig struct {
 	LatMin, LatMax, LonMin, LonMax float64
