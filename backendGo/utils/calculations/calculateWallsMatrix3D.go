@@ -128,7 +128,11 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 		for y := y1; y <= y2; y++ {
 			if y >= 0 && y < sizeY{
 				for z := 0; z <= z1; z++ {
-					matrix[z][y][x1] = float64(1000 + wallIndex)
+					if matrix[z][y][x1] >= 1000 && matrix[z][y][x1] != float64(1000 + wallIndex) {
+						matrix[z][y][x1] = 10000 // Mark as corner
+					} else {
+						matrix[z][y][x1] = float64(1000 + wallIndex)
+					}
 				}
 			}
 		}
@@ -139,7 +143,11 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 		for x := x1; x <= x2; x++ {
 			if x >= 0 && x < sizeX {
 				for z := 0; z <= z1; z++ {
-					matrix[z][y1][x] = float64(1000 + wallIndex)
+					if matrix[z][y1][x] >= 1000 && matrix[z][y1][x] != float64(1000 + wallIndex) {
+						matrix[z][y1][x] = 10000 // Mark as corner
+					} else {
+						matrix[z][y1][x] = float64(1000 + wallIndex)
+					}
 				}
 			}
 		}
@@ -155,20 +163,32 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 			if prevXIdx < xIdx && prevYIdx < yIdx || prevXIdx < xIdx && prevYIdx > yIdx  {
 				if yIdx >= 0 && yIdx < sizeY && prevXIdx >= 0 && prevXIdx < sizeX {
 					for z := 0; z <= z1; z++ {
-						matrix[z][yIdx][prevXIdx] = float64(1000 + wallIndex)
+						if matrix[z][yIdx][prevXIdx] >= 1000 && matrix[z][yIdx][prevXIdx] != float64(1000 + wallIndex) {
+							matrix[z][yIdx][prevXIdx] = 10000 // Mark as corner
+						} else {
+							matrix[z][yIdx][prevXIdx] = float64(1000 + wallIndex)
+						}
 					}
 				}
 			}
 			if prevXIdx > xIdx && prevYIdx < yIdx  || prevXIdx > xIdx && prevYIdx > yIdx  {
 				if xIdx >=0 && xIdx < sizeX && prevYIdx >= 0 && prevYIdx < sizeY {
 					for z := 0; z <= z1; z++ {
-						matrix[z][prevYIdx][xIdx] = float64(1000 + wallIndex)
+						if matrix[z][prevYIdx][xIdx] >= 1000 && matrix[z][prevYIdx][xIdx] != float64(1000 + wallIndex) {
+							matrix[z][prevYIdx][xIdx] = 10000 // Mark as corner
+						} else {
+							matrix[z][prevYIdx][xIdx] = float64(1000 + wallIndex)
+						}
 					}
 				}
 			} // walls continuity
 			if xIdx >= 0 && xIdx < sizeX && yIdx >= 0 && yIdx < sizeY {
 				for z := 0; z <= z1; z++ {
-					matrix[z][yIdx][xIdx] = float64(1000 + wallIndex)
+					if matrix[z][yIdx][xIdx] >= 1000 && matrix[z][yIdx][xIdx] != float64(1000 + wallIndex) {
+						matrix[z][yIdx][xIdx] = 10000 // Mark as corner
+					} else {
+						matrix[z][yIdx][xIdx] = float64(1000 + wallIndex)
+					}
 				}
 			}
 			prevXIdx = xIdx

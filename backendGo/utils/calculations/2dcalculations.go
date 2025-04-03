@@ -96,8 +96,11 @@ func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
         for x := 0; x < width; x++ {
             val := powerMap[y][x]
             
-            if val >= 1000 {
-                // Walls are black
+            if val >= 10000 {
+                // Corner points are pink
+                img.Set(x, yFlipped, color.RGBA{255, 0, 255, 255}) // Bright pink
+            } else if val >= 1000 {
+                // Regular walls are black
                 img.Set(x, yFlipped, color.RGBA{0, 0, 0, 255})
             } else if val == 0 {
                 // Empty space is white

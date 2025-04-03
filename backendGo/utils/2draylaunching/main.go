@@ -108,8 +108,7 @@ func (rl *RayLaunching) calculateRayLaunching() {
 				}
 			}	
 			x += dx
-			y += dy
-			
+			y += dy	
 		}
 	}
 }
