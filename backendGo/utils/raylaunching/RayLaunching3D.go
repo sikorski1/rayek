@@ -3,11 +3,12 @@ package raylaunching
 import (
 	."backendGo/types"
 	"math"
+	"math/cmplx"
 )
 
 type RayLaunching3DConfig struct {
 	numOfRaysAzim, numOfRaysElev, numOfInteractions, wallMapNumber, cornerMapNumber int
-	sizeX, sizeY, sizeZ, step, reflFactor, stationPower, minimalRayPower, stationFreq, waveLength float64
+	sizeX, sizeY, sizeZ, step, reflFactor, transmitterPower, minimalRayPower, transmitterFreq, waveLength float64
 }
 
 type RayLaunching3D struct {
@@ -58,6 +59,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			currWallIndex := 0
 			currStartLengthPos := Point3D{X:rl.TransmitterPos.X, Y:rl.TransmitterPos.Y, Z:rl.TransmitterPos.Z}
 			currRayLength := 0.0
+			currSumRayLength := 0.0
+
 			// main loop
 			for (x >= 0 && x <= rl.Config.sizeX) && (y >= 0 && y <= rl.Config.sizeY) && (z >= 0 && z <= rl.Config.sizeZ) && currInteractions < rl.Config.numOfInteractions && currPower >= rl.Config.minimalRayPower {
 				xIdx := int(math.Round(x/rl.Config.step))
@@ -71,24 +74,52 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				// check if there is wall and if its diffrent from previous one
 				if index >= rl.Config.wallMapNumber && index != currWallIndex + rl.Config.wallMapNumber {
 					currWallIndex = index - rl.Config.wallMapNumber
-					nx, ny, nz := rl.WallNormals[currWallIndex].Nx, rl.WallNormals[currWallIndex].Ny, rl.WallNormals[currWallIndex].Nz
 
+					//get wall normal
+					nx, ny, nz := rl.WallNormals[currWallIndex].Nx, rl.WallNormals[currWallIndex].Ny, rl.WallNormals[currWallIndex].Nz
 					dot := 2 * (dx*nx + dy*ny + dz*nz)
+
+					// calculate new direction
 					dx = dx - dot*nx
 					dy = dy - dot*ny
 					dz = dz - dot*nz
 					currInteractions++
-					currRayLength += rl.CalculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
+
+					// sum distance and set new start position
+					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
 				} else {
-					currRayLength = rl.CalculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
+
+					// calculate distance and transmittance
+					currRayLength = calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z}) + currSumRayLength
+					H := calculateTransmittance(currRayLength, rl.Config.waveLength, math.Pow(rl.Config.reflFactor, float64(currInteractions)))
+					currPower = 10*math.Log10(rl.Config.transmitterPower) + 20*math.Log10(cmplx.Abs(H))
+					
+					// update power map if power is higher than previous one
+					if rl.PowerMap[zIdx][yIdx][xIdx] != -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
+						rl.PowerMap[zIdx][yIdx][xIdx] = currPower
+					} 
 				}
+				// update position
+				x += dx
+				y += dy
+				z += dz
 			}
 		}
 	}
 }
 
-func (rl *RayLaunching3D) CalculateDistance(p1, p2 Point3D) float64 {
+func calculateDistance(p1, p2 Point3D) float64 {
 	dist := math.Sqrt(math.Pow(p1.X-p2.X,2)+math.Pow(p1.Y-p2.Y,2)+math.Pow(p1.Z-p2.Z,2))
 	return dist
+}
+
+func calculateTransmittance(r, waveLength, reflectionRef float64) complex128 {
+	if r > 0 {
+		H := complex(reflectionRef, 0) * complex(waveLength/(4*math.Pi*r), 0) *
+			cmplx.Exp(complex(0,-2*math.Pi*r/waveLength)) 
+		return H
+	} else {
+		return 0
+	}
 }
