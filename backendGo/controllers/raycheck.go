@@ -1,18 +1,22 @@
 package controllers
 
 import (
+	. "backendGo/types"
 	"backendGo/utils/calculations"
 	"backendGo/utils/raylaunching"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/gif"
+	"image/png"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"github.com/gin-gonic/gin"
-	"image/png"
-	."backendGo/types"
 	"time"
+	"github.com/gin-gonic/gin"
 )
 
 type MapConfiguration struct {
@@ -139,9 +143,12 @@ func Create3DRayLaunching(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
 		return
 	}
+
+	// TESTING - START
+
 	config := raylaunching.RayLaunching3DConfig{
-		NumOfRaysAzim:        36,     
-		NumOfRaysElev:        36,    
+		NumOfRaysAzim:        360,     
+		NumOfRaysElev:        360,    
 		NumOfInteractions:    4,     
 		WallMapNumber:        1000,      
 		CornerMapNumber:      10000,       
@@ -149,12 +156,14 @@ func Create3DRayLaunching(context *gin.Context) {
 		SizeY:                250-1,
 		SizeZ:                30-1,     
 		Step:                 1.0,    
-		ReflFactor:           0.7,     
-		TransmitterPower:     1.0,     
-		MinimalRayPower:     -90.0,   
-		TransmitterFreq:      2.4e9,   
-		WaveLength:           0.125,  
+		ReflFactor:           0.4,     
+		TransmitterPower:     5.0,     
+		MinimalRayPower:     -120.0,   
+		TransmitterFreq:      30e9,   
+		WaveLength:           0,  
+		TransmitterPos: Point3D{X:125, Y:125, Z:15},
 	}
+	config.WaveLength = 299792458 / (config.TransmitterFreq)
 	start := time.Now()
 	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals,config)
 	rayLaunching.CalculateRayLaunching3D()
@@ -165,8 +174,7 @@ func Create3DRayLaunching(context *gin.Context) {
 	if err != nil {
 		log.Fatalf("failed to create output directory: %v", err)
 	}
-	println(rayLaunching.PowerMap[0])
-	for i := 0; i < int(config.SizeZ); i++ {
+	for i := 0; i <= int(config.SizeZ); i++ {
 		heatmap := calculations.GenerateHeatmap(rayLaunching.PowerMap[i])
 		filename := filepath.Join(outputDir, fmt.Sprintf("heatmap_%d.png", i))
 		f, err := os.Create(filename)
@@ -180,6 +188,57 @@ func Create3DRayLaunching(context *gin.Context) {
 		}
 		f.Close()
 	}
+
+	outGif := &gif.GIF{}
+	for i := 0; i <= int(config.SizeZ); i++ {
+		filename := filepath.Join(outputDir, fmt.Sprintf("heatmap_%d.png", i))
+		f, err := os.Open(filename)
+		if err != nil {
+			log.Printf("failed to open file %s: %v", filename, err)
+			continue
+		}
+		
+		img, err := png.Decode(f)
+		if err != nil {
+			log.Printf("failed to decode image %s: %v", filename, err)
+			f.Close()
+			continue
+		}
+		f.Close()
+		
+		bounds := img.Bounds()
+		palette := make(color.Palette, 256)
+		palette[0] = color.RGBA{0, 0, 0, 255} 
+		for i := 1; i < 256; i++ {
+			palette[i] = color.RGBA{
+				uint8(i), 
+				uint8(i), 
+				uint8(255 - i), 
+				255,
+			}
+		}
+		palettedImg := image.NewPaletted(bounds, palette)
+		draw.Draw(palettedImg, bounds, img, bounds.Min, draw.Src)
+		outGif.Image = append(outGif.Image, palettedImg)
+		outGif.Delay = append(outGif.Delay, 20)
+	}
+	if len(outGif.Image) == 0 {
+		log.Println("No frames were added to the GIF, aborting GIF creation")
+	}
+	gifFilename := filepath.Join(outputDir, fmt.Sprintf("%s_animation.gif", mapTitle))
+	gifFile, err := os.Create(gifFilename)
+	if err != nil {
+		log.Printf("failed to create GIF file: %v", err)
+	}
+	err = gif.EncodeAll(gifFile, outGif)
+	if err != nil {
+		log.Printf("failed to encode GIF: %v", err)
+	}
+	gifFile.Close() 
+	fmt.Printf("GIF animation created at %s\n", gifFilename)
+
+	// TESTING - END
+
 	context.JSON(http.StatusOK, gin.H{
 		"message":       "Request received successfully",
 		"mapTitle":     mapTitle,

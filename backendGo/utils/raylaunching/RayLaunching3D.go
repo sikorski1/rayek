@@ -9,6 +9,7 @@ import (
 type RayLaunching3DConfig struct {
 	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, CornerMapNumber int
 	SizeX, SizeY, SizeZ, Step, ReflFactor, TransmitterPower, MinimalRayPower, TransmitterFreq, WaveLength float64
+	TransmitterPos Point3D
 }
 
 type RayLaunching3D struct {
@@ -23,7 +24,6 @@ func NewRayLaunching3D(matrix [][][]float64, wallNormals []Normal3D, config RayL
 		PowerMap: matrix,
 		WallNormals: wallNormals,
 		Config: config,
-		TransmitterPos: TransmitterPos3D{X:125, Y:125, Z:5},
 	}
 }
 
@@ -34,32 +34,31 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			var phi,dx,dy,dz float64
 
 			// spherical coordinates
-			if rl.TransmitterPos.Z == 0 {
-				// half sphere – from -π/2 to π/2
-				phi = (-math.Pi/2) + (math.Pi / float64(rl.Config.NumOfRaysElev-1)) *  float64(j) // from -π/2 to π/2
+			if rl.Config.TransmitterPos.Z == 0 {
+				// half sphere – from 0 to π/2
+				phi = ((math.Pi/2) / float64(rl.Config.NumOfRaysElev-1)) *  float64(j) // from 0 to π/2
 				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.Step 
 				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.Step
 				dz = math.Sin(phi) * rl.Config.Step
 			} else {
 				//full sphere – from 0 to π
-				phi = math.Pi * float64(j) / float64(rl.Config.NumOfRaysElev-1) // from 0 to π
-				dx = math.Sin(phi) * math.Cos(theta) * rl.Config.Step
-				dy = math.Sin(phi) * math.Sin(theta) * rl.Config.Step
-				dz = math.Cos(phi) * rl.Config.Step
+				phi = 2*math.Pi * float64(j) / float64(rl.Config.NumOfRaysElev-1) // from 0 to π
+				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.Step 
+				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.Step
+				dz = math.Sin(phi) * rl.Config.Step
 				
 			}
 			dx, dy, dz = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15, math.Round(dz*1e15)/1e15
 			/* getting past to next step,
 			 omitting calculations for transmitter */
-			x := rl.TransmitterPos.X + dx
-			y := rl.TransmitterPos.Y + dy
-			z := rl.TransmitterPos.Z + dz
-
+			x := rl.Config.TransmitterPos.X + dx
+			y := rl.Config.TransmitterPos.Y + dy
+			z := rl.Config.TransmitterPos.Z + dz
 			// initial counters
 			currInteractions := 0
 			currPower := 0.0
 			currWallIndex := 0
-			currStartLengthPos := Point3D{X:rl.TransmitterPos.X, Y:rl.TransmitterPos.Y, Z:rl.TransmitterPos.Z}
+			currStartLengthPos := Point3D{X:rl.Config.TransmitterPos.X, Y:rl.Config.TransmitterPos.Y, Z:rl.Config.TransmitterPos.Z}
 			currRayLength := 0.0
 			currSumRayLength := 0.0
 			// main loop
