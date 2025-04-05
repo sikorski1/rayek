@@ -26,10 +26,10 @@ const getBuildingsData = async ({ mapTitle }: { mapTitle: string }): Promise<Fea
 	}
 };
 
-const postCompute = async (data:PostComputeTypes) => {
+const postCompute = async (data:PostComputeTypes, mapTitle:string) => {
 	let response;
 	try {
-		response = await axios.post(url + "/raycheck/compute", data, {
+		response = await axios.post(url + `/raycheck/rayLaunch/${mapTitle}`, data, {
 			headers: {
 				"Content-Type": "application/json",
 			},
@@ -78,7 +78,7 @@ export default function SingleMap() {
 	const handleComputeBtn = async () => {
 		const { frequency, stationHeight } = popupData;
 		const data: PostComputeTypes = { freq: frequency, stationH: stationHeight };
-		const response = await postCompute(data);
+		const response = await postCompute(data, id!);
 		if (response) {
 			setSingleMapData((prevSingleMapData) => {
 				const updatedSingleMapData = {...prevSingleMapData, computationResult:response.data}

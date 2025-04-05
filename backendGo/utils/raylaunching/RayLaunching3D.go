@@ -7,8 +7,8 @@ import (
 )
 
 type RayLaunching3DConfig struct {
-	numOfRaysAzim, numOfRaysElev, numOfInteractions, wallMapNumber, cornerMapNumber int
-	sizeX, sizeY, sizeZ, step, reflFactor, transmitterPower, minimalRayPower, transmitterFreq, waveLength float64
+	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, CornerMapNumber int
+	SizeX, SizeY, SizeZ, Step, ReflFactor, TransmitterPower, MinimalRayPower, TransmitterFreq, WaveLength float64
 }
 
 type RayLaunching3D struct {
@@ -23,30 +23,32 @@ func NewRayLaunching3D(matrix [][][]float64, wallNormals []Normal3D, config RayL
 		PowerMap: matrix,
 		WallNormals: wallNormals,
 		Config: config,
+		TransmitterPos: TransmitterPos3D{X:125, Y:125, Z:5},
 	}
 }
 
 func (rl *RayLaunching3D) CalculateRayLaunching3D() {
-	for i := 0; i < rl.Config.numOfRaysAzim; i++ { // loop over horizontal dim
-		theta := (2*math.Pi)/float64(rl.Config.numOfRaysAzim)*float64(i) // from -π to π
-		for j := 0; j < rl.Config.numOfRaysElev; j++ { // loop over vertical dim
+	for i := 0; i < rl.Config.NumOfRaysAzim; i++ { // loop over horizontal dim
+		theta := (2*math.Pi)/float64(rl.Config.NumOfRaysAzim)*float64(i) // from -π to π
+		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
 			var phi,dx,dy,dz float64
 
 			// spherical coordinates
 			if rl.TransmitterPos.Z == 0 {
 				// half sphere – from -π/2 to π/2
-				phi = (-math.Pi/2) + (math.Pi / float64(rl.Config.numOfRaysElev-1)) *  float64(j) // from -π/2 to π/2
-				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.step 
-				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.step
-				dz = math.Sin(phi) * rl.Config.step
+				phi = (-math.Pi/2) + (math.Pi / float64(rl.Config.NumOfRaysElev-1)) *  float64(j) // from -π/2 to π/2
+				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.Step 
+				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.Step
+				dz = math.Sin(phi) * rl.Config.Step
 			} else {
 				//full sphere – from 0 to π
-				phi = math.Pi * float64(j) / float64(rl.Config.numOfRaysElev-1) // from 0 to π
-				dx = math.Sin(phi) * math.Cos(theta) * rl.Config.step
-				dy = math.Sin(phi) * math.Sin(theta) * rl.Config.step
-				dz = math.Cos(phi) * rl.Config.step
+				phi = math.Pi * float64(j) / float64(rl.Config.NumOfRaysElev-1) // from 0 to π
+				dx = math.Sin(phi) * math.Cos(theta) * rl.Config.Step
+				dy = math.Sin(phi) * math.Sin(theta) * rl.Config.Step
+				dz = math.Cos(phi) * rl.Config.Step
+				
 			}
-
+			dx, dy, dz = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15, math.Round(dz*1e15)/1e15
 			/* getting past to next step,
 			 omitting calculations for transmitter */
 			x := rl.TransmitterPos.X + dx
@@ -60,20 +62,18 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			currStartLengthPos := Point3D{X:rl.TransmitterPos.X, Y:rl.TransmitterPos.Y, Z:rl.TransmitterPos.Z}
 			currRayLength := 0.0
 			currSumRayLength := 0.0
-
 			// main loop
-			for (x >= 0 && x <= rl.Config.sizeX) && (y >= 0 && y <= rl.Config.sizeY) && (z >= 0 && z <= rl.Config.sizeZ) && currInteractions < rl.Config.numOfInteractions && currPower >= rl.Config.minimalRayPower {
-				xIdx := int(math.Round(x/rl.Config.step))
-				yIdx := int(math.Round(y/rl.Config.step))
-				zIdx := int(math.Round(z/rl.Config.step))
+			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y <= rl.Config.SizeY) && (z >= 0 && z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
+				xIdx := int(math.Round(x/rl.Config.Step))
+				yIdx := int(math.Round(y/rl.Config.Step))
+				zIdx := int(math.Round(z/rl.Config.Step))
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-
-				if index == rl.Config.cornerMapNumber {
-					continue
+				if index == rl.Config.CornerMapNumber {
+					break
 				}
 				// check if there is wall and if its diffrent from previous one
-				if index >= rl.Config.wallMapNumber && index != currWallIndex + rl.Config.wallMapNumber {
-					currWallIndex = index - rl.Config.wallMapNumber
+				if index >= rl.Config.WallMapNumber && index != currWallIndex + rl.Config.WallMapNumber {
+					currWallIndex = index - rl.Config.WallMapNumber
 
 					//get wall normal
 					nx, ny, nz := rl.WallNormals[currWallIndex].Nx, rl.WallNormals[currWallIndex].Ny, rl.WallNormals[currWallIndex].Nz
@@ -92,11 +92,10 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 
 					// calculate distance and transmittance
 					currRayLength = calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z}) + currSumRayLength
-					H := calculateTransmittance(currRayLength, rl.Config.waveLength, math.Pow(rl.Config.reflFactor, float64(currInteractions)))
-					currPower = 10*math.Log10(rl.Config.transmitterPower) + 20*math.Log10(cmplx.Abs(H))
-					
+					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, math.Pow(rl.Config.ReflFactor, float64(currInteractions)))
+					currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H))
 					// update power map if power is higher than previous one
-					if rl.PowerMap[zIdx][yIdx][xIdx] != -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
+					if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
 						rl.PowerMap[zIdx][yIdx][xIdx] = currPower
 					} 
 				}

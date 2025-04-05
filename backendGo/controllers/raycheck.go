@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/gin-gonic/gin"
+	"image/png"
 	."backendGo/types"
+	"time"
 )
 
 type MapConfiguration struct {
@@ -137,12 +139,52 @@ func Create3DRayLaunching(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
 		return
 	}
-	powerMap := raylaunching.RayLaunching3D(matrix, wallNormals)
+	config := raylaunching.RayLaunching3DConfig{
+		NumOfRaysAzim:        36,     
+		NumOfRaysElev:        36,    
+		NumOfInteractions:    4,     
+		WallMapNumber:        1000,      
+		CornerMapNumber:      10000,       
+		SizeX:                250-1,    
+		SizeY:                250-1,
+		SizeZ:                30-1,     
+		Step:                 1.0,    
+		ReflFactor:           0.7,     
+		TransmitterPower:     1.0,     
+		MinimalRayPower:     -90.0,   
+		TransmitterFreq:      2.4e9,   
+		WaveLength:           0.125,  
+	}
+	start := time.Now()
+	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals,config)
+	rayLaunching.CalculateRayLaunching3D()
+	stop := time.Since(start)
+	fmt.Printf("RayLaunching 3D calculation time: %v\n", stop)
+	outputDir := filepath.Join("data", mapTitle, "imgs")
+	err = os.MkdirAll(outputDir, os.ModePerm)
+	if err != nil {
+		log.Fatalf("failed to create output directory: %v", err)
+	}
+	println(rayLaunching.PowerMap[0])
+	for i := 0; i < int(config.SizeZ); i++ {
+		heatmap := calculations.GenerateHeatmap(rayLaunching.PowerMap[i])
+		filename := filepath.Join(outputDir, fmt.Sprintf("heatmap_%d.png", i))
+		f, err := os.Create(filename)
+		if err != nil {
+			log.Printf("failed to create file %s: %v", filename, err)
+			continue
+		}
+		err = png.Encode(f, heatmap)
+		if err != nil {
+			log.Printf("failed to encode image %s: %v", filename, err)
+		}
+		f.Close()
+	}
 	context.JSON(http.StatusOK, gin.H{
 		"message":       "Request received successfully",
 		"mapTitle":     mapTitle,
 		"stationHeight": request.StationHeight,
 		"frequency":     request.Frequency,
-		"powerMap": powerMap,
+		"powerMap": rayLaunching.PowerMap,
 	})
 }
