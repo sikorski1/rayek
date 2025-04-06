@@ -293,41 +293,41 @@ export default function Map({
 			});
 		});
 		return () => mapRef.current?.remove();
-	}, [computationResult]);
+	}, []);
 
-	useEffect(() => {
-		if (!computationResult) return;
-		const geojson = {
-			type: "FeatureCollection",
-			features: computationResult.map((position: mapboxgl.LngLatLike[])  => {
-				const feature  = {
-					type: "Feature",
-					properties: {},
-					geometry: {
-						type: "Point",
-						coordinates: position,
-					},
-				};
-				return feature
-			}),
-		};
+	// useEffect(() => {
+	// 	if (!computationResult) return;
+	// 	const geojson = {
+	// 		type: "FeatureCollection",
+	// 		features: computationResult.map((position: mapboxgl.LngLatLike[])  => {
+	// 			const feature  = {
+	// 				type: "Feature",
+	// 				properties: {},
+	// 				geometry: {
+	// 					type: "Point",
+	// 					coordinates: position,
+	// 				},
+	// 			};
+	// 			return feature
+	// 		}),
+	// 	};
 
-		mapRef.current?.on("style.load", () => {
-			mapRef.current?.addSource("spheres-2d", {
-				type: "geojson",
-				data: geojson as FeatureCollection,
-			});
+	// 	mapRef.current?.on("style.load", () => {
+	// 		mapRef.current?.addSource("spheres-2d", {
+	// 			type: "geojson",
+	// 			data: geojson as FeatureCollection,
+	// 		});
 
-			mapRef.current?.addLayer({
-				id: "spheres-2d-layer",
-				type: "circle",
-				source: "spheres-2d",
-				paint: {
-					"circle-radius": 4,
-					"circle-color": "#d30000",
-				},
-			}, mapRef.current.getStyle()!.layers?.[30]?.id);
-		});
-	}, [computationResult]);
+	// 		mapRef.current?.addLayer({
+	// 			id: "spheres-2d-layer",
+	// 			type: "circle",
+	// 			source: "spheres-2d",
+	// 			paint: {
+	// 				"circle-radius": 4,
+	// 				"circle-color": "#d30000",
+	// 			},
+	// 		}, mapRef.current.getStyle()!.layers?.[30]?.id);
+	// 	});
+	// }, [computationResult]);
 	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
 }

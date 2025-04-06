@@ -28,6 +28,10 @@ func NewRayLaunching3D(matrix [][][]float64, wallNormals []Normal3D, config RayL
 }
 
 func (rl *RayLaunching3D) CalculateRayLaunching3D() {
+	for z := 0; z < int(rl.Config.TransmitterPos.Z); z++ {
+		rl.PowerMap[z][int(rl.Config.TransmitterPos.Y)][int(rl.Config.TransmitterPos.X)] = 0
+	}
+	
 	for i := 0; i < rl.Config.NumOfRaysAzim; i++ { // loop over horizontal dim
 		theta := (2*math.Pi)/float64(rl.Config.NumOfRaysAzim)*float64(i) // from -π to π
 		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
@@ -49,11 +53,14 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				
 			}
 			dx, dy, dz = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15, math.Round(dz*1e15)/1e15
+
 			/* getting past to next step,
 			 omitting calculations for transmitter */
+
 			x := rl.Config.TransmitterPos.X + dx
 			y := rl.Config.TransmitterPos.Y + dy
 			z := rl.Config.TransmitterPos.Z + dz
+
 			// initial counters
 			currInteractions := 0
 			currPower := 0.0
@@ -61,6 +68,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			currStartLengthPos := Point3D{X:rl.Config.TransmitterPos.X, Y:rl.Config.TransmitterPos.Y, Z:rl.Config.TransmitterPos.Z}
 			currRayLength := 0.0
 			currSumRayLength := 0.0
+
 			// main loop
 			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y <= rl.Config.SizeY) && (z >= 0 && z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
 				xIdx := int(math.Round(x/rl.Config.Step))

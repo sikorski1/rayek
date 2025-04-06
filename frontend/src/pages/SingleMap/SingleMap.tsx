@@ -28,8 +28,9 @@ const getBuildingsData = async ({ mapTitle }: { mapTitle: string }): Promise<Fea
 
 const postCompute = async (data:PostComputeTypes, mapTitle:string) => {
 	let response;
+	console.log(data)
 	try {
-		response = await axios.post(url + `/raycheck/rayLaunch/${mapTitle}`, data, {
+		response = await axios.post(url + `/raycheck/rayLaunch/${mapTitle}`, {}, {
 			headers: {
 				"Content-Type": "application/json",
 			},
