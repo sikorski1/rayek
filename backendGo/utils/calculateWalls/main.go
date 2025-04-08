@@ -50,6 +50,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading matrix %v", err)
 	}
+	println(len(matrix[0]), len(matrix[0][0]), len(matrix))
 	mapName := filepath.Base(mapFolderPath)	
 	HEIGHT := 0
 	outputFileName := fmt.Sprintf("%s-%dm.png", strings.ReplaceAll(mapName, " ", "_"), HEIGHT)
