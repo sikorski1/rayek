@@ -2,7 +2,6 @@ package calculations
 
 import (
 	. "backendGo/types"
-	"bytes"
 	"encoding/binary"
 	"encoding/gob"
 	"encoding/json" // Potrzebne do Unmarshal
@@ -11,7 +10,6 @@ import (
 	"log" // Używasz log.Fatalf
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 )
 
@@ -427,85 +425,14 @@ func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 
 	// === Krok 2: Zapisz macierz do formatu surowego dla Pythona ===
 	rawInputForPythonFilename := "wallsMatrix3D_raw.bin"
-	rawInputForPythonPath := filepath.Join(folderPath, rawInputForPythonFilename)
 	err = saveRawBinary3D(matrix, folderPath, rawInputForPythonFilename)
 	if err != nil {
 		fmt.Printf("BŁĄD KRYTYCZNY: Nie udało się zapisać surowych danych 3D dla Pythona: %v\n", err)
 		return // Przerwij, bo Python nie będzie miał danych
 	}
 
-	// === Krok 3: Wykonaj skrypt Pythona ===
-	// Konfiguracja ścieżek i komend
-	pythonScriptPath := "/home/kacper/workspace/react/raycheck/pythonscripts/learning/process_map.py" // Użyj absolutnej ścieżki lub skonfiguruj inaczej
 	processedRawOutputFromPythonFilename := "wallsMatrix3D_processed.bin"
 	processedRawOutputFromPythonPath := filepath.Join(folderPath, processedRawOutputFromPythonFilename)
-    pythonCmd := "/home/kacper/workspace/react/raycheck/pythonscripts/venv/bin/python" // Lub "python", lub skonfiguruj
-
-	// Sprawdź, czy skrypt istnieje
-	if _, err := os.Stat(pythonScriptPath); os.IsNotExist(err) {
-		fmt.Printf("BŁĄD KRYTYCZNY: Skrypt Pythona nie istnieje w: %s\n", pythonScriptPath)
-		return
-	}
-    // Sprawdź komendę Pythona
-    if _, err := exec.LookPath(pythonCmd); err != nil {
-         fmt.Printf("BŁĄD KRYTYCZNY: Komenda '%s' nie znaleziona w PATH.\n", pythonCmd)
-         return
-    }
-
-	fmt.Printf("Uruchamianie skryptu Pythona: %s\n", pythonScriptPath)
-	fmt.Printf("  Input:  %s\n", rawInputForPythonPath)
-	fmt.Printf("  Output: %s\n", processedRawOutputFromPythonPath)
-	fmt.Printf("  Dims:   %d,%d,%d\n", mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size)
-
-	// Budowanie i wykonanie komendy
-	cmdArgs := []string{
-		pythonScriptPath,
-		"--input", rawInputForPythonPath,
-		"--output", processedRawOutputFromPythonPath, // Skrypt Pythona musi tu zapisać!
-		"--dims", fmt.Sprintf("%d,%d,%d", mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size),
-	}
-	cmd := exec.Command(pythonCmd, cmdArgs...)
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err = cmd.Run() // Uruchom i poczekaj
-	stdoutStr := stdout.String()
-	stderrStr := stderr.String()
-
-	if len(stdoutStr) > 0 {
-		fmt.Println("--- Python stdout ---")
-		fmt.Print(stdoutStr)
-		fmt.Println("---------------------")
-	}
-	if len(stderrStr) > 0 {
-		fmt.Println("--- Python stderr ---")
-		fmt.Print(stderrStr)
-		fmt.Println("---------------------")
-	}
-
-	if err != nil {
-		fmt.Printf("BŁĄD: Wykonanie skryptu Pythona nie powiodło się: %v\n", err)
-		// Możesz zdecydować, czy kontynuować mimo błędu Pythona
-		// return
-	} else {
-		fmt.Println("Skrypt Pythona zakończony (kod wyjścia 0).")
-	}
-
-	// === Krok 4: Sprawdź, czy Python wygenerował plik wyjściowy ===
-	if _, err := os.Stat(processedRawOutputFromPythonPath); os.IsNotExist(err) {
-		fmt.Printf("\nBŁĄD KRYTYCZNY: Skrypt Pythona NIE utworzył oczekiwanego pliku wyjściowego: '%s'\n", processedRawOutputFromPythonPath)
-		fmt.Println("Sprawdź output Pythona (powyżej) w poszukiwaniu błędów.")
-		return // Przerwij, bo nie ma przetworzonych danych
-	} else if err != nil {
-         fmt.Printf("\nBŁĄD KRYTYCZNY: Nie można sprawdzić statusu pliku wyjściowego Pythona '%s': %v\n", processedRawOutputFromPythonPath, err)
-         return
-    } else {
-        fmt.Println("Plik wyjściowy Pythona znaleziony.")
-    }
-
-	// === Krok 5: Odczytaj przetworzone dane z pliku Pythona ===
 	processedMatrix3D, err := loadRawBinary3D(processedRawOutputFromPythonPath, mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size)
 	if err != nil {
 		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się odczytać przetworzonych danych z '%s': %v\n", processedRawOutputFromPythonPath, err)
@@ -530,3 +457,5 @@ func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 
 	fmt.Println("\nCalculateWallsMatrix3D zakończone sukcesem!")
 }
+
+
