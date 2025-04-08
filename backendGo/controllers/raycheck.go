@@ -147,8 +147,8 @@ func Create3DRayLaunching(context *gin.Context) {
 	// TESTING - START
 
 	config := raylaunching.RayLaunching3DConfig{
-		NumOfRaysAzim:        1440,     
-		NumOfRaysElev:        720,    
+		NumOfRaysAzim:        360,     
+		NumOfRaysElev:        360,    
 		NumOfInteractions:    4,     
 		WallMapNumber:        1000,      
 		CornerMapNumber:      10000,       
@@ -157,11 +157,11 @@ func Create3DRayLaunching(context *gin.Context) {
 		SizeZ:                30-1,     
 		Step:                 1.0,    
 		ReflFactor:           0.4,     
-		TransmitterPower:     5.0,     
+		TransmitterPower:     5.0,   //watt  
 		MinimalRayPower:     -120.0,   
-		TransmitterFreq:      30e9,   
+		TransmitterFreq:      2.4e9,   // Hz
 		WaveLength:           0,  
-		TransmitterPos: Point3D{X:125, Y:125, Z:29},
+		TransmitterPos: Point3D{X:125, Y:125, Z:15},
 	}
 	config.WaveLength = 299792458 / (config.TransmitterFreq)
 	start := time.Now()

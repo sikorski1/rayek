@@ -2,12 +2,16 @@ package calculations
 
 import (
 	. "backendGo/types"
+	"bytes"
+	"encoding/binary"
 	"encoding/gob"
-	"encoding/json"
+	"encoding/json" // Potrzebne do Unmarshal
 	"fmt"
-	"log"
+	"io"
+	"log" // Używasz log.Fatalf
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -255,21 +259,27 @@ func saveBinary(data interface{}, folderPath, filename string) error {
 	return encoder.Encode(data)
 }
 
-func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
-	buildingsFilePath := calculateWalls(folderPath)
-	data, err := os.ReadFile(buildingsFilePath)
-	if err != nil {
-		log.Fatalf("Failed to read data file: %v", err)
-	}
-	var buildings []Building
-	err = json.Unmarshal(data, &buildings)
-	if err != nil {
-		log.Fatalf("Error parsing JSON: %v", err)
-	}
-	matrix, wallNormals := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
-	saveBinary(matrix, folderPath, "wallsMatrix3D.bin")
-	saveBinary(wallNormals, folderPath, "wallNormals3D.bin")
+func addFloor(matrix [][][]float64, folderPath, filename string) error {
+	path := filepath.Join(folderPath, filename)
+    file, err := os.Create(path)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+
+    for _, slice := range matrix {
+        for _, row := range slice {
+            for _, val := range row {
+                err := binary.Write(file, binary.LittleEndian, val)
+                if err != nil {
+                    return err
+                }
+            }
+        }
+    }
+    return nil
 }
+
 func LoadMatrixBinary(path string, data interface{}) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -278,4 +288,245 @@ func LoadMatrixBinary(path string, data interface{}) error {
 	defer file.Close()
 	decoder := gob.NewDecoder(file)
 	return decoder.Decode(data)
+}
+
+func saveRawBinary3D(matrix [][][]float64, folderPath, filename string) error {
+	path := filepath.Join(folderPath, filename)
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("błąd tworzenia pliku %s: %w", path, err)
+	}
+	defer file.Close()
+	
+	// Upewnij się, że zapisujesz w LittleEndian (Python to odczyta)
+	byteOrder := binary.LittleEndian
+	
+	fmt.Printf("Zapisywanie surowych danych 3D do: %s\n", path)
+	for _, slice := range matrix {
+		for _, row := range slice {
+			for _, val := range row {
+				err := binary.Write(file, byteOrder, val)
+				if err != nil {
+					// Zwróć bardziej szczegółowy błąd
+					return fmt.Errorf("błąd zapisu wartości %f do %s: %w", val, path, err)
+				}
+			}
+		}
+	}
+	fmt.Println("Zakończono zapis surowych danych 3D.")
+	return nil
+}
+
+// loadRawBinary2D odczytuje surowy plik binarny (stworzony przez Python) do [][][]float64
+func loadRawBinary3D(path string, z, y, x int) ([][][]float64, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("błąd otwarcia pliku wejściowego '%s': %w", path, err)
+	}
+	defer file.Close()
+
+	// Sprawdzenie rozmiaru pliku (opcjonalne, ale dobre)
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("błąd odczytu informacji o pliku '%s': %w", path, err)
+	}
+	expectedSizeBytes := int64(z * y * x * 8) // 8 bajtów na float64
+	if fileInfo.Size() != expectedSizeBytes {
+		fmt.Printf("Ostrzeżenie: Rozmiar pliku '%s' (%d bajtów) różni się od oczekiwanego (%d bajtów dla %dx%dx%d float64).\n",
+			path, fileInfo.Size(), expectedSizeBytes, z, y, x)
+        // Możesz zdecydować, czy to jest błąd krytyczny
+        // if fileInfo.Size() < expectedSizeBytes {
+        //     return nil, fmt.Errorf("plik '%s' jest za mały", path)
+        // }
+	}
+
+
+	data := make([][][]float64, z)
+	for i := range data {
+		data[i] = make([][]float64, y)
+		for j := range data[i] {
+			data[i][j] = make([]float64, x)
+		}
+	}
+
+	byteOrder := binary.LittleEndian // Musi pasować do zapisu w Pythonie
+
+	fmt.Printf("Odczytywanie danych 3D z: %s (%dx%dx%d)\n", path, z, y, x)
+	expectedReads := z * y * x
+	reads := 0
+	for zi := 0; zi < z; zi++ {
+		for yi := 0; yi < y; yi++ {
+			for xi := 0; xi < x; xi++ {
+				var value float64
+				err := binary.Read(file, byteOrder, &value)
+				if err != nil {
+					if err == io.EOF {
+						return nil, fmt.Errorf("niespodziewany koniec pliku (EOF) w '%s' po odczytaniu %d z %d oczekiwanych liczb. Plik jest za krótki.", path, reads, expectedReads)
+					}
+					return nil, fmt.Errorf("błąd odczytu danych 3D dla [%d][%d][%d] z '%s': %w", zi, yi, xi, path, err)
+				}
+				data[zi][yi][xi] = value
+				reads++
+			}
+		}
+	}
+	fmt.Println("Zakończono odczyt surowych danych 3D.")
+	return data, nil
+}
+
+// --- ZMODYFIKOWANA Funkcja do zapisu formatu GOB ---
+// Teraz przyjmuje folderPath i filename osobno
+func saveGobBinary(data interface{}, folderPath, filename string) error {
+	// Utwórz folder, jeśli nie istnieje
+	err := os.MkdirAll(folderPath, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("błąd tworzenia folderu wyjściowego '%s': %w", folderPath, err)
+	}
+
+	// Połącz ścieżkę folderu i nazwę pliku
+	finalPath := filepath.Join(folderPath, filename)
+
+	file, err := os.Create(finalPath)
+	if err != nil {
+		return fmt.Errorf("błąd tworzenia pliku Gob '%s': %w", finalPath, err)
+	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(file)
+	fmt.Printf("Zapisywanie danych do pliku Gob: %s\n", finalPath)
+	err = encoder.Encode(data)
+	if err == nil {
+		fmt.Println("Zakończono zapis pliku Gob.")
+	} else {
+        return fmt.Errorf("błąd kodowania danych do formatu Gob w '%s': %w", finalPath, err)
+    }
+	return nil
+}
+
+	
+func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
+	fmt.Println("Rozpoczynanie CalculateWallsMatrix3D...")
+
+	// === Krok 1: Generowanie danych początkowych w Go ===
+	buildingsFilePath := calculateWalls(folderPath)
+	data, err := os.ReadFile(buildingsFilePath)
+	if err != nil {
+		log.Fatalf("Nie udało się odczytać pliku danych budynków '%s': %v", buildingsFilePath, err)
+	}
+	var buildings []Building
+	err = json.Unmarshal(data, &buildings)
+	if err != nil {
+		log.Fatalf("Błąd parsowania JSON z '%s': %v", buildingsFilePath, err)
+	}
+
+	// Generuj macierz i normalne
+	matrix, wallNormals := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
+
+	// Opcjonalnie: Zapisz oryginalną macierz w formacie Gob (jeśli jest potrzebna)
+	// saveBinary(matrix, folderPath, "wallsMatrix3D.bin")
+
+	// === Krok 2: Zapisz macierz do formatu surowego dla Pythona ===
+	rawInputForPythonFilename := "wallsMatrix3D_raw.bin"
+	rawInputForPythonPath := filepath.Join(folderPath, rawInputForPythonFilename)
+	err = saveRawBinary3D(matrix, folderPath, rawInputForPythonFilename)
+	if err != nil {
+		fmt.Printf("BŁĄD KRYTYCZNY: Nie udało się zapisać surowych danych 3D dla Pythona: %v\n", err)
+		return // Przerwij, bo Python nie będzie miał danych
+	}
+
+	// === Krok 3: Wykonaj skrypt Pythona ===
+	// Konfiguracja ścieżek i komend
+	pythonScriptPath := "/home/kacper/workspace/react/raycheck/pythonscripts/learning/process_map.py" // Użyj absolutnej ścieżki lub skonfiguruj inaczej
+	processedRawOutputFromPythonFilename := "wallsMatrix3D_processed.bin"
+	processedRawOutputFromPythonPath := filepath.Join(folderPath, processedRawOutputFromPythonFilename)
+    pythonCmd := "/home/kacper/workspace/react/raycheck/pythonscripts/venv/bin/python" // Lub "python", lub skonfiguruj
+
+	// Sprawdź, czy skrypt istnieje
+	if _, err := os.Stat(pythonScriptPath); os.IsNotExist(err) {
+		fmt.Printf("BŁĄD KRYTYCZNY: Skrypt Pythona nie istnieje w: %s\n", pythonScriptPath)
+		return
+	}
+    // Sprawdź komendę Pythona
+    if _, err := exec.LookPath(pythonCmd); err != nil {
+         fmt.Printf("BŁĄD KRYTYCZNY: Komenda '%s' nie znaleziona w PATH.\n", pythonCmd)
+         return
+    }
+
+	fmt.Printf("Uruchamianie skryptu Pythona: %s\n", pythonScriptPath)
+	fmt.Printf("  Input:  %s\n", rawInputForPythonPath)
+	fmt.Printf("  Output: %s\n", processedRawOutputFromPythonPath)
+	fmt.Printf("  Dims:   %d,%d,%d\n", mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size)
+
+	// Budowanie i wykonanie komendy
+	cmdArgs := []string{
+		pythonScriptPath,
+		"--input", rawInputForPythonPath,
+		"--output", processedRawOutputFromPythonPath, // Skrypt Pythona musi tu zapisać!
+		"--dims", fmt.Sprintf("%d,%d,%d", mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size),
+	}
+	cmd := exec.Command(pythonCmd, cmdArgs...)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err = cmd.Run() // Uruchom i poczekaj
+	stdoutStr := stdout.String()
+	stderrStr := stderr.String()
+
+	if len(stdoutStr) > 0 {
+		fmt.Println("--- Python stdout ---")
+		fmt.Print(stdoutStr)
+		fmt.Println("---------------------")
+	}
+	if len(stderrStr) > 0 {
+		fmt.Println("--- Python stderr ---")
+		fmt.Print(stderrStr)
+		fmt.Println("---------------------")
+	}
+
+	if err != nil {
+		fmt.Printf("BŁĄD: Wykonanie skryptu Pythona nie powiodło się: %v\n", err)
+		// Możesz zdecydować, czy kontynuować mimo błędu Pythona
+		// return
+	} else {
+		fmt.Println("Skrypt Pythona zakończony (kod wyjścia 0).")
+	}
+
+	// === Krok 4: Sprawdź, czy Python wygenerował plik wyjściowy ===
+	if _, err := os.Stat(processedRawOutputFromPythonPath); os.IsNotExist(err) {
+		fmt.Printf("\nBŁĄD KRYTYCZNY: Skrypt Pythona NIE utworzył oczekiwanego pliku wyjściowego: '%s'\n", processedRawOutputFromPythonPath)
+		fmt.Println("Sprawdź output Pythona (powyżej) w poszukiwaniu błędów.")
+		return // Przerwij, bo nie ma przetworzonych danych
+	} else if err != nil {
+         fmt.Printf("\nBŁĄD KRYTYCZNY: Nie można sprawdzić statusu pliku wyjściowego Pythona '%s': %v\n", processedRawOutputFromPythonPath, err)
+         return
+    } else {
+        fmt.Println("Plik wyjściowy Pythona znaleziony.")
+    }
+
+	// === Krok 5: Odczytaj przetworzone dane z pliku Pythona ===
+	processedMatrix3D, err := loadRawBinary3D(processedRawOutputFromPythonPath, mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size)
+	if err != nil {
+		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się odczytać przetworzonych danych z '%s': %v\n", processedRawOutputFromPythonPath, err)
+		return
+	}
+
+	// === Krok 6: Zapisz przetworzoną macierz do formatu Gob ===
+	finalGobFilename := "wallsMatrix3D_floor.bin"
+	err = saveBinary(processedMatrix3D, folderPath, finalGobFilename) // Używamy Twojej saveBinary
+	if err != nil {
+		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się zapisać finalnego pliku Gob '%s': %v\n", finalGobFilename, err)
+		return
+	}
+
+	// === Krok 7: Zapisz wallNormals (jeśli nadal potrzebne) ===
+	err = saveBinary(wallNormals, folderPath, "wallNormals3D.bin")
+    if err != nil {
+        fmt.Printf("\nBŁĄD: Nie udało się zapisać pliku wallNormals3D.bin: %v\n", err)
+        // Zwykle nie przerywamy z tego powodu, ale logujemy błąd
+    }
+
+
+	fmt.Println("\nCalculateWallsMatrix3D zakończone sukcesem!")
 }
