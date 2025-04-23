@@ -224,6 +224,7 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 		}
 	}
 	wallsMapIndex := 0
+	wallHeights := make(map[int]int)
 	for _, building := range buildings {
 		for _, wall := range building.Walls {
 			i1, j1 := geoToMatrixIndex(wall.Start.Y, wall.Start.X, latMin, latMax, lonMin, lonMax, size)
@@ -236,12 +237,34 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 			} 
 			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex, 250, 250)
 			wallNormals = append(wallNormals, normal)
+			wallHeights[wallsMapIndex] = z1
 			wallsMapIndex++
 		}
 	}
+	fmt.Println("Wall Heights:")
+	for index, height := range wallHeights {
+		fmt.Printf("Wall %d: height = %d\n", index, height)
+	}
+	matrix = createBuildingCeil(matrix, wallHeights)
 	fmt.Printf("walls: %v \n", wallsMapIndex)
 	fmt.Printf("normals: %v \n", len(wallNormals))
 	return matrix, wallNormals
+}
+
+func createBuildingCeil(matrix [][][]float64, wallHeights map[int]int) [][][]float64 {
+	zeroFloorMatrix := matrix[0]
+	genRaysNum := 3600
+	startAngle := 0.0
+	endAngle := math.Pi / 2
+	for i:=0; i < genRaysNum; i++ {
+		dRadians := startAngle + (endAngle-startAngle)*float64(i)/float64(genRaysNum)
+		dx, dy := math.Cos(dRadians), math.Sin(dRadians) 
+		dx, dy = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15 
+		x, y := 0 + dx, 0 + dy	
+	}
+
+
+	return matrix
 }
 
 
@@ -404,8 +427,6 @@ func saveGobBinary(data interface{}, folderPath, filename string) error {
 	
 func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 	fmt.Println("Rozpoczynanie CalculateWallsMatrix3D...")
-
-	// === Krok 1: Generowanie danych początkowych w Go ===
 	buildingsFilePath := calculateWalls(folderPath)
 	data, err := os.ReadFile(buildingsFilePath)
 	if err != nil {
@@ -417,41 +438,16 @@ func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 		log.Fatalf("Błąd parsowania JSON z '%s': %v", buildingsFilePath, err)
 	}
 
-	// Generuj macierz i normalne
 	matrix, wallNormals := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
 
-	// Opcjonalnie: Zapisz oryginalną macierz w formacie Gob (jeśli jest potrzebna)
-	// saveBinary(matrix, folderPath, "wallsMatrix3D.bin")
-
-	// === Krok 2: Zapisz macierz do formatu surowego dla Pythona ===
-	rawInputForPythonFilename := "wallsMatrix3D_raw.bin"
-	err = saveRawBinary3D(matrix, folderPath, rawInputForPythonFilename)
+	err = saveBinary(matrix, folderPath, "wallsMatrix3D.bin") 
 	if err != nil {
-		fmt.Printf("BŁĄD KRYTYCZNY: Nie udało się zapisać surowych danych 3D dla Pythona: %v\n", err)
-		return // Przerwij, bo Python nie będzie miał danych
-	}
-
-	processedRawOutputFromPythonFilename := "wallsMatrix3D_processed.bin"
-	processedRawOutputFromPythonPath := filepath.Join(folderPath, processedRawOutputFromPythonFilename)
-	processedMatrix3D, err := loadRawBinary3D(processedRawOutputFromPythonPath, mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size)
-	if err != nil {
-		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się odczytać przetworzonych danych z '%s': %v\n", processedRawOutputFromPythonPath, err)
+		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się zapisać finalnego pliku Gob '%s': %v\n", "wallsMatrix3D.bin", err)
 		return
 	}
-
-	// === Krok 6: Zapisz przetworzoną macierz do formatu Gob ===
-	finalGobFilename := "wallsMatrix3D_floor.bin"
-	err = saveBinary(processedMatrix3D, folderPath, finalGobFilename) // Używamy Twojej saveBinary
-	if err != nil {
-		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się zapisać finalnego pliku Gob '%s': %v\n", finalGobFilename, err)
-		return
-	}
-
-	// === Krok 7: Zapisz wallNormals (jeśli nadal potrzebne) ===
 	err = saveBinary(wallNormals, folderPath, "wallNormals3D.bin")
     if err != nil {
         fmt.Printf("\nBŁĄD: Nie udało się zapisać pliku wallNormals3D.bin: %v\n", err)
-        // Zwykle nie przerywamy z tego powodu, ale logujemy błąd
     }
 
 
