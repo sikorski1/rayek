@@ -52,7 +52,7 @@ func main() {
 	}
 	println(len(matrix[0]), len(matrix[0][0]), len(matrix))
 	mapName := filepath.Base(mapFolderPath)	
-	HEIGHT := 0
+	HEIGHT := 12
 	outputFileName := fmt.Sprintf("%s-%dm.png", strings.ReplaceAll(mapName, " ", "_"), HEIGHT)
 	outputFilePath := filepath.Join(mapFolderPath, outputFileName)
 	heatmap := calculations.GenerateHeatmap(matrix[HEIGHT])
