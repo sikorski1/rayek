@@ -13,7 +13,7 @@ mapa_wypelniona = mapa.copy()
 for y in range(y_dim):
     for x in range(x_dim):
         if mapa[y, x] == -150 and obraz_szary_odbity[y, x] == 0:
-            mapa_wypelniona[y, x] = 1000
+            mapa_wypelniona[y, x] = 2222
 plt.figure(figsize=(15, 5))
 
 plt.subplot(1, 3, 1)

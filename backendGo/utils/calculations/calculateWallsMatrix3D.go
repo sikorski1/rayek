@@ -241,31 +241,42 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 			wallsMapIndex++
 		}
 	}
-	fmt.Println("Wall Heights:")
-	for index, height := range wallHeights {
-		fmt.Printf("Wall %d: height = %d\n", index, height)
-	}
-	matrix = createBuildingCeil(matrix, wallHeights)
 	fmt.Printf("walls: %v \n", wallsMapIndex)
 	fmt.Printf("normals: %v \n", len(wallNormals))
 	return matrix, wallNormals
 }
 
-func createBuildingCeil(matrix [][][]float64, wallHeights map[int]int) [][][]float64 {
-	zeroFloorMatrix := matrix[0]
-	genRaysNum := 3600
-	startAngle := 0.0
-	endAngle := math.Pi / 2
-	for i:=0; i < genRaysNum; i++ {
-		dRadians := startAngle + (endAngle-startAngle)*float64(i)/float64(genRaysNum)
-		dx, dy := math.Cos(dRadians), math.Sin(dRadians) 
-		dx, dy = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15 
-		x, y := 0 + dx, 0 + dy	
-	}
-
-
-	return matrix
-}
+// func createBuildingCeil(matrix [][][]float64, wallHeights map[int]int) [][][]float64 {
+// 	maxSizeX := (float64(len(matrix[0][0]))-1)
+// 	maxSizeY := (float64(len(matrix[0]))-1)
+// 	genRaysNum := 7200
+	
+// 	for i:=0; i < genRaysNum; i++ {
+// 		dRadians := 2*math.Pi*float64(i)/float64(genRaysNum)
+// 		dx, dy := math.Cos(dRadians), math.Sin(dRadians) 
+// 		x, y := 125.0 , 125.0 	
+// 		currWallIndex := -150
+// 		prevWallIndex := -150
+// 		for (x >= 0 && x <= maxSizeX) && (y >= 0 && y <= maxSizeY) {
+// 			xIdx := int(math.Round(x))
+// 			yIdx := int(math.Round(y))
+// 			index := int(matrix[0][yIdx][xIdx])
+// 			if currWallIndex >= 1000 && index >= 1000 && index != currWallIndex {
+// 				prevWallIndex = index
+// 				currWallIndex = -150
+// 				break
+// 			} else if currWallIndex == -150 && index >= 1000 && index != prevWallIndex {
+// 				prevWallIndex = -150
+// 				currWallIndex = index
+// 			} else if index == -150 && currWallIndex >= 1000 && currWallIndex != 10000 {
+// 				matrix[0][yIdx][xIdx] = float64(currWallIndex)
+// 			}
+// 			x += dx
+// 			y += dy
+// 		}  
+// 	}
+// 	return matrix
+// }
 
 
 func saveBinary(data interface{}, folderPath, filename string) error {
@@ -439,19 +450,33 @@ func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 	}
 
 	matrix, wallNormals := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
-
-	err = saveBinary(matrix, folderPath, "wallsMatrix3D.bin") 
-	if err != nil {
-		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się zapisać finalnego pliku Gob '%s': %v\n", "wallsMatrix3D.bin", err)
-		return
+ 
+ 	rawInputForPythonFilename := "wallsMatrix3D_raw.bin"
+ 	err = saveRawBinary3D(matrix, folderPath, rawInputForPythonFilename)
+ 	if err != nil {
+ 		fmt.Printf("BŁĄD KRYTYCZNY: Nie udało się zapisać surowych danych 3D dla Pythona: %v\n", err)
+ 		return 
+ 	}
+ 
+ 	processedRawOutputFromPythonFilename := "wallsMatrix3D_processed.bin"
+ 	processedRawOutputFromPythonPath := filepath.Join(folderPath, processedRawOutputFromPythonFilename)
+ 	processedMatrix3D, err := loadRawBinary3D(processedRawOutputFromPythonPath, mapConfig.HeightMaxLevels, mapConfig.Size, mapConfig.Size)
+ 	if err != nil {
+ 		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się odczytać przetworzonych danych z '%s': %v\n", processedRawOutputFromPythonPath, err)
+ 		return
+ 	}
+ 
+ 	
+ 	finalGobFilename := "wallsMatrix3D_floor.bin"
+ 	err = saveBinary(processedMatrix3D, folderPath, finalGobFilename)  
+ 	if err != nil {
+ 		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się zapisać finalnego pliku Gob '%s': %v\n", finalGobFilename, err)
+ 		fmt.Printf("\nBŁĄD KRYTYCZNY: Nie udało się zapisać finalnego pliku Gob '%s': %v\n", "wallsMatrix3D.bin", err)
+ 		return
+ 	}
+ 	err = saveBinary(wallNormals, folderPath, "wallNormals3D.bin")
+     if err != nil {
+         fmt.Printf("\nBŁĄD: Nie udało się zapisać pliku wallNormals3D.bin: %v\n", err)
+         
+     }
 	}
-	err = saveBinary(wallNormals, folderPath, "wallNormals3D.bin")
-    if err != nil {
-        fmt.Printf("\nBŁĄD: Nie udało się zapisać pliku wallNormals3D.bin: %v\n", err)
-    }
-
-
-	fmt.Println("\nCalculateWallsMatrix3D zakończone sukcesem!")
-}
-
-
