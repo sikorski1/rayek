@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -130,7 +131,7 @@ func Create3DRayLaunching(context *gin.Context) {
 		log.Println(err)
 	}
 	var matrix [][][]float64
-	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D.bin"), &matrix)
+	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D_floor.bin"), &matrix)
 	if err != nil {
 		log.Println("Failed to load matrix:", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
@@ -143,14 +144,14 @@ func Create3DRayLaunching(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
 		return
 	}
-
 	// TESTING - START
 
 	config := raylaunching.RayLaunching3DConfig{
-		NumOfRaysAzim:        360,     
+		NumOfRaysAzim:        18,     
 		NumOfRaysElev:        360,    
 		NumOfInteractions:    4,     
 		WallMapNumber:        1000,      
+		CeilMapNumber:      5000,       
 		CornerMapNumber:      10000,       
 		SizeX:                250-1,    
 		SizeY:                250-1,
@@ -161,7 +162,7 @@ func Create3DRayLaunching(context *gin.Context) {
 		MinimalRayPower:     -120.0,   
 		TransmitterFreq:      2.4e9,   // Hz
 		WaveLength:           0,  
-		TransmitterPos: Point3D{X:125, Y:125, Z:15},
+		TransmitterPos: Point3D{X:125, Y:125, Z:1},
 	}
 	config.WaveLength = 299792458 / (config.TransmitterFreq)
 	start := time.Now()

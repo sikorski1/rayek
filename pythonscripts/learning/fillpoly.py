@@ -2,63 +2,73 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
-# === 1. Wczytaj macierz z pliku ===
+# === 1. Load the matrix from the file ===
 z_dim, y_dim, x_dim = 30, 250, 250
 walls = np.fromfile("wallsMatrix3D_raw.bin", dtype=np.float64).reshape((z_dim, y_dim, x_dim))
 
-# === 2. Wyciągamy przekrój Z = 0 ===
-mapa = walls[0].copy()  # tylko 2D
+# Create an empty array to store the processed data
+processed_walls = np.zeros_like(walls)
 
-# === 3. Szukamy ścian (wartości >=1000) ===
-sciany_bin = (mapa >= 1000).astype(np.uint8)
+# === 2. Iterate through all Z slices ===
+for z in range(z_dim):
+    print(f"Processing level Z = {z}")
 
-# === 4. Znajdź zewnętrzne kontury ===
-kontury_zewnetrzne, _ = cv2.findContours(sciany_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # --- Read the 2D slice ---
+    map_slice = walls[z].copy()
 
-# === 5. Utworzenie maski do wypełnienia ===
-maska_wypelnienia = np.zeros_like(sciany_bin)
+    # --- Binary wall map (walls = 1, others = 0) ---
+    walls_bin = (map_slice >= 1000).astype(np.uint8) * 255  # Important: for OpenCV, the image must be 0 or 255
 
-# === 6. Wypełnij obszar zewnętrznymi konturami na biało (1) ===
-cv2.drawContours(maska_wypelnienia, kontury_zewnetrzne, -1, 1, thickness=cv2.FILLED)
+    # --- Find external and internal contours ---
+    contours, hierarchy = cv2.findContours(walls_bin, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-# === 7. Znajdź wszystkie kontury z hierarchią ===
-kontury_wszystkie, hierarchia = cv2.findContours(sciany_bin, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # --- Create a mask for filling ---
+    fill_mask = np.zeros_like(walls_bin)
 
-# === 8. Iteruj po konturach i ich hierarchii ===
-for i, kontur in enumerate(kontury_wszystkie):
-    ma_dziadka = False
-    ma_rodzica = hierarchia[0][i][3] >= 0
-    
-    if ma_rodzica:
-        # Sprawdź czy kontur ma dziadka
-        indeks_rodzica = hierarchia[0][i][3]
-        ma_dziadka = hierarchia[0][indeks_rodzica][3] >= 0
-    
-    # Sprawdź czy kontur nie ma dziecka
-    if hierarchia[0][i][2] < 0 and ma_dziadka:
-        # Jeśli kontur nie ma dziecka i ma dziadka, wypełnij kontur czarnym kolorem (0)
-        cv2.drawContours(maska_wypelnienia, [kontur], -1, 0, thickness=cv2.FILLED)
+    # --- Iterate through contours ---
+    for i, contour in enumerate(contours):
+        # Check if the contour has a parent (internal contour) or is external (building contour)
+        if hierarchy[0][i][1] == -1:  # If the contour has no parent, it is an external contour
+            # Fill the external contour (building)
+            cv2.drawContours(fill_mask, [contour], -1, 255, cv2.FILLED)
+        else:
+            # If the contour has a parent, it may be an internal contour (courtyard)
+            # Check if it has a child, i.e., if it is not surrounded by other contours
+            if hierarchy[0][i][2] == -1:  # Contour has no child, so it's a courtyard
+                # Fill the internal contour (courtyard) with black color
+                cv2.drawContours(fill_mask, [contour], -1, 255, cv2.FILLED)
+            else:
+                if hierarchy[0][i][3] == -1:
+                    cv2.drawContours(fill_mask, [contour], -1, 0, cv2.FILLED)
 
-# === 9. Wypełnij wnętrze budynków wartością 1000 ===
-mapa_wypelniona = mapa.copy()
-mapa_wypelniona[(maska_wypelnienia == 1) & (mapa == -150)] = 1000
+    # --- Convert the mask 255/0 -> 1/0 ---
+    logical_mask = (fill_mask == 255)
 
-# === 10. Wizualizacja ===
+    # --- Fill buildings in empty areas (-150) with value 1000 ---
+    filled_map = map_slice.copy()
+    filled_map[(logical_mask) & (map_slice == -150)] = 1000
+
+    # Save the processed slice into the processed_walls array
+    processed_walls[z] = filled_map
+
+    # === Visualization ===
 plt.figure(figsize=(12, 6))
 
-# Oryginalna mapa
 plt.subplot(1, 2, 1)
-plt.imshow(mapa, cmap='nipy_spectral', origin='lower')
-plt.title("Oryginalna mapa (Z=0)")
+plt.imshow(walls[0], cmap='nipy_spectral', origin='lower')
+plt.title(f"Original map (Z={0})")
 plt.colorbar()
 plt.grid(False)
 
-# Wypełniona mapa
 plt.subplot(1, 2, 2)
-plt.imshow(mapa_wypelniona, cmap='nipy_spectral', origin='lower')
-plt.title("Wypełnione wnętrza budynków (Z=0)")
+plt.imshow(processed_walls[0], cmap='nipy_spectral', origin='lower')
+plt.title(f"Filled map (Z={0})")
 plt.colorbar()
 plt.grid(False)
 
 plt.tight_layout()
 plt.show()
+
+# === 3. Save the processed matrix to a binary file ===
+processed_walls.tofile("wallsMatrix3D_processed.bin")
+print("Processed matrix saved to 'wallsMatrix3D_processed.bin'")

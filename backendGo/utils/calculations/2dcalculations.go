@@ -99,7 +99,9 @@ func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
             if val >= 10000 {
                 // Corner points are pink
                 img.Set(x, yFlipped, color.RGBA{255, 0, 255, 255}) // Bright pink
-            } else if val >= 1000 {
+            } else if val == 5000 {
+				  img.Set(x, yFlipped, color.RGBA{192, 192, 192, 255})
+			} else if val >= 1000 {
                 // Regular walls are black
                 img.Set(x, yFlipped, color.RGBA{0, 0, 0, 255})
             } else if val == 0 {
