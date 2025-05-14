@@ -147,8 +147,8 @@ func Create3DRayLaunching(context *gin.Context) {
 	// TESTING - START
 
 	config := raylaunching.RayLaunching3DConfig{
-		NumOfRaysAzim:        18,     
-		NumOfRaysElev:        360,    
+		NumOfRaysAzim:        4,     
+		NumOfRaysElev:        72,    
 		NumOfInteractions:    4,     
 		WallMapNumber:        1000,      
 		CeilMapNumber:      5000,       

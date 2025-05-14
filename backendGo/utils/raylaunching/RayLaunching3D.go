@@ -2,6 +2,7 @@ package raylaunching
 
 import (
 	. "backendGo/types"
+	"fmt"
 	"math"
 	"math/cmplx"
 )
@@ -41,14 +42,13 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			// spherical coordinates
 			if rl.Config.TransmitterPos.Z == 0 {
 				// half sphere – from 0 to π/2
-				phi = ((math.Pi/2) / float64(rl.Config.NumOfRaysElev-1)) *  float64(j) // from 0 to π/2
+				phi = ((math.Pi/2) / float64(rl.Config.NumOfRaysElev)) *  float64(j) // from 0 to π/2
 				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.Step 
 				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.Step
 				dz = math.Sin(phi) * rl.Config.Step
 			} else {
 				//full sphere – from 0 to π
-				phi = math.Pi * float64(j) / float64(rl.Config.NumOfRaysElev-1) - math.Pi/2// from 0 to π
-				
+				phi = math.Pi * float64(j) / float64(rl.Config.NumOfRaysElev) - math.Pi/2// from 0 to π
 				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.Step 
 				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.Step
 				dz = math.Sin(phi) * rl.Config.Step
@@ -72,22 +72,32 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			currSumRayLength := 0.0
 			// main loop
 			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y <= rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
-				xIdx := int(math.Round(x/rl.Config.Step))
-				yIdx := int(math.Round(y/rl.Config.Step))
-				zIdx := int(math.Round(z/rl.Config.Step))
-				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-				if (index == rl.Config.CeilMapNumber || zIdx == 0) && currWallIndex != 5000 {
+				if (z < 0 && currWallIndex != rl.Config.CeilMapNumber) {
 					dz = -dz
 					currWallIndex = rl.Config.CeilMapNumber
 					currInteractions++
-
 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
+					z = 0
+				}
+				xIdx := int(math.Round(x/rl.Config.Step))
+				yIdx := int(math.Round(y/rl.Config.Step))
+				zIdx := int(math.Round(z/rl.Config.Step))
+				fmt.Println("i", i, "j", j, "xIdx", xIdx, "yIdx", yIdx, "zIdx", zIdx)
+				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
+				if (index == rl.Config.CeilMapNumber) && currWallIndex != rl.Config.CeilMapNumber {
+					dz = -dz
+					currWallIndex = rl.Config.CeilMapNumber
+					currInteractions++
+					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
+					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
+					continue
 				} 
 				 if index == rl.Config.CornerMapNumber {
 					break
 				} 
-				if index >= rl.Config.WallMapNumber && index != currWallIndex + rl.Config.WallMapNumber && index != rl.Config.CeilMapNumber && index != rl.Config.CornerMapNumber && zIdx != 0 { 	// check if there is wall and if its diffrent from previous one
+
+				if index >= rl.Config.WallMapNumber && index <= rl.Config.CeilMapNumber && index != currWallIndex + rl.Config.WallMapNumber{ 	// check if there is wall and if its diffrent from previous one
 					currWallIndex = index - rl.Config.WallMapNumber
 
 					//get wall normal
