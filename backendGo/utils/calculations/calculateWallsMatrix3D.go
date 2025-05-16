@@ -357,19 +357,15 @@ func loadRawBinary3D(path string, z, y, x int) ([][][]float64, error) {
 	}
 	defer file.Close()
 
-	// Sprawdzenie rozmiaru pliku (opcjonalne, ale dobre)
 	fileInfo, err := file.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("błąd odczytu informacji o pliku '%s': %w", path, err)
 	}
-	expectedSizeBytes := int64(z * y * x * 8) // 8 bajtów na float64
+	expectedSizeBytes := int64(z * y * x * 8) 
 	if fileInfo.Size() != expectedSizeBytes {
 		fmt.Printf("Ostrzeżenie: Rozmiar pliku '%s' (%d bajtów) różni się od oczekiwanego (%d bajtów dla %dx%dx%d float64).\n",
 			path, fileInfo.Size(), expectedSizeBytes, z, y, x)
-        // Możesz zdecydować, czy to jest błąd krytyczny
-        // if fileInfo.Size() < expectedSizeBytes {
-        //     return nil, fmt.Errorf("plik '%s' jest za mały", path)
-        // }
+      
 	}
 
 
@@ -381,7 +377,7 @@ func loadRawBinary3D(path string, z, y, x int) ([][][]float64, error) {
 		}
 	}
 
-	byteOrder := binary.LittleEndian // Musi pasować do zapisu w Pythonie
+	byteOrder := binary.LittleEndian 
 
 	fmt.Printf("Odczytywanie danych 3D z: %s (%dx%dx%d)\n", path, z, y, x)
 	expectedReads := z * y * x
@@ -406,8 +402,7 @@ func loadRawBinary3D(path string, z, y, x int) ([][][]float64, error) {
 	return data, nil
 }
 
-// --- ZMODYFIKOWANA Funkcja do zapisu formatu GOB ---
-// Teraz przyjmuje folderPath i filename osobno
+
 func saveGobBinary(data interface{}, folderPath, filename string) error {
 	// Utwórz folder, jeśli nie istnieje
 	err := os.MkdirAll(folderPath, os.ModePerm)
@@ -450,7 +445,10 @@ func CalculateWallsMatrix3D(folderPath string, mapConfig MapConfig) {
 	}
 
 	matrix, wallNormals := generateBuildingMatrix(buildings, mapConfig.LatMin, mapConfig.LatMax, mapConfig.LonMin, mapConfig.LonMax, mapConfig.Size, mapConfig.HeightMaxLevels)
- 
+	
+ 	saveBinary(matrix, folderPath, "wallsMatrix3D.bin")
+	saveBinary(wallNormals, folderPath, "wallNormals3D.bin")
+
  	rawInputForPythonFilename := "wallsMatrix3D_raw.bin"
  	err = saveRawBinary3D(matrix, folderPath, rawInputForPythonFilename)
  	if err != nil {

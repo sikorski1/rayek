@@ -2,13 +2,12 @@ package raylaunching
 
 import (
 	. "backendGo/types"
-	"fmt"
 	"math"
 	"math/cmplx"
 )
 
 type RayLaunching3DConfig struct {
-	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, CeilMapNumber, CornerMapNumber int
+	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, RoofMapNumber, CornerMapNumber int
 	SizeX, SizeY, SizeZ, Step, ReflFactor, TransmitterPower, MinimalRayPower, TransmitterFreq, WaveLength float64
 	TransmitterPos Point3D
 }
@@ -71,23 +70,30 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			currRayLength := 0.0
 			currSumRayLength := 0.0
 			// main loop
-			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y <= rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
-				if (z < 0 && currWallIndex != rl.Config.CeilMapNumber) {
+			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y < rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
+				// reflection from the ground when z is below 0
+				if (z < 0 && currWallIndex != rl.Config.RoofMapNumber) {
 					dz = -dz
-					currWallIndex = rl.Config.CeilMapNumber
+					currWallIndex = rl.Config.RoofMapNumber
 					currInteractions++
 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
 					z = 0
 				}
+				if (z < 0) {
+					if (dz < 0) {
+						dz = -dz	
+					}
+					z += dz
+				}
 				xIdx := int(math.Round(x/rl.Config.Step))
 				yIdx := int(math.Round(y/rl.Config.Step))
 				zIdx := int(math.Round(z/rl.Config.Step))
-				fmt.Println("i", i, "j", j, "xIdx", xIdx, "yIdx", yIdx, "zIdx", zIdx)
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-				if (index == rl.Config.CeilMapNumber) && currWallIndex != rl.Config.CeilMapNumber {
+				// reflection from the building roof
+				if (index == rl.Config.RoofMapNumber) && currWallIndex != rl.Config.RoofMapNumber {
 					dz = -dz
-					currWallIndex = rl.Config.CeilMapNumber
+					currWallIndex = rl.Config.RoofMapNumber
 					currInteractions++
 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
@@ -97,7 +103,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					break
 				} 
 
-				if index >= rl.Config.WallMapNumber && index <= rl.Config.CeilMapNumber && index != currWallIndex + rl.Config.WallMapNumber{ 	// check if there is wall and if its diffrent from previous one
+				if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != currWallIndex + rl.Config.WallMapNumber{ 	// check if there is wall and if its diffrent from previous one
 					currWallIndex = index - rl.Config.WallMapNumber
 
 					//get wall normal
