@@ -20,6 +20,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Map struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Img         string `json:"img"`
+}
+type MapAndBuildingsResponse struct {
+	MapData      MapConfiguration      `json:"mapData"`
+	BuildingsData BuildingsConfiguration `json:"buildingsData"`
+}
+
 type MapConfiguration struct {
 	Title string `json:"title"`
 	Coordinates [][][]float64 `json:"coordinates"`
@@ -38,7 +49,31 @@ type BuildingsConfiguration struct {
 	Features []Features `json:"features"`
 }
 
-func GetMapConfiguration(context *gin.Context) {
+func GetMaps(context *gin.Context) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+	}
+	dataPath := filepath.Join(cwd, "data","maps.json")
+	fmt.Println(dataPath)
+	data, err := os.ReadFile(dataPath) 
+	if err != nil {
+		log.Println("Failed to read data file")
+		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
+		return
+	}
+	var mapsData []Map
+	err = json.Unmarshal(data, &mapsData)
+	if err != nil {
+		log.Println("Failed to parse JSON")
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON"})
+		return
+	}
+	print(mapsData)
+	context.JSON(http.StatusOK, mapsData)
+}
+
+func GetMapById(context *gin.Context) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
@@ -64,9 +99,49 @@ func GetMapConfiguration(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, mapData)
-}
+	data, err = os.ReadFile(filepath.Join(cwd, "data", mapTitle,"rawBuildings.json"))
+	if err != nil {
+		log.Println("Failed to read data file")
+		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
+	}
+	var buildingsData BuildingsConfiguration
+	err = json.Unmarshal(data, &buildingsData)
 
+	if err != nil {
+		log.Println("Failed to parse JSON")
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON"})
+		return
+	}
+	if len(buildingsData.Features) == 0 {
+		log.Println("Buildings configuration not found")
+		context.JSON(http.StatusNotFound, gin.H{"error": "Buildings configuration not found"})
+		return
+	}
+	response := MapAndBuildingsResponse{
+		MapData:      mapData,
+		BuildingsData: buildingsData,
+	}
+	context.JSON(http.StatusOK, response)
+}
+func GetWallMatrix(context *gin.Context) {
+	mapTitle := context.Param("mapTitle")
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+	filePath := filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D_processed.bin")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		log.Println("Failed to read wall matrix")
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read wall matrix file"})
+		return
+	}
+	context.Header("Content-Type", "application/octet-stream")
+	context.Header("Content-Disposition", "attachment; filename=wallsMatrix3D_processed.bin")
+	context.Data(http.StatusOK, "application/octet-stream", data)
+}
 func GetBuildings(context *gin.Context) {
 	cwd, err := os.Getwd()
 	if err != nil {

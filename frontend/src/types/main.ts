@@ -14,9 +14,7 @@ export type PopupDataTypes = {
 };
 
 export type SingleMapDataTypes = {
-	stationPos: mapboxgl.LngLatLike;
-	mapData: MapTypes;
-	buildingsData: FeatureCollection;
+	stationPos: mapboxgl.LngLatLike[];
 	computationResult: mapboxgl.LngLatLike[][];
 };
 

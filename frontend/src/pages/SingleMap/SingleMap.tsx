@@ -1,40 +1,29 @@
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
+import { useGetMapById, useWallMatrix } from "@/hooks/useMap";
 import Map from "@/pages/SingleMap/Map/Map";
 import { PopupDataTypes, PostComputeTypes, SingleMapDataTypes } from "@/types/main";
+import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
+import { getMatrixValue } from "@/utils/getMatrixValue";
 import { url } from "@/utils/url";
 import axios from "axios";
-import { FeatureCollection } from "geojson";
 import { useEffect, useState } from "react";
 import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
-const getMapData = async ({ mapTitle }: { mapTitle: string }) => {
-	try {
-		const response = await axios.get(url + `/raycheck/${mapTitle}`);
-		return response.data;
-	} catch (error) {
-		console.log(error);
-	}
-};
 
-const getBuildingsData = async ({ mapTitle }: { mapTitle: string }): Promise<FeatureCollection | undefined> => {
-	try {
-		const response = await axios.get(url + `/raycheck/buildings/${mapTitle}`);
-		return response.data;
-	} catch (error) {
-		console.log(error);
-	}
-};
-
-const postCompute = async (data:PostComputeTypes, mapTitle:string) => {
+const postCompute = async (data: PostComputeTypes, mapTitle: string) => {
 	let response;
-	console.log(data)
+	console.log(data);
 	try {
-		response = await axios.post(url + `/raycheck/rayLaunch/${mapTitle}`, {}, {
-			headers: {
-				"Content-Type": "application/json",
-			},
-		});
+		response = await axios.post(
+			url + `/raycheck/rayLaunch/${mapTitle}`,
+			{},
+			{
+				headers: {
+					"Content-Type": "application/json",
+				},
+			}
+		);
 	} catch (error) {
 		console.log(error);
 	}
@@ -50,9 +39,9 @@ const initialPopupData: PopupDataTypes = {
 export default function SingleMap() {
 	const [popupData, setPopupData] = useState<PopupDataTypes>(initialPopupData);
 	const [singleMapData, setSingleMapData] = useState<SingleMapDataTypes>({} as SingleMapDataTypes);
-
 	const { id } = useParams();
-
+	const { data, isLoading, error } = useGetMapById(id!);
+	const { data: wallMatrix, isLoading: isLoadingWallMatrix } = useWallMatrix(id!);
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
 		setSingleMapData(prevSingleMapData => {
 			const updatedSingleMapData = { ...prevSingleMapData, stationPos: stationPos };
@@ -81,64 +70,23 @@ export default function SingleMap() {
 		const data: PostComputeTypes = { freq: frequency, stationH: stationHeight };
 		const response = await postCompute(data, id!);
 		if (response) {
-			setSingleMapData((prevSingleMapData) => {
-				const updatedSingleMapData = {...prevSingleMapData, computationResult:response.data}
-				return updatedSingleMapData
-			})
+			setSingleMapData(prevSingleMapData => {
+				const updatedSingleMapData = { ...prevSingleMapData, computationResult: response.data };
+				return updatedSingleMapData;
+			});
 		}
 	};
+	useEffect(() => {
+		if (!data) return;
+		setSingleMapData(prev => ({ ...prev, stationPos: data.mapData.center }));
+	}, [data]);
 
 	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				const mapResponse = (await getMapData({ mapTitle: id! })) || {
-					title: "AGHFragment",
-					coordinates: [
-						[
-							[19.914029, 50.065311], // Southwest
-							[19.917527, 50.065311], // Southeast
-							[19.917527, 50.067556], // Northeast
-							[19.914029, 50.067556], // Northwest
-							[19.914029, 50.065311], // Zamknięcie pętli
-						],
-					],
-					center: [19.915778, 50.0664335],
-					bounds: [
-						[19.914029, 50.065311], // Southwest corner (dolny lewy róg)
-						[19.917527, 50.067556], // Northeast corner (górny prawy róg)
-					],
-				};
-				if (mapResponse) {
-					setSingleMapData(prevSingleMapData => {
-						const updatedSingleMapData = { ...prevSingleMapData, stationPos: mapResponse.center, mapData: mapResponse };
-						return updatedSingleMapData;
-					});
-				}
-			} catch (error) {
-				console.error("Error fetching map data:", error);
-			}
-		};
-		fetchData();
-	}, [id]);
-
-	useEffect(() => {
-		if (singleMapData.mapData) {
-			const fetchBuildings = async () => {
-				try {
-					const buildingsResponse = await getBuildingsData({ mapTitle: id! });
-					if (buildingsResponse) {
-						setSingleMapData(prevSingleMapData => {
-							const updatedSingleMapData = { ...prevSingleMapData, buildingsData: buildingsResponse };
-							return updatedSingleMapData;
-						});
-					}
-				} catch (error) {
-					console.error("Error fetching buildings data:", error);
-				}
-			};
-			fetchBuildings();
+		if (wallMatrix) {
+			setSingleMapData(prev => ({ ...prev, wallMatrix }));
 		}
-	}, [singleMapData.mapData])
+	}, [wallMatrix]);
+
 	return (
 		<>
 			{popupData.isOpen && (
@@ -191,25 +139,71 @@ export default function SingleMap() {
 					</div>
 				</SettingsDialog>
 			)}
-			{singleMapData.mapData && singleMapData.buildingsData && (
+			{!isLoading && data && wallMatrix && (
 				<div className={styles.box}>
 					<div className={styles.titleBox}>
-						<h3>{singleMapData.mapData.title}</h3>
+						<h3>{data.mapData.title}</h3>
 					</div>
 					<div className={styles.mapBox}>
-						<Map
-							{...singleMapData.mapData!}
-							stationPos={singleMapData.stationPos!}
-							handleStationPosUpdate={handleStationPosUpdate}
-							buildingsData={singleMapData.buildingsData}
-							computationResult={singleMapData.computationResult}
-						/>
+						{singleMapData.stationPos && (
+							<Map
+								{...data.mapData}
+								stationPos={singleMapData.stationPos}
+								handleStationPosUpdate={handleStationPosUpdate}
+								buildingsData={data.buildingsData}
+								computationResult={data.computationResult}
+							/>
+						)}
 						<div className={styles.stationPosContener}>
 							{singleMapData.stationPos && (
 								<>
 									<p>Station position</p>
-									<p>Longitude: {parseFloat(singleMapData.stationPos.toString().split(",")[0]).toFixed(6)}</p>
-									<p>Latitude: {parseFloat(singleMapData.stationPos.toString().split(",")[1]).toFixed(6)}</p>
+									<p>
+										Longitude: {parseFloat(singleMapData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
+										{
+											geoToMatrixIndex(
+												singleMapData.stationPos[0] as unknown as number,
+												singleMapData.stationPos[1] as unknown as number,
+												data.mapData.coordinates[0][0][0],
+												data.mapData.coordinates[0][2][0],
+												data.mapData.coordinates[0][0][1],
+												data.mapData.coordinates[0][2][1],
+												250
+											).j
+										}{" "}
+									</p>
+									<p>
+										Latitude: {parseFloat(singleMapData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
+										{
+											geoToMatrixIndex(
+												singleMapData.stationPos[0] as unknown as number,
+												singleMapData.stationPos[1] as unknown as number,
+												data.mapData.coordinates[0][0][0],
+												data.mapData.coordinates[0][2][0],
+												data.mapData.coordinates[0][0][1],
+												data.mapData.coordinates[0][2][1],
+												250
+											).i
+										}
+									</p>
+									{singleMapData.stationPos && (
+										<>
+											{(() => {
+												const { i, j } = geoToMatrixIndex(
+													singleMapData.stationPos[0] as number,
+													singleMapData.stationPos[1] as number,
+													data.mapData.coordinates[0][0][0],
+													data.mapData.coordinates[0][2][0],
+													data.mapData.coordinates[0][0][1],
+													data.mapData.coordinates[0][2][1],
+													250
+												);
+												console.log(i, j);
+												const value = getMatrixValue(wallMatrix, i, j, 0);
+												return <p>index: {value}</p>;
+											})()}
+										</>
+									)}
 								</>
 							)}
 						</div>

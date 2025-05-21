@@ -56,7 +56,6 @@ export default function Map({
 			},
 		],
 	};
-	
 
 	useEffect(() => {
 		function onMove(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
@@ -160,7 +159,6 @@ export default function Map({
 		};
 
 		mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-
 		const towerModelOrigin = stationPos;
 		const towerModelAltitude = 0;
 		const towerModelRotate = [Math.PI / 2, 0, 0];
