@@ -1,13 +1,13 @@
 export function geoToMatrixIndex(
-	lat: number,
 	lon: number,
-	latMin: number,
-	latMax: number,
+	lat: number,
 	lonMin: number,
 	lonMax: number,
+	latMin: number,
+	latMax: number,
 	size: number
 ): { i: number; j: number } {
-	const y = ((lat - latMin) / (latMax - latMin)) * (size - 1);
+	const y = ((latMax - lat) / (latMax - latMin)) * (size - 1);
 	const x = ((lon - lonMin) / (lonMax - lonMin)) * (size - 1);
 
 	const i = Math.round(x);

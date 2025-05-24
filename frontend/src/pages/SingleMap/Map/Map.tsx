@@ -1,6 +1,8 @@
 import { MapTypesExtended } from "@/types/main";
+import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
+import { getMatrixValue } from "@/utils/getMatrixValue";
 import { FeatureCollection, Position } from "geojson";
-import mapboxgl, { CustomLayerInterface } from "mapbox-gl";
+import mapboxgl, { CustomLayerInterface, LngLatLike } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
@@ -16,16 +18,17 @@ const checkBounds = (coords: number[], bounds: number[][]) => {
 	}
 };
 
-
 export default function Map({
 	title,
 	coordinates,
 	center,
 	bounds,
 	stationPos,
+	stationHeight,
 	handleStationPosUpdate,
 	buildingsData,
 	computationResult,
+	wallMatrix,
 }: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -56,29 +59,38 @@ export default function Map({
 			},
 		],
 	};
-
 	useEffect(() => {
+		let lastValidCoords: [number, number] | null = null;
 		function onMove(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
 			const coords = e.lngLat;
-
+			const { i, j } = geoToMatrixIndex(
+				parseFloat(coords.lng.toFixed(6)),
+				parseFloat(coords.lat.toFixed(6)),
+				coordinates[0][0][0],
+				coordinates[0][2][0],
+				coordinates[0][0][1],
+				coordinates[0][2][1],
+				250
+			);
+			const value = getMatrixValue(wallMatrix, i, j, Number(stationHeight));
 			canvas.style.cursor = "grabbing";
 
 			const pointGeometry = dragDropGeoJSON.features[0].geometry as GeoJSON.Point;
-			let towerModelOrigin;
-			if (checkBounds([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))], bounds as number[][])) {
-				pointGeometry.coordinates = [parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))];
+			let towerModelOrigin: [number, number];
+
+			if (checkBounds([coords.lng, coords.lat], bounds as number[][]) && value === -150) {
 				towerModelOrigin = [parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))];
+				lastValidCoords = towerModelOrigin;
 			} else {
-				pointGeometry.coordinates = center as Position;
-				towerModelOrigin = center;
+				towerModelOrigin = lastValidCoords ?? (center as [number, number]);
 			}
+
+			pointGeometry.coordinates = towerModelOrigin;
+
 			const source = mapRef.current?.getSource("point") as mapboxgl.GeoJSONSource;
 			source.setData(dragDropGeoJSON);
 
-			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
-				towerModelOrigin as mapboxgl.LngLatLike,
-				0
-			);
+			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(towerModelOrigin, 0);
 			towerModelTransform.translateX = towerModelAsMercatorCoordinate.x;
 			towerModelTransform.translateY = towerModelAsMercatorCoordinate.y;
 			towerModelTransform.translateZ = towerModelAsMercatorCoordinate.z;
@@ -86,11 +98,8 @@ export default function Map({
 		}
 
 		function onUp(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
-			const coords = e.lngLat;
-			if (checkBounds([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))], bounds as number[][])) {
-				handleStationPosUpdate([parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))]);
-			} else {
-				handleStationPosUpdate(center);
+			if (lastValidCoords) {
+				handleStationPosUpdate(lastValidCoords);
 			}
 			canvas.style.cursor = "";
 			mapRef.current?.off("mousemove", onMove);
@@ -164,7 +173,7 @@ export default function Map({
 		const towerModelRotate = [Math.PI / 2, 0, 0];
 
 		const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
-			towerModelOrigin!,
+			towerModelOrigin as unknown as LngLatLike,
 			towerModelAltitude
 		);
 
@@ -291,7 +300,7 @@ export default function Map({
 			});
 		});
 		return () => mapRef.current?.remove();
-	}, []);
+	}, [stationHeight]);
 
 	// useEffect(() => {
 	// 	if (!computationResult) return;
@@ -327,5 +336,6 @@ export default function Map({
 	// 		}, mapRef.current.getStyle()!.layers?.[30]?.id);
 	// 	});
 	// }, [computationResult]);
+	console.log(stationHeight);
 	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
 }

@@ -291,6 +291,20 @@ func saveBinary(data interface{}, folderPath, filename string) error {
 	return encoder.Encode(data)
 }
 
+func flipY(data []float64, sizeX, sizeY, sizeZ int) []float64 {
+	flipped := make([]float64, len(data))
+	for z := 0; z < sizeZ; z++ {
+		for y := 0; y < sizeY; y++ {
+			for x := 0; x < sizeX; x++ {
+				srcIdx := z*sizeY*sizeX + y*sizeX + x
+				dstIdx := z*sizeY*sizeX + (sizeY-1-y)*sizeX + x
+				flipped[dstIdx] = data[srcIdx]
+			}
+		}
+	}
+	return flipped
+}
+
 func addFloor(matrix [][][]float64, folderPath, filename string) error {
 	path := filepath.Join(folderPath, filename)
     file, err := os.Create(path)

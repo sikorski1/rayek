@@ -85,48 +85,40 @@ func TwoVectors(A, B, C, D Point) int8 {
 func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
     height := len(powerMap)
     width := len(powerMap[0])
-    
-    // Fixed range values
+
     minVal := -150.0  
     maxVal := 0.0
-    
+
     img := image.NewRGBA(image.Rect(0, 0, width, height))
     for y := 0; y < height; y++ {
-        yFlipped := height - 1 - y
         for x := 0; x < width; x++ {
             val := powerMap[y][x]
-            
-            if val >= 10000 {
-                // Corner points are pink
-                img.Set(x, yFlipped, color.RGBA{255, 0, 255, 255}) // Bright pink
-            } else if val == 5000 {
-				  img.Set(x, yFlipped, color.RGBA{192, 192, 192, 255})
-			} else if val >= 1000 {
-                // Regular walls are black
-                img.Set(x, yFlipped, color.RGBA{0, 0, 0, 255})
-            } else if val == 0 {
-                // Empty space is white
-                img.Set(x, yFlipped, color.RGBA{255, 255, 255, 255})
-            } else {
-                // Clamp values to range
+
+            switch {
+            case val >= 10000:
+                img.Set(x, y, color.RGBA{255, 0, 255, 255}) // Bright pink
+            case val == 5000:
+                img.Set(x, y, color.RGBA{192, 192, 192, 255})
+            case val >= 1000:
+                img.Set(x, y, color.RGBA{0, 0, 0, 255}) // Black
+            case val == 0:
+                img.Set(x, y, color.RGBA{255, 255, 255, 255}) // White
+            default:
                 if val < minVal {
                     val = minVal
                 }
                 if val > maxVal {
                     val = maxVal
                 }
-                
-                // Normalize to 0-1 range
                 normalizedVal := (val - minVal) / (maxVal - minVal)
                 r, g, b := getHeatmapColor(normalizedVal)
-                img.Set(x, yFlipped, color.RGBA{r, g, b, 255})
+                img.Set(x, y, color.RGBA{r, g, b, 255})
             }
         }
     }
 
     return img
 }
-
 func getHeatmapColor(value float64) (uint8, uint8, uint8) {
     switch {
     case value < 0.25:

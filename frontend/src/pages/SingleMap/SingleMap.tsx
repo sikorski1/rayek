@@ -1,19 +1,19 @@
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
-import { useGetMapById, useWallMatrix } from "@/hooks/useMap";
+import { useGetMapById } from "@/hooks/useMap";
 import Map from "@/pages/SingleMap/Map/Map";
 import { PopupDataTypes, PostComputeTypes, SingleMapDataTypes } from "@/types/main";
 import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
 import { getMatrixValue } from "@/utils/getMatrixValue";
+import { loadWallMatrix } from "@/utils/loadWallMatrix";
 import { url } from "@/utils/url";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IoMdClose, IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
 
 const postCompute = async (data: PostComputeTypes, mapTitle: string) => {
 	let response;
-	console.log(data);
 	try {
 		response = await axios.post(
 			url + `/raycheck/rayLaunch/${mapTitle}`,
@@ -39,9 +39,9 @@ const initialPopupData: PopupDataTypes = {
 export default function SingleMap() {
 	const [popupData, setPopupData] = useState<PopupDataTypes>(initialPopupData);
 	const [singleMapData, setSingleMapData] = useState<SingleMapDataTypes>({} as SingleMapDataTypes);
+	const [wallMatrix, setWallMatrix] = useState<Float64Array | null>(null);
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
-	const { data: wallMatrix, isLoading: isLoadingWallMatrix } = useWallMatrix(id!);
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
 		setSingleMapData(prevSingleMapData => {
 			const updatedSingleMapData = { ...prevSingleMapData, stationPos: stationPos };
@@ -82,11 +82,23 @@ export default function SingleMap() {
 	}, [data]);
 
 	useEffect(() => {
-		if (wallMatrix) {
-			setSingleMapData(prev => ({ ...prev, wallMatrix }));
-		}
-	}, [wallMatrix]);
+		if (!id) return;
+		loadWallMatrix(id).then(setWallMatrix);
+	}, [id]);
 
+	const matrixIndexValue = useMemo(() => {
+		if (!wallMatrix) return;
+		const { i, j } = geoToMatrixIndex(
+			singleMapData.stationPos[0] as unknown as number,
+			singleMapData.stationPos[1] as unknown as number,
+			data.mapData.coordinates[0][0][0],
+			data.mapData.coordinates[0][2][0],
+			data.mapData.coordinates[0][0][1],
+			data.mapData.coordinates[0][2][1],
+			250
+		);
+		return getMatrixValue(wallMatrix, i, j, Number(popupData.stationHeight));
+	}, [wallMatrix, popupData.stationHeight, singleMapData.stationPos, id]);
 	return (
 		<>
 			{popupData.isOpen && (
@@ -145,13 +157,15 @@ export default function SingleMap() {
 						<h3>{data.mapData.title}</h3>
 					</div>
 					<div className={styles.mapBox}>
-						{singleMapData.stationPos && (
+						{singleMapData.stationPos && matrixIndexValue && (
 							<Map
 								{...data.mapData}
 								stationPos={singleMapData.stationPos}
+								stationHeight={popupData.stationHeight}
 								handleStationPosUpdate={handleStationPosUpdate}
 								buildingsData={data.buildingsData}
 								computationResult={data.computationResult}
+								wallMatrix={wallMatrix}
 							/>
 						)}
 						<div className={styles.stationPosContener}>
@@ -169,7 +183,7 @@ export default function SingleMap() {
 												data.mapData.coordinates[0][0][1],
 												data.mapData.coordinates[0][2][1],
 												250
-											).j
+											).i
 										}{" "}
 									</p>
 									<p>
@@ -183,27 +197,10 @@ export default function SingleMap() {
 												data.mapData.coordinates[0][0][1],
 												data.mapData.coordinates[0][2][1],
 												250
-											).i
+											).j
 										}
 									</p>
-									{singleMapData.stationPos && (
-										<>
-											{(() => {
-												const { i, j } = geoToMatrixIndex(
-													singleMapData.stationPos[0] as number,
-													singleMapData.stationPos[1] as number,
-													data.mapData.coordinates[0][0][0],
-													data.mapData.coordinates[0][2][0],
-													data.mapData.coordinates[0][0][1],
-													data.mapData.coordinates[0][2][1],
-													250
-												);
-												console.log(i, j);
-												const value = getMatrixValue(wallMatrix, i, j, 0);
-												return <p>index: {value}</p>;
-											})()}
-										</>
-									)}
+									{matrixIndexValue && <p>index: {matrixIndexValue}</p>}
 								</>
 							)}
 						</div>

@@ -1,5 +1,3 @@
-import { FeatureCollection } from "geojson";
-
 export type Maps = {
 	id: string;
 	name: string;
@@ -26,10 +24,12 @@ export type MapTypes = {
 };
 
 export type MapTypesExtended = MapTypes & {
-	stationPos: mapboxgl.LngLatLike;
+	stationPos: mapboxgl.LngLatLike[];
+	stationHeight: number;
 	handleStationPosUpdate: (value: mapboxgl.LngLatLike) => void;
 	buildingsData: GeoJSON.FeatureCollection | null;
 	computationResult: mapboxgl.LngLatLike[][];
+	wallMatrix: Float64Array;
 };
 
 export type PostComputeTypes = {
