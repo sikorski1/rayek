@@ -1,5 +1,5 @@
 import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
-import { useGetMapById } from "@/hooks/useMap";
+import { useGetMapById, useRayLaunching } from "@/hooks/useMap";
 import Map from "@/pages/SingleMap/Map/Map";
 import { PopupDataTypes, PostComputeTypes, SingleMapDataTypes } from "@/types/main";
 import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
@@ -42,6 +42,7 @@ export default function SingleMap() {
 	const [wallMatrix, setWallMatrix] = useState<Float64Array | null>(null);
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
+	const { mutate } = useRayLaunching();
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
 		setSingleMapData(prevSingleMapData => {
 			const updatedSingleMapData = { ...prevSingleMapData, stationPos: stationPos };
@@ -67,14 +68,10 @@ export default function SingleMap() {
 
 	const handleComputeBtn = async () => {
 		const { frequency, stationHeight } = popupData;
-		const data: PostComputeTypes = { freq: frequency, stationH: stationHeight };
-		const response = await postCompute(data, id!);
-		if (response) {
-			setSingleMapData(prevSingleMapData => {
-				const updatedSingleMapData = { ...prevSingleMapData, computationResult: response.data };
-				return updatedSingleMapData;
-			});
-		}
+		mutate({
+			mapTitle: id!,
+			configData: { stationPos: { x: i, y: j, z: Number(stationHeight) } },
+		});
 	};
 	useEffect(() => {
 		if (!data) return;
@@ -86,8 +83,10 @@ export default function SingleMap() {
 		loadWallMatrix(id).then(setWallMatrix);
 	}, [id]);
 
-	const matrixIndexValue = useMemo(() => {
-		if (!wallMatrix) return;
+	const { matrixIndexValue, i, j } = useMemo(() => {
+		if (!wallMatrix || !popupData?.stationHeight || !singleMapData?.stationPos || singleMapData.stationPos.length < 2) {
+			return { matrixIndexValue: undefined, i: undefined, j: undefined };
+		}
 		const { i, j } = geoToMatrixIndex(
 			singleMapData.stationPos[0] as unknown as number,
 			singleMapData.stationPos[1] as unknown as number,
@@ -97,8 +96,9 @@ export default function SingleMap() {
 			data.mapData.coordinates[0][2][1],
 			250
 		);
-		return getMatrixValue(wallMatrix, i, j, Number(popupData.stationHeight));
-	}, [wallMatrix, popupData.stationHeight, singleMapData.stationPos, id]);
+		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(popupData.stationHeight));
+		return { matrixIndexValue, i, j };
+	}, [wallMatrix, popupData?.stationHeight, singleMapData?.stationPos, data.mapData.coordinates]);
 	return (
 		<>
 			{popupData.isOpen && (

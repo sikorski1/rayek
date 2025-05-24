@@ -49,6 +49,7 @@ type BuildingsConfiguration struct {
 	Features []Features `json:"features"`
 }
 
+
 func GetMaps(context *gin.Context) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -190,17 +191,18 @@ func ComputeRays(context *gin.Context) {
 }
 
 type RayLaunchRequest struct {
-	StationHeight  float64 `json:"stationHeight"`
-	Frequency      float64 `json:"freq"`
+	StationPos      TransmitterPos3D `json:"stationPos"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
 	mapTitle := context.Param("mapTitle")
+
 	var request RayLaunchRequest
 	if err := context.ShouldBindJSON(&request); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	log.Printf("Received request: %+v\n", request)
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
@@ -237,7 +239,7 @@ func Create3DRayLaunching(context *gin.Context) {
 		MinimalRayPower:     -120.0,   
 		TransmitterFreq:      2.4e9,   // Hz
 		WaveLength:           0,  
-		TransmitterPos: Point3D{X:125, Y:125, Z:28},
+		TransmitterPos: Point3D{X:request.StationPos.X, Y:request.StationPos.Y, Z:request.StationPos.Z},
 	}
 	config.WaveLength = 299792458 / (config.TransmitterFreq)
 	start := time.Now()
@@ -318,8 +320,7 @@ func Create3DRayLaunching(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{
 		"message":       "Request received successfully",
 		"mapTitle":     mapTitle,
-		"stationHeight": request.StationHeight,
-		"frequency":     request.Frequency,
+		"stationPos":     request.StationPos,
 		"powerMap": rayLaunching.PowerMap,
 	})
 }

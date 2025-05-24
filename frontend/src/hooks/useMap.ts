@@ -1,6 +1,6 @@
 import { Maps } from "@/types/main";
 import { url } from "@/utils/url";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 const fetchMaps = async () => {
 	try {
@@ -31,6 +31,25 @@ const fetchWallMatrix = async (mapTitle: string): Promise<Float64Array> => {
 		throw new Error("Failed to fetch wall matrix");
 	}
 };
+
+const startRayLaunching = async ({ mapTitle, configData }: { mapTitle: string; configData: any }) => {
+	console.log(configData);
+	try {
+		const response = await axios.post(
+			url + `/maps/rayLaunch/${mapTitle}`,
+			{ ...configData },
+			{
+				headers: {
+					"Content-Type": "application/json",
+				},
+			}
+		);
+		return response.data;
+	} catch (error) {
+		console.error(`Error fetching wall matrix`, error);
+		throw new Error("Failed to fetch wall matrix");
+	}
+};
 export const useGetMaps = () => {
 	return useQuery<Maps, Error>({ queryKey: ["maps"], queryFn: fetchMaps });
 };
@@ -43,6 +62,16 @@ export const useWallMatrix = (mapTitle: string) => {
 	return useQuery({
 		queryKey: ["wallMatrix", mapTitle],
 		queryFn: () => fetchWallMatrix(mapTitle),
-		enabled: !!mapTitle, 
+		enabled: !!mapTitle,
+	});
+};
+
+export const useRayLaunching = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: startRayLaunching,
+		onSuccess: () => {
+			console.log("done");
+		},
 	});
 };
