@@ -1,4 +1,4 @@
-import SettingsDialog from "@/components/SettingsDialog/SettingsDialog";
+import Modal from "@/components/Modal/Modal";
 import { useGetMapById, useRayLaunching } from "@/hooks/useMap";
 import Map from "@/pages/SingleMap/Map/Map";
 import { PopupDataTypes, PostComputeTypes, SingleMapDataTypes } from "@/types/main";
@@ -8,7 +8,7 @@ import { loadWallMatrix } from "@/utils/loadWallMatrix";
 import { url } from "@/utils/url";
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { IoMdClose, IoMdSettings } from "react-icons/io";
+import { IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
 
@@ -98,22 +98,17 @@ export default function SingleMap() {
 		);
 		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(popupData.stationHeight));
 		return { matrixIndexValue, i, j };
-	}, [wallMatrix, popupData?.stationHeight, singleMapData?.stationPos, data.mapData.coordinates]);
+	}, [wallMatrix, popupData?.stationHeight, singleMapData?.stationPos, data?.mapData?.coordinates]);
 	return (
 		<>
 			{popupData.isOpen && (
-				<SettingsDialog popState={popupData.isOpen} handleOnClose={handleOnSettingsClose}>
+				<Modal onClose={handleOnSettingsClose}>
 					<div className={styles.dialogBox}>
-						<div className={styles.closeBtnBox}>
-							<button className={styles.closeBtn} onClick={handleOnSettingsClose}>
-								<IoMdClose />
-							</button>
-						</div>
-						<form onSubmit={handleDialogFormSubmit} className={styles.form}>
-							<div className={styles.formBox}>
-								<div className={styles.formInputBox}>
+						<form onSubmit={handleDialogFormSubmit} className={styles.formBox}>
+							<div className={styles.formInputBox}>
+								<div>
 									<label htmlFor="frequency" className={styles.label}>
-										Frequency (MHz):
+										FREQUENCY (MHz)
 									</label>
 									<input
 										type="number"
@@ -127,9 +122,9 @@ export default function SingleMap() {
 										required
 									/>
 								</div>
-								<div className={styles.formInputBox}>
+								<div>
 									<label htmlFor="stationHeight" className={styles.label}>
-										Station Height (m):
+										STATION HEIGHT (m)
 									</label>
 									<input
 										type="number"
@@ -143,13 +138,82 @@ export default function SingleMap() {
 										required
 									/>
 								</div>
-								<button className={styles.submitBtn} type="submit">
-									Enter
-								</button>
 							</div>
+							<div className={styles.formInputBox}>
+								<div>
+									<label htmlFor="frequency" className={styles.label}>
+										FREQUENCY (MHz)
+									</label>
+									<input
+										type="number"
+										name="frequency"
+										defaultValue={popupData.frequency}
+										className={styles.input}
+										placeholder="Enter frequency in MHz"
+										min="100"
+										max="100000"
+										step="1"
+										required
+									/>
+								</div>
+								<div>
+									<label htmlFor="stationHeight" className={styles.label}>
+										STATION HEIGHT (m)
+									</label>
+									<input
+										type="number"
+										name="stationHeight"
+										defaultValue={popupData.stationHeight}
+										className={styles.input}
+										placeholder="Enter station height in meters"
+										min="0"
+										max="10"
+										step="0.1"
+										required
+									/>
+								</div>
+							</div>
+							<div className={styles.formInputBox}>
+								<div>
+									<label htmlFor="frequency" className={styles.label}>
+										FREQUENCY (MHz)
+									</label>
+									<input
+										type="number"
+										name="frequency"
+										defaultValue={popupData.frequency}
+										className={styles.input}
+										placeholder="Enter frequency in MHz"
+										min="100"
+										max="100000"
+										step="1"
+										required
+									/>
+								</div>
+								<div>
+									<label htmlFor="stationHeight" className={styles.label}>
+										STATION HEIGHT (m)
+									</label>
+									<input
+										type="number"
+										name="stationHeight"
+										defaultValue={popupData.stationHeight}
+										className={styles.input}
+										placeholder="Enter station height in meters"
+										min="0"
+										max="10"
+										step="0.1"
+										required
+									/>
+								</div>
+							</div>
+							<div className={styles.formInputBox}></div>
+							<button className={styles.submitBtn} type="submit">
+								Enter
+							</button>
 						</form>
 					</div>
-				</SettingsDialog>
+				</Modal>
 			)}
 			{!isLoading && data && wallMatrix && (
 				<div className={styles.box}>

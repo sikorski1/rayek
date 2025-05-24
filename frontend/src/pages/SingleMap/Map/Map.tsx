@@ -336,6 +336,5 @@ export default function Map({
 	// 		}, mapRef.current.getStyle()!.layers?.[30]?.id);
 	// 	});
 	// }, [computationResult]);
-	console.log(stationHeight);
 	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
 }
