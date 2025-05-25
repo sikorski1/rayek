@@ -1,8 +1,8 @@
 @use "@/constants/colors" as *;
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
 html {
@@ -11,8 +11,7 @@ html {
 }
 
 body {
-  font-family: "Open Sans", sans-serif;
-  font-size: 1.6rem;
-  background: $black-gradient;
-  background-color:$black-light;
+	font-family: "Geist", sans-serif;
+	font-size: 1.6rem;
+	background-color: $white-strong;
 }

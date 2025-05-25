@@ -1,0 +1,51 @@
+@mixin shadow-strong($color: black) {
+	box-shadow: 4px 3px 1px $color;
+	border: solid 2px $color;
+	border-radius: 4px;
+	transition: background-color 0.3s ease, color 0.3s ease;
+}
+@mixin shadow-strong-hover-clickable($color: black, $bg-hover: black, $text-hover: white) {
+	&:hover {
+		transform: translate(-1px, -1px);
+		background-color: $bg-hover;
+		color: $text-hover;
+		box-shadow: 5px 4px 2px $color;
+	}
+	&:active {
+		transform: translate(2px, 2px);
+		box-shadow: 2px 1px 0px $color;
+	}
+}
+
+@mixin shadow-strong-hover-delete($color: black, $bg-hover: red, $text-hover: white) {
+	&:hover {
+		transform: translate(-1px, -1px);
+		background-color: $bg-hover;
+		color: $text-hover;
+		box-shadow: 5px 4px 2px $color;
+	}
+}
+
+@mixin shadow-strong-hover-select($color: black) {
+	&:hover {
+		transform: translate(-1px, -1px);
+		box-shadow: 5px 4px 2px $color;
+	}
+	&:active {
+		transform: translate(2px, 2px);
+		box-shadow: 2px 1px 0px $color;
+	}
+}
+
+@mixin shadow-strong-hover-card($bg-hover: black) {
+	&:hover {
+		background-color: $bg-hover;
+	}
+}
+
+@mixin shadow-strong-hover-input($bg-hover: black, $text-hover: white) {
+	&:hover {
+		background-color: $bg-hover;
+		color: $text-hover;
+	}
+}
