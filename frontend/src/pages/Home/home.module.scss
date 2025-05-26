@@ -5,6 +5,7 @@
 	height: 100vh;
 	overflow: hidden;
 	.container {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -12,6 +13,22 @@
 		margin: 0 auto;
 		max-width: 1600px;
 		height: 80%;
+
+		.bgImage {
+			position: absolute;
+			top: 65%;
+			right: -10%;
+			width: 1080px;
+			height: 1080px;
+			transform: translateY(-50%);
+			background-image: url("home/bg-home.png");
+			background-size: cover;
+			background-position: center;
+			z-index: -1;
+			mask-image: url("home/ink-animation.webp");
+			mask-size: cover;
+			opacity: 1;
+		}
 	}
 	.name {
 		margin-bottom: 2rem;
@@ -32,6 +49,9 @@
 		font-size: 3rem;
 		color: $green-400;
 		text-decoration: none;
+		background: #eeeeee8c;
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
 	}
 	.iconBox {
 		position: absolute;

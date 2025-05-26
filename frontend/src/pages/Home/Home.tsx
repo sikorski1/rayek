@@ -5,6 +5,7 @@ export default function Home() {
 	return (
 		<main className={styles.box}>
 			<div className={styles.container}>
+				<div className={styles.bgImage}></div>
 				<h1 className={styles.name}>Rayek</h1>
 				<div className={styles.buttonsBox}>
 					<Link className={styles.link} to="/maps">
@@ -17,9 +18,7 @@ export default function Home() {
 						Maps
 					</Link>
 				</div>
-				<div className={styles.iconBox}>
-					<Wifi className={styles.icon}></Wifi>
-				</div>
+	
 			</div>
 		</main>
 	);
