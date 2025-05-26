@@ -51,7 +51,7 @@ const startRayLaunching = async ({ mapTitle, configData }: { mapTitle: string; c
 	}
 };
 export const useGetMaps = () => {
-	return useQuery<Maps, Error>({ queryKey: ["maps"], queryFn: fetchMaps });
+	return useQuery<Maps[], Error>({ queryKey: ["maps"], queryFn: fetchMaps });
 };
 
 export const useGetMapById = (mapTitle: string) => {

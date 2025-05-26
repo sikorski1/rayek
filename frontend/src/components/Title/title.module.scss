@@ -1,12 +1,13 @@
 @use "@/constants/colors" as *;
 @use "@/constants/screenSizes" as *;
+@use "@/constants/mixins" as *;
 .title {
+	padding: 0.5rem 1rem;
 	margin-top: 5rem;
 	margin-bottom: 1rem;
 	align-self: center;
 	font-size: 2.6rem;
-	color: $white;
-	text-shadow: 3px 3px 5px $black;
+	color: $green-400;
 	user-select: none;
 }
 
