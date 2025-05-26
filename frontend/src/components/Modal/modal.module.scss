@@ -1,4 +1,5 @@
 @use "@/constants/colors" as *;
+@use "@/constants/mixins" as *;
 .modalOverlay {
 	position: fixed;
 	inset: 0;
@@ -11,23 +12,23 @@
 }
 
 .modalContent {
-	background: $green-gradient-strong;
-	border-radius: 0.5rem;
-	box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+	@include shadow-strong();
 }
 .closeBtnBox {
 	display: flex;
 	justify-content: flex-end;
 	transition: background-color 0.3s;
 	.closeBtn {
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, $green-400);
 		display: flex;
 		margin-top: 1rem;
 		margin-right: 1rem;
 		padding: 1rem;
 		font-size: 2.4rem;
 		border: none;
-		background: transparent;
-		color: $white;
+		background: $white-strong;
+		color: $black;
 		border-radius: 50%;
 		cursor: pointer;
 		transition: background-color 0.3s;

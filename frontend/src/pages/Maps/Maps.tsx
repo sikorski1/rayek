@@ -41,7 +41,6 @@ export default function Maps() {
 												key={item.id}
 												to={item.name.replace(/\s+/g, "").toLocaleLowerCase()}
 												className={styles.link}></Link>
-											<div className={styles.bgGradient}></div>
 											<div className={styles.imgBox}>
 												<img className={styles.img} src={item.img || sampleImg} alt="map image" />
 											</div>

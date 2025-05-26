@@ -1,6 +1,6 @@
 @use "@/constants/colors" as *;
 @use "@/constants/screenSizes" as *;
-
+@use "@/constants/mixins" as *;
 .box {
 	display: flex;
 	flex-direction: column;
@@ -8,16 +8,21 @@
 	align-items: center;
 	height: 100vh;
 	.titleBox {
+		@include shadow-strong();
+		@include glassmorphism(#ffffff1a, 4px);
+		padding: 0.5rem 1rem;
 		position: absolute;
 		top: 4rem;
-		left: 50%;
-		color: $white-shadow;
-		text-shadow: 1px 1px 1px $black-shadow;
-		font-size: 2rem;
-		transform: translateX(-50%);
+		left: 6rem;
+		color: $green-400;
+		font-size: 2.8rem;
 		z-index: 1;
+		user-select: none;
 	}
 	.settingsBtn {
+		@include glassmorphism($green-400-shadow, 4px);
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, $green-400);
 		position: absolute;
 		top: 4rem;
 		right: 4rem;
@@ -41,14 +46,16 @@
 		width: 100%;
 
 		.stationPosContener {
+			@include shadow-strong(black);
+			@include glassmorphism(#ffffff8a, 4px);
 			padding: 0.4rem 0.6rem;
 			position: absolute;
+			width: 20rem;
 			left: 2rem;
 			bottom: 4rem;
-			background-color: $black-shadow;
-			border-radius: 4px;
-			color: $white;
-			font-size: 1.2rem;
+			color: $green-400;
+			font-weight: bold;
+			font-size: 1.4rem;
 			user-select: none;
 			p:first-child {
 				font-size: 1.4rem;
@@ -66,21 +73,22 @@
 		}
 	}
 	.computeBtn {
+		@include glassmorphism($green-400-shadow, 4px);
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, $green-400);
 		position: absolute;
 		bottom: 3rem;
 		right: 4rem;
 		padding: 2rem;
-		font-size: 2rem;
+		font-size: 2.4rem;
+		font-weight: bold;
+		text-transform: uppercase;
 		color: $white;
-		background: none;
 		background-color: $green-400-shadow;
 		border: none;
 		border-radius: 4px;
 		transition: background-color 0.3s;
 		cursor: pointer;
-		&:hover {
-			background-color: $green-400;
-		}
 	}
 }
 
@@ -110,34 +118,42 @@
 		}
 	}
 	.formBox {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 2rem;
 		.formInputBox {
 			margin-bottom: 2rem;
 			display: flex;
-			flex-direction: row;
-			align-items: center;
+			flex-direction: column;
 			gap: 1.6rem;
+		}
+		.singleInputBox {
+			width: 50%;
 		}
 		.label {
 			font-size: 2rem;
 			color: $white;
 		}
 		.input {
+			@include shadow-strong();
+			@include shadow-strong-hover-input($green-400);
+			min-width: 300px;
 			padding: 0.6rem;
 			font-size: 2rem;
 			border-radius: 4px;
 			width: 100%;
 		}
 		.submitBtn {
+			@include shadow-strong();
+			@include shadow-strong-hover-clickable(black, $green-400);
+			grid-column: 2/3;
 			padding: 1rem;
 			margin-left: auto;
 			margin-right: 0.4rem;
 			margin-bottom: 1rem;
-			color: $white;
+			background: $white-strong;
+			color: $black;
 			font-size: 1.8rem;
-			background: transparent;
 			border: none;
 			border-radius: 4px;
 			transition: background-color 0.3s;
@@ -147,4 +163,18 @@
 			}
 		}
 	}
+}
+
+.loadingScreen {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 10;
+	background-color: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(2px);
 }

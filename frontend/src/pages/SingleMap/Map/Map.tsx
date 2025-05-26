@@ -222,13 +222,14 @@ export default function Map({
 				data: buildingsData!,
 			});
 			//add region-mask layer
+
 			mapRef.current?.addLayer({
-				id: "region-mask",
-				type: "fill",
+				id: "region-mask-border",
+				type: "line",
 				source: "region-mask",
 				paint: {
-					"fill-color": "#333",
-					"fill-opacity": 0.3,
+					"line-color": "#000",
+					"line-width": 1,
 				},
 			});
 			//add dragdrop circle point layer

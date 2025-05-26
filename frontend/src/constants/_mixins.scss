@@ -49,3 +49,9 @@
 		color: $text-hover;
 	}
 }
+
+@mixin glassmorphism($bg: rgba(255, 255, 255, 0.1), $blur: 10px) {
+	background: $bg;
+	backdrop-filter: blur($blur);
+	-webkit-backdrop-filter: blur($blur);
+}

@@ -191,7 +191,14 @@ func ComputeRays(context *gin.Context) {
 }
 
 type RayLaunchRequest struct {
-	StationPos      TransmitterPos3D `json:"stationPos"`
+	StationPos           TransmitterPos3D `json:"stationPos"`
+	NumberOfRaysAzimuth  int              `json:"numberOfRaysAzimuth"`
+	NumberOfRaysElevation int             `json:"numberOfRaysElevation"`
+	Frequency            float64          `json:"frequency"`
+	ReflectionFactor     float64          `json:"reflectionFactor"`
+	NumberOfInteractions int              `json:"numberOfInteractions"`
+	StationPower         float64          `json:"stationPower"`
+	MinimalRayPower         float64          `json:"minimalRayPower"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
@@ -224,20 +231,20 @@ func Create3DRayLaunching(context *gin.Context) {
 	// TESTING - START
 
 	config := raylaunching.RayLaunching3DConfig{
-		NumOfRaysAzim:        1440,     
-		NumOfRaysElev:        720,    
-		NumOfInteractions:    4,     
+		NumOfRaysAzim:        request.NumberOfRaysAzimuth,     
+		NumOfRaysElev:        request.NumberOfRaysElevation,    
+		NumOfInteractions:    request.NumberOfInteractions,     
 		WallMapNumber:        1000,      
-		RoofMapNumber:      5000,       
+		RoofMapNumber:        5000,       
 		CornerMapNumber:      10000,       
 		SizeX:                250-1,    
 		SizeY:                250-1,
 		SizeZ:                30-1,     
 		Step:                 1.0,    
-		ReflFactor:           0.4,     
-		TransmitterPower:     5.0,   //watt  
-		MinimalRayPower:     -120.0,   
-		TransmitterFreq:      2.4e9,   // Hz
+		ReflFactor:           request.ReflectionFactor,     
+		TransmitterPower:     request.StationPower,   //watt  
+		MinimalRayPower:     request.MinimalRayPower, //dbm
+		TransmitterFreq:      request.Frequency*1e9,   // Hz
 		WaveLength:           0,  
 		TransmitterPos: Point3D{X:request.StationPos.X, Y:request.StationPos.Y, Z:request.StationPos.Z},
 	}

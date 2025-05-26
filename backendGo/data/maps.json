@@ -1,26 +1,26 @@
 [
-  {
-    "id": "aghwiet",
-    "name": "AGH WIET",
-    "description": "",
-   "img": "/maps/agh_fragment.png"
-  },
-  {
-    "id": "aghlibrary",
-    "name": "AGH Library",
-    "description": "",
-    "img": ""
-  },
-  {
-    "id": "3",
-    "name": "Cracow Nowa Huta",
-    "description": "",
-    "img": ""
-  },
-  {
-    "id": "4",
-    "name": "Cracow Wawel",
-    "description": "",
-    "img": ""
-  }
+	{
+		"id": "aghwiet",
+		"name": "AGH WIET",
+		"description": "",
+		"img": "/maps/aghwiet/aghwiet.webp"
+	},
+	{
+		"id": "aghlibrary",
+		"name": "AGH Library",
+		"description": "",
+		"img": "/maps/aghlibrary/aghlibrary.jpg"
+	},
+	{
+		"id": "3",
+		"name": "Cracow Nowa Huta",
+		"description": "",
+		"img": ""
+	},
+	{
+		"id": "4",
+		"name": "Cracow Wawel",
+		"description": "",
+		"img": ""
+	}
 ]

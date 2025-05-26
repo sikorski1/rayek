@@ -7,8 +7,14 @@ export type Maps = {
 
 export type PopupDataTypes = {
 	isOpen: boolean;
-	frequency: string;
-	stationHeight: string;
+	frequency: number;
+	stationHeight: number;
+	numberOfRaysAzimuth: number;
+	numberOfRaysElevation: number;
+	numberOfInteractions: number;
+	reflectionFactor: number;
+	stationPower: number;
+	minimalRayPower: number;
 };
 
 export type SingleMapDataTypes = {
