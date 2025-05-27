@@ -70,8 +70,8 @@ export const useRayLaunching = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: startRayLaunching,
-		onSuccess: () => {
-			console.log("done");
+		onSuccess: (data) => {
+			console.log(data);
 		},
 	});
 };

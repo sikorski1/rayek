@@ -13,11 +13,12 @@ type RayLaunching3DConfig struct {
 }
 
 type RayLaunching3D struct {
-	TransmitterPos TransmitterPos3D
 	PowerMap [][][]float64
 	WallNormals []Normal3D
 	Config RayLaunching3DConfig
+	RayPath []Point3D
 }
+
 
 func NewRayLaunching3D(matrix [][][]float64, wallNormals []Normal3D, config RayLaunching3DConfig) *RayLaunching3D {
 	return &RayLaunching3D{
@@ -62,6 +63,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			y := rl.Config.TransmitterPos.Y + dy
 			z := rl.Config.TransmitterPos.Z + dz
 
+			isTargetRay := dx == 1 && dy == 0 && dz == 0
+
 			// initial counters
 			currInteractions := 0
 			currPower := 0.0
@@ -72,6 +75,10 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			// main loop
 			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y < rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
 				// reflection from the ground when z is below 0
+				if isTargetRay {
+					rl.RayPath = append(rl.RayPath, Point3D{X: float64(math.Round(x/rl.Config.Step)), Y: float64(math.Round(y/rl.Config.Step)), Z: float64(math.Round(z/rl.Config.Step))})
+				}
+
 				if (z < 0 && currWallIndex != rl.Config.RoofMapNumber) {
 					dz = -dz
 					currWallIndex = rl.Config.RoofMapNumber
