@@ -3,15 +3,16 @@ import SpinWifi from "@/components/Loaders/SpinWifi";
 import Modal from "@/components/Modal/Modal";
 import { useGetMapById, useRayLaunching } from "@/hooks/useMap";
 import Map from "@/pages/SingleMap/Map/Map";
-import { PopupDataTypes, SingleMapDataTypes } from "@/types/main";
+import { PopupDataTypes, RayLaunchType } from "@/types/main";
 import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
 import { getMatrixValue } from "@/utils/getMatrixValue";
 import { loadWallMatrix } from "@/utils/loadWallMatrix";
+import { matrixIndexToGeo } from "@/utils/matrixIndexToGeo";
 import { useEffect, useMemo, useState } from "react";
 import { IoMdSettings } from "react-icons/io";
+import mapboxgl from "mapbox-gl";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
-
 const initialPopupData: PopupDataTypes = {
 	isOpen: false,
 	frequency: 5,
@@ -26,14 +27,14 @@ const initialPopupData: PopupDataTypes = {
 
 export default function SingleMap() {
 	const [popupData, setPopupData] = useState<PopupDataTypes>(initialPopupData);
-	const [singleMapData, setSingleMapData] = useState<SingleMapDataTypes>({} as SingleMapDataTypes);
 	const [wallMatrix, setWallMatrix] = useState<Float64Array | null>(null);
+	const [rayLaunchData, setRayLaunchData] = useState<RayLaunchType | null>(null);
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
-	const { mutate, isPending: isPendingRayLaunch } = useRayLaunching();
+
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
-		setSingleMapData(prevSingleMapData => {
-			const updatedSingleMapData = { ...prevSingleMapData, stationPos: stationPos };
+		setPopupData(prev => {
+			const updatedSingleMapData = { ...prev, stationPos: stationPos };
 			return updatedSingleMapData;
 		});
 	};
@@ -62,11 +63,14 @@ export default function SingleMap() {
 			stationPower: Number(formData.get("stationPower")),
 			minimalRayPower: Number(formData.get("minimalRayPower")),
 		};
-		setPopupData(updatedPopupData);
+		setPopupData(prev => ({ ...prev, ...updatedPopupData }));
 	};
-
+	const handleOnSuccess = (data: any) => {
+		setRayLaunchData(data.rayPath);
+	};
+	const { mutate, isPending: isPendingRayLaunch } = useRayLaunching(handleOnSuccess);
 	const handleComputeBtn = async () => {
-		const { stationHeight, ...restData } = popupData;
+		const { stationPos, stationHeight, ...restData } = popupData;
 		mutate({
 			mapTitle: id!,
 			configData: { stationPos: { x: i, y: j, z: Number(stationHeight) }, ...restData },
@@ -74,7 +78,7 @@ export default function SingleMap() {
 	};
 	useEffect(() => {
 		if (!data) return;
-		setSingleMapData(prev => ({ ...prev, stationPos: data.mapData.center }));
+		setPopupData(prev => ({ ...prev, stationPos: data.mapData.center }));
 	}, [data]);
 
 	useEffect(() => {
@@ -83,12 +87,12 @@ export default function SingleMap() {
 	}, [id]);
 
 	const { matrixIndexValue, i, j } = useMemo(() => {
-		if (!wallMatrix || !popupData?.stationHeight || !singleMapData?.stationPos || singleMapData.stationPos.length < 2) {
+		if (!wallMatrix || !popupData?.stationHeight || !popupData?.stationPos || popupData.stationPos.length < 2) {
 			return { matrixIndexValue: undefined, i: undefined, j: undefined };
 		}
 		const { i, j } = geoToMatrixIndex(
-			singleMapData.stationPos[0] as unknown as number,
-			singleMapData.stationPos[1] as unknown as number,
+			popupData.stationPos[0] as unknown as number,
+			popupData.stationPos[1] as unknown as number,
 			data.mapData.coordinates[0][0][0],
 			data.mapData.coordinates[0][2][0],
 			data.mapData.coordinates[0][0][1],
@@ -97,7 +101,24 @@ export default function SingleMap() {
 		);
 		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(popupData.stationHeight));
 		return { matrixIndexValue, i, j };
-	}, [wallMatrix, popupData?.stationHeight, singleMapData?.stationPos, data?.mapData?.coordinates]);
+	}, [wallMatrix, popupData?.stationHeight, popupData?.stationPos, data?.mapData?.coordinates]);
+	const spherePositions = useMemo(() => {
+		if (!data?.mapData?.coordinates || !rayLaunchData) return;
+		const coordinates = data.mapData.coordinates
+		return rayLaunchData.map(({ x, y, z }) => {
+			const { lon, lat } = matrixIndexToGeo(
+				x,
+				y,
+				coordinates[0][0][0],
+				coordinates[0][2][0],
+				coordinates[0][0][1],
+				coordinates[0][2][1],
+				250
+			);
+			console.log(lon,lat);
+			return mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z);
+		});
+	}, [rayLaunchData, data?.mapData?.coordinates]);
 	return (
 		<>
 			{popupData.isOpen && (
@@ -207,27 +228,27 @@ export default function SingleMap() {
 						<h3>{data.mapData.title}</h3>
 					</div>
 					<div className={styles.mapBox}>
-						{singleMapData.stationPos && matrixIndexValue && (
+						{popupData.stationPos && matrixIndexValue && (
 							<Map
 								{...data.mapData}
-								stationPos={singleMapData.stationPos}
+								stationPos={popupData.stationPos}
 								stationHeight={popupData.stationHeight}
 								handleStationPosUpdate={handleStationPosUpdate}
 								buildingsData={data.buildingsData}
-								computationResult={data.computationResult}
+								spherePositions={spherePositions}
 								wallMatrix={wallMatrix}
 							/>
 						)}
 						<div className={styles.stationPosContener}>
-							{singleMapData.stationPos && (
+							{popupData.stationPos && (
 								<>
 									<p>Station position</p>
 									<p>
-										Longitude: {parseFloat(singleMapData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
+										Longitude: {parseFloat(popupData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
-												singleMapData.stationPos[0] as unknown as number,
-												singleMapData.stationPos[1] as unknown as number,
+												popupData.stationPos[0] as unknown as number,
+												popupData.stationPos[1] as unknown as number,
 												data.mapData.coordinates[0][0][0],
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],
@@ -237,11 +258,11 @@ export default function SingleMap() {
 										}{" "}
 									</p>
 									<p>
-										Latitude: {parseFloat(singleMapData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
+										Latitude: {parseFloat(popupData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
-												singleMapData.stationPos[0] as unknown as number,
-												singleMapData.stationPos[1] as unknown as number,
+												popupData.stationPos[0] as unknown as number,
+												popupData.stationPos[1] as unknown as number,
 												data.mapData.coordinates[0][0][0],
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],

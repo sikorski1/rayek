@@ -66,12 +66,12 @@ export const useWallMatrix = (mapTitle: string) => {
 	});
 };
 
-export const useRayLaunching = () => {
+export const useRayLaunching = (handleOnSuccess:(data:any) => void) => {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: startRayLaunching,
 		onSuccess: (data) => {
-			console.log(data);
+			handleOnSuccess(data)
 		},
 	});
 };

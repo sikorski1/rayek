@@ -13,3 +13,4 @@ export const getMatrixValue = (
 	const index = z * sizeY * sizeX + y * sizeX + x;
 	return matrix[index];
 };
+

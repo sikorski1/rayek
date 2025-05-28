@@ -1,3 +1,4 @@
+import { MercatorCoordinate } from "mapbox-gl";
 export type Maps = {
 	id: string;
 	name: string;
@@ -15,7 +16,14 @@ export type PopupDataTypes = {
 	reflectionFactor: number;
 	stationPower: number;
 	minimalRayPower: number;
+	stationPos?: [number, number];
 };
+
+export type RayLaunchType = {
+	x: number;
+	y: number;
+	z: number;
+}[];
 
 export type SingleMapDataTypes = {
 	stationPos: mapboxgl.LngLatLike[];
@@ -36,6 +44,7 @@ export type MapTypesExtended = MapTypes & {
 	buildingsData: GeoJSON.FeatureCollection | null;
 	computationResult: mapboxgl.LngLatLike[][];
 	wallMatrix: Float64Array;
+	spherePositions: MercatorCoordinate[] | undefined;
 };
 
 export type PostComputeTypes = {

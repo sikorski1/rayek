@@ -63,7 +63,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			y := rl.Config.TransmitterPos.Y + dy
 			z := rl.Config.TransmitterPos.Z + dz
 
-			isTargetRay := dx == 1 && dy == 0 && dz == 0
+			isTargetRay := i==0 && j==19
 
 			// initial counters
 			currInteractions := 0

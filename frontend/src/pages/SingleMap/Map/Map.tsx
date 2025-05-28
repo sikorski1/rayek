@@ -27,7 +27,7 @@ export default function Map({
 	stationHeight,
 	handleStationPosUpdate,
 	buildingsData,
-	computationResult,
+	spherePositions,
 	wallMatrix,
 }: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -166,7 +166,105 @@ export default function Map({
 				},
 			};
 		};
+		const createInstancedSpheresLayer = () => {
+			const camera = new THREE.Camera();
+			const scene = new THREE.Scene();
 
+			const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+			scene.add(ambientLight);
+
+			const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+			directionalLight.position.set(10, 10, 5);
+			scene.add(directionalLight);
+
+			// Większe sfery dla lepszej widoczności
+			const sphereGeometry = new THREE.SphereGeometry(1, 6, 6); // Zwiększony promień
+			const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+			let instancedMesh: THREE.InstancedMesh | null = null;
+
+			const updateInstancedSpheres = () => {
+				console.log("updateInstancedSpheres called, spherePositions:", spherePositions);
+
+				if (spherePositions && spherePositions.length > 0) {
+					console.log("Creating spheres for positions:", spherePositions.length);
+
+					if (instancedMesh) {
+						scene.remove(instancedMesh);
+						instancedMesh.geometry.dispose();
+						instancedMesh = null;
+					}
+
+					instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, spherePositions.length);
+
+					const matrix = new THREE.Matrix4();
+					const desiredRadiusInMeters = 1; // <<< ZDEFINIUJ POŻĄDANY PROMIEŃ SFERY W METRACH
+
+					spherePositions.forEach((position, index) => {
+						// Upewnij się, że 'position' jest tym, czym myślisz, że jest
+						if (!position || typeof position.meterInMercatorCoordinateUnits !== "function") {
+							console.warn(`Sphere position ${index} is not a valid MercatorCoordinate or similar object:`, position);
+							return; // Pomiń tę instancję
+						}
+
+						const scalePerMeter = position.meterInMercatorCoordinateUnits();
+
+						if (isNaN(scalePerMeter) || scalePerMeter === 0) {
+							console.warn(`Invalid scalePerMeter for sphere ${index}:`, scalePerMeter, "Position:", position);
+							return; // Pomiń, jeśli skala jest nieprawidłowa
+						}
+
+						const finalInstanceScale = desiredRadiusInMeters * scalePerMeter;
+
+						// console.log(`Setting sphere ${index} at position:`, position, ` calculated scale: ${finalInstanceScale}`);
+
+						matrix.identity(); // Zacznij od macierzy jednostkowej dla każdej instancji
+						matrix.makeScale(finalInstanceScale, finalInstanceScale, finalInstanceScale);
+						matrix.setPosition(position.x, position.y, position.z); // position.z powinno już zawierać wysokość środka sfery w jedn. Merkatora
+
+						instancedMesh!.setMatrixAt(index, matrix);
+					});
+
+					instancedMesh.instanceMatrix.needsUpdate = true;
+					scene.add(instancedMesh);
+					console.log("Spheres added to scene");
+					mapRef.current?.triggerRepaint(); // Upewnij się, że mapa jest przerysowywana
+				} else {
+					console.log("No spherePositions available or empty array. Removing old mesh if exists.");
+					if (instancedMesh) {
+						// Usuń poprzedni mesh, jeśli nie ma nowych pozycji
+						scene.remove(instancedMesh);
+						instancedMesh.geometry.dispose();
+						instancedMesh = null;
+						mapRef.current?.triggerRepaint();
+					}
+				}
+			};
+
+			const renderer = new THREE.WebGLRenderer({
+				canvas: mapRef.current?.getCanvas(),
+				context: mapRef.current?.painter.context.gl,
+				antialias: true,
+			});
+			renderer.autoClear = false;
+
+			return {
+				id: "3d-spheres-instanced",
+				type: "custom",
+				renderingMode: "3d",
+				onAdd: () => {
+					console.log("Spheres layer onAdd called");
+					updateInstancedSpheres();
+				},
+				render: (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+					const m = new THREE.Matrix4().fromArray(matrix as unknown as ArrayLike<number>);
+					camera.projectionMatrix = m;
+					renderer.resetState();
+					renderer.render(scene, camera);
+					mapRef.current?.triggerRepaint();
+				},
+			};
+		};
 		mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 		const towerModelOrigin = stationPos;
 		const towerModelAltitude = 0;
@@ -256,7 +354,6 @@ export default function Map({
 			//add 3d 5gtower model layer
 			const customLayer = createCustomLayer();
 			mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
-
 			//add map 3d buildings layer
 			mapRef.current?.addLayer(
 				{
@@ -275,6 +372,8 @@ export default function Map({
 				},
 				labelLayerId
 			);
+			const spheresLayer = createInstancedSpheresLayer();
+			mapRef.current?.addLayer(spheresLayer as unknown as CustomLayerInterface);
 
 			mapRef.current?.on("mouseenter", "point", () => {
 				mapRef.current?.setPaintProperty("point", "circle-color", "#3bb2d0");
@@ -301,7 +400,7 @@ export default function Map({
 			});
 		});
 		return () => mapRef.current?.remove();
-	}, [stationHeight]);
+	}, [stationHeight, spherePositions]);
 
 	// useEffect(() => {
 	// 	if (!computationResult) return;
