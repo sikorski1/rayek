@@ -115,7 +115,6 @@ export default function SingleMap() {
 				coordinates[0][2][1],
 				250
 			);
-			console.log(lon,lat);
 			return mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z);
 		});
 	}, [rayLaunchData, data?.mapData?.coordinates]);

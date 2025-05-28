@@ -36,7 +36,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 	for i := 0; i < rl.Config.NumOfRaysAzim; i++ { // loop over horizontal dim
 		theta := (2*math.Pi)/float64(rl.Config.NumOfRaysAzim)*float64(i) // from -π to π
 		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
-
+				
 			var phi,dx,dy,dz float64
 
 			// spherical coordinates
@@ -63,7 +63,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			y := rl.Config.TransmitterPos.Y + dy
 			z := rl.Config.TransmitterPos.Z + dz
 
-			isTargetRay := i==0 && j==19
+			isTargetRay := i==0 && j==9
 
 			// initial counters
 			currInteractions := 0
@@ -97,6 +97,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				yIdx := int(math.Round(y/rl.Config.Step))
 				zIdx := int(math.Round(z/rl.Config.Step))
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
+				// println("i:", i, "j: ", j, "x: ", xIdx, "y: ", yIdx, "z: ", zIdx, "index: ", index, "dx: ", dx, "dy: ", dy, "dz: ", dz)
 				// reflection from the building roof
 				if (index == rl.Config.RoofMapNumber) && currWallIndex != rl.Config.RoofMapNumber {
 					dz = -dz
@@ -127,7 +128,6 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
 				} else {
-
 					// calculate distance and transmittance
 					currRayLength = calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z}) + currSumRayLength
 					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, math.Pow(rl.Config.ReflFactor, float64(currInteractions)))
