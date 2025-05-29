@@ -8,9 +8,9 @@ import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
 import { getMatrixValue } from "@/utils/getMatrixValue";
 import { loadWallMatrix } from "@/utils/loadWallMatrix";
 import { matrixIndexToGeo } from "@/utils/matrixIndexToGeo";
+import mapboxgl from "mapbox-gl";
 import { useEffect, useMemo, useState } from "react";
 import { IoMdSettings } from "react-icons/io";
-import mapboxgl from "mapbox-gl";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
 const initialPopupData: PopupDataTypes = {
@@ -104,18 +104,24 @@ export default function SingleMap() {
 	}, [wallMatrix, popupData?.stationHeight, popupData?.stationPos, data?.mapData?.coordinates]);
 	const spherePositions = useMemo(() => {
 		if (!data?.mapData?.coordinates || !rayLaunchData) return;
-		const coordinates = data.mapData.coordinates
-		return rayLaunchData.map(({ x, y, z }) => {
+		const coordinates = data.mapData.coordinates;
+		const filteredRayData = rayLaunchData.filter((_, index) => index % 3 === 0);
+
+		return filteredRayData.map(({ x, y, z, power }) => {
 			const { lon, lat } = matrixIndexToGeo(
 				x,
 				y,
-				coordinates[0][0][0],
+				coordinates[0][0][0], 
 				coordinates[0][2][0],
-				coordinates[0][0][1],
+				coordinates[0][0][1], 
 				coordinates[0][2][1],
-				250
-			);
-			return mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z);
+				250 
+			)
+			const coord = mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z ?? 0);
+			return {
+				coord,
+				power, 
+			};
 		});
 	}, [rayLaunchData, data?.mapData?.coordinates]);
 	return (
@@ -230,8 +236,7 @@ export default function SingleMap() {
 						{popupData.stationPos && matrixIndexValue && (
 							<Map
 								{...data.mapData}
-								stationPos={popupData.stationPos}
-								stationHeight={popupData.stationHeight}
+								{...popupData}
 								handleStationPosUpdate={handleStationPosUpdate}
 								buildingsData={data.buildingsData}
 								spherePositions={spherePositions}

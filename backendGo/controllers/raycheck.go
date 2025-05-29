@@ -253,7 +253,6 @@ func Create3DRayLaunching(context *gin.Context) {
 	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals,config)
 	rayLaunching.CalculateRayLaunching3D()
 	stop := time.Since(start)
-	fmt.Printf("RayPath: %v \n", rayLaunching.RayPath)
 	fmt.Printf("RayLaunching 3D calculation time: %v\n", stop)
 	outputDir := filepath.Join("data", mapTitle, "imgs")
 	err = os.MkdirAll(outputDir, os.ModePerm)

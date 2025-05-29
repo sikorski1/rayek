@@ -12,11 +12,17 @@ type RayLaunching3DConfig struct {
 	TransmitterPos Point3D
 }
 
+type RayPoint struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
+	Power    float64 `json:"power"`
+}
 type RayLaunching3D struct {
 	PowerMap [][][]float64
 	WallNormals []Normal3D
 	Config RayLaunching3DConfig
-	RayPath []Point3D
+	RayPath []RayPoint
 }
 
 
@@ -32,7 +38,6 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 	for z := 0; z < int(rl.Config.TransmitterPos.Z); z++ {
 		rl.PowerMap[z][int(rl.Config.TransmitterPos.Y)][int(rl.Config.TransmitterPos.X)] = 0
 	}
-	
 	for i := 0; i < rl.Config.NumOfRaysAzim; i++ { // loop over horizontal dim
 		theta := (2*math.Pi)/float64(rl.Config.NumOfRaysAzim)*float64(i) // from -π to π
 		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
@@ -63,7 +68,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			y := rl.Config.TransmitterPos.Y + dy
 			z := rl.Config.TransmitterPos.Z + dz
 
-			isTargetRay := i==0 && j==9
+			isTargetRay := i==0 && j==8
 
 			// initial counters
 			currInteractions := 0
@@ -75,10 +80,6 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			// main loop
 			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y < rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
 				// reflection from the ground when z is below 0
-				if isTargetRay {
-					rl.RayPath = append(rl.RayPath, Point3D{X: float64(math.Round(x/rl.Config.Step)), Y: float64(math.Round(y/rl.Config.Step)), Z: float64(math.Round(z/rl.Config.Step))})
-				}
-
 				if (z < 0 && currWallIndex != rl.Config.RoofMapNumber) {
 					dz = -dz
 					currWallIndex = rl.Config.RoofMapNumber
@@ -97,9 +98,9 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				yIdx := int(math.Round(y/rl.Config.Step))
 				zIdx := int(math.Round(z/rl.Config.Step))
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-			
-					println("i:", i, "j:", j, "x:", xIdx, "y:", yIdx, "z:", zIdx, "index:", index,"currWallIndex:", currWallIndex, "dx:", dx, "dy:", dy, "dz:", dz)
-				
+				// if (i==0 && j == 10) {
+				// 	println("i:", i, "j:", j, "x:", xIdx, "y:", yIdx, "z:", zIdx, "index:", index,"currWallIndex:", currWallIndex, "dx:", dx, "dy:", dy, "dz:", dz)
+				// }
 				// reflection from the building roof
 				if (index == rl.Config.RoofMapNumber) && currWallIndex != rl.Config.RoofMapNumber {
 					dz = -dz
@@ -141,10 +142,11 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
 						rl.PowerMap[zIdx][yIdx][xIdx] = currPower
 					} 
+					if isTargetRay {
+					rl.RayPath = append(rl.RayPath, RayPoint{X: float64(math.Round(x/rl.Config.Step)), Y: float64(math.Round(y/rl.Config.Step)), Z: float64(math.Round(z/rl.Config.Step)), Power:currPower})
+				}
 				}
 				// update position
-				
-
 				x += dx
 				y += dy
 				z += dz

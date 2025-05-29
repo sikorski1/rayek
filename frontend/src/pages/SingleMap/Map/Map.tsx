@@ -1,5 +1,6 @@
 import { MapTypesExtended } from "@/types/main";
 import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
+import { getHeatMapColor } from "@/utils/getHeatMapColor";
 import { getMatrixValue } from "@/utils/getMatrixValue";
 import { FeatureCollection, Position } from "geojson";
 import mapboxgl, { CustomLayerInterface, LngLatLike } from "mapbox-gl";
@@ -25,6 +26,7 @@ export default function Map({
 	bounds,
 	stationPos,
 	stationHeight,
+	minimalRayPower,
 	handleStationPosUpdate,
 	buildingsData,
 	spherePositions,
@@ -60,6 +62,93 @@ export default function Map({
 		],
 	};
 	useEffect(() => {
+		const createSphereLayer = (position: mapboxgl.MercatorCoordinate, power: number, index: number) => {
+			const camera = new THREE.Camera();
+			const scene = new THREE.Scene();
+			const sphereGeometry = new THREE.SphereGeometry(1, 8, 8);
+			const minPower = -160;
+			const maxPower = -0.1;
+
+			const clampedPower = Math.min(Math.max(power, minPower), maxPower);
+			const normalizedPower = (clampedPower - minPower) / (maxPower - minPower);
+			const color = getHeatMapColor(normalizedPower);
+			const sphereMaterial = new THREE.MeshBasicMaterial({
+				color,
+				transparent: true,
+				opacity: 0.8,
+			});
+
+			const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+			scene.add(sphereMesh);
+
+			const sphereModelTransform = {
+				translateX: position.x,
+				translateY: position.y,
+				translateZ: position.z,
+				rotateX: 0,
+				rotateY: 0,
+				rotateZ: 0,
+				scale: position.meterInMercatorCoordinateUnits(),
+			};
+
+			const renderer = new THREE.WebGLRenderer({
+				canvas: mapRef.current?.getCanvas(),
+				context: mapRef.current?.painter.context.gl,
+				antialias: true,
+			});
+			renderer.autoClear = false;
+
+			return {
+				id: `sphere-${index}`,
+				type: "custom",
+				renderingMode: "3d",
+				onAdd: () => {},
+				render: (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+					const m = new THREE.Matrix4().fromArray(matrix as unknown as ArrayLike<number>);
+					const l = new THREE.Matrix4()
+						.makeTranslation(
+							sphereModelTransform.translateX,
+							sphereModelTransform.translateY,
+							sphereModelTransform.translateZ
+						)
+						.scale(
+							new THREE.Vector3(sphereModelTransform.scale, sphereModelTransform.scale, sphereModelTransform.scale)
+						);
+					camera.projectionMatrix = m.multiply(l);
+					renderer.resetState();
+					renderer.render(scene, camera);
+					mapRef.current?.triggerRepaint();
+				},
+			};
+		};
+
+		if (!spherePositions || spherePositions.length === 0) return;
+
+		const addSphereLayers = () => {
+			spherePositions.forEach(({ coord, power }, index) => {
+				const customLayer = createSphereLayer(coord, power, index);
+				mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
+			});
+		};
+
+		if (mapRef.current?.isStyleLoaded()) {
+			addSphereLayers();
+		} else {
+			mapRef.current?.on("style.load", addSphereLayers);
+		}
+
+		return () => {
+			if (mapRef.current) {
+				spherePositions?.forEach((_, index) => {
+					const layerId = `sphere-${index}`;
+					if (mapRef.current?.getLayer(layerId)) {
+						mapRef.current.removeLayer(layerId);
+					}
+				});
+			}
+		};
+	}, [spherePositions]);
+	useEffect(() => {
 		let lastValidCoords: [number, number] | null = null;
 		function onMove(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
 			const coords = e.lngLat;
@@ -90,7 +179,7 @@ export default function Map({
 			const source = mapRef.current?.getSource("point") as mapboxgl.GeoJSONSource;
 			source.setData(dragDropGeoJSON);
 
-			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(towerModelOrigin, 0);
+			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(towerModelOrigin, stationHeight);
 			towerModelTransform.translateX = towerModelAsMercatorCoordinate.x;
 			towerModelTransform.translateY = towerModelAsMercatorCoordinate.y;
 			towerModelTransform.translateZ = towerModelAsMercatorCoordinate.z;
@@ -166,115 +255,16 @@ export default function Map({
 				},
 			};
 		};
-		const createInstancedSpheresLayer = () => {
-			const camera = new THREE.Camera();
-			const scene = new THREE.Scene();
 
-			const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-			scene.add(ambientLight);
-
-			const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-			directionalLight.position.set(10, 10, 5);
-			scene.add(directionalLight);
-
-			// Większe sfery dla lepszej widoczności
-			const sphereGeometry = new THREE.SphereGeometry(1, 6, 6); // Zwiększony promień
-			const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-
-			let instancedMesh: THREE.InstancedMesh | null = null;
-
-			const updateInstancedSpheres = () => {
-				console.log("updateInstancedSpheres called, spherePositions:", spherePositions);
-
-				if (spherePositions && spherePositions.length > 0) {
-					console.log("Creating spheres for positions:", spherePositions.length);
-
-					if (instancedMesh) {
-						scene.remove(instancedMesh);
-						instancedMesh.geometry.dispose();
-						instancedMesh = null;
-					}
-
-					instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, spherePositions.length);
-
-					const matrix = new THREE.Matrix4();
-					const desiredRadiusInMeters = 1; // <<< ZDEFINIUJ POŻĄDANY PROMIEŃ SFERY W METRACH
-
-					spherePositions.forEach((position, index) => {
-						// Upewnij się, że 'position' jest tym, czym myślisz, że jest
-						if (!position || typeof position.meterInMercatorCoordinateUnits !== "function") {
-							console.warn(`Sphere position ${index} is not a valid MercatorCoordinate or similar object:`, position);
-							return; // Pomiń tę instancję
-						}
-
-						const scalePerMeter = position.meterInMercatorCoordinateUnits();
-
-						if (isNaN(scalePerMeter) || scalePerMeter === 0) {
-							console.warn(`Invalid scalePerMeter for sphere ${index}:`, scalePerMeter, "Position:", position);
-							return; // Pomiń, jeśli skala jest nieprawidłowa
-						}
-
-						const finalInstanceScale = desiredRadiusInMeters * scalePerMeter;
-
-						// console.log(`Setting sphere ${index} at position:`, position, ` calculated scale: ${finalInstanceScale}`);
-
-						matrix.identity(); // Zacznij od macierzy jednostkowej dla każdej instancji
-						matrix.makeScale(finalInstanceScale, finalInstanceScale, finalInstanceScale);
-						matrix.setPosition(position.x, position.y, position.z); // position.z powinno już zawierać wysokość środka sfery w jedn. Merkatora
-
-						instancedMesh!.setMatrixAt(index, matrix);
-					});
-
-					instancedMesh.instanceMatrix.needsUpdate = true;
-					scene.add(instancedMesh);
-					console.log("Spheres added to scene");
-					mapRef.current?.triggerRepaint(); // Upewnij się, że mapa jest przerysowywana
-				} else {
-					console.log("No spherePositions available or empty array. Removing old mesh if exists.");
-					if (instancedMesh) {
-						// Usuń poprzedni mesh, jeśli nie ma nowych pozycji
-						scene.remove(instancedMesh);
-						instancedMesh.geometry.dispose();
-						instancedMesh = null;
-						mapRef.current?.triggerRepaint();
-					}
-				}
-			};
-
-			const renderer = new THREE.WebGLRenderer({
-				canvas: mapRef.current?.getCanvas(),
-				context: mapRef.current?.painter.context.gl,
-				antialias: true,
-			});
-			renderer.autoClear = false;
-
-			return {
-				id: "3d-spheres-instanced",
-				type: "custom",
-				renderingMode: "3d",
-				onAdd: () => {
-					console.log("Spheres layer onAdd called");
-					updateInstancedSpheres();
-				},
-				render: (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
-					const m = new THREE.Matrix4().fromArray(matrix as unknown as ArrayLike<number>);
-					camera.projectionMatrix = m;
-					renderer.resetState();
-					renderer.render(scene, camera);
-					mapRef.current?.triggerRepaint();
-				},
-			};
-		};
 		mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 		const towerModelOrigin = stationPos;
-		const towerModelAltitude = 0;
+		const towerModelAltitude = stationHeight;
 		const towerModelRotate = [Math.PI / 2, 0, 0];
 
 		const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
 			towerModelOrigin as unknown as LngLatLike,
 			towerModelAltitude
 		);
-
 		const towerModelTransform = {
 			translateX: towerModelAsMercatorCoordinate.x,
 			translateY: towerModelAsMercatorCoordinate.y,
@@ -372,9 +362,6 @@ export default function Map({
 				},
 				labelLayerId
 			);
-			const spheresLayer = createInstancedSpheresLayer();
-			mapRef.current?.addLayer(spheresLayer as unknown as CustomLayerInterface);
-
 			mapRef.current?.on("mouseenter", "point", () => {
 				mapRef.current?.setPaintProperty("point", "circle-color", "#3bb2d0");
 				canvas.style.cursor = "move";
@@ -400,41 +387,6 @@ export default function Map({
 			});
 		});
 		return () => mapRef.current?.remove();
-	}, [stationHeight, spherePositions]);
-
-	// useEffect(() => {
-	// 	if (!computationResult) return;
-	// 	const geojson = {
-	// 		type: "FeatureCollection",
-	// 		features: computationResult.map((position: mapboxgl.LngLatLike[])  => {
-	// 			const feature  = {
-	// 				type: "Feature",
-	// 				properties: {},
-	// 				geometry: {
-	// 					type: "Point",
-	// 					coordinates: position,
-	// 				},
-	// 			};
-	// 			return feature
-	// 		}),
-	// 	};
-
-	// 	mapRef.current?.on("style.load", () => {
-	// 		mapRef.current?.addSource("spheres-2d", {
-	// 			type: "geojson",
-	// 			data: geojson as FeatureCollection,
-	// 		});
-
-	// 		mapRef.current?.addLayer({
-	// 			id: "spheres-2d-layer",
-	// 			type: "circle",
-	// 			source: "spheres-2d",
-	// 			paint: {
-	// 				"circle-radius": 4,
-	// 				"circle-color": "#d30000",
-	// 			},
-	// 		}, mapRef.current.getStyle()!.layers?.[30]?.id);
-	// 	});
-	// }, [computationResult]);
+	}, [stationHeight]);
 	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
 }
