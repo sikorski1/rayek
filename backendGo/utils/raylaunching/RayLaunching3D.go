@@ -97,7 +97,9 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				yIdx := int(math.Round(y/rl.Config.Step))
 				zIdx := int(math.Round(z/rl.Config.Step))
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-				// println("i:", i, "j: ", j, "x: ", xIdx, "y: ", yIdx, "z: ", zIdx, "index: ", index, "dx: ", dx, "dy: ", dy, "dz: ", dz)
+			
+					println("i:", i, "j:", j, "x:", xIdx, "y:", yIdx, "z:", zIdx, "index:", index,"currWallIndex:", currWallIndex, "dx:", dx, "dy:", dy, "dz:", dz)
+				
 				// reflection from the building roof
 				if (index == rl.Config.RoofMapNumber) && currWallIndex != rl.Config.RoofMapNumber {
 					dz = -dz
@@ -116,6 +118,9 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 
 					//get wall normal
 					nx, ny, nz := rl.WallNormals[currWallIndex].Nx, rl.WallNormals[currWallIndex].Ny, rl.WallNormals[currWallIndex].Nz
+
+					//!!! MAP IS MIRRORED BY Y SO ALL Y NORMALS SHOULD BE MIRRORED !!!
+					ny = -ny
 					dot := 2 * (dx*nx + dy*ny + dz*nz)
 
 					// calculate new direction
