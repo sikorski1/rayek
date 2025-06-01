@@ -32,6 +32,7 @@ export default function Map({
 	spherePositions,
 	wallMatrix,
 }: MapTypesExtended) {
+	console.log(spherePositions);
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
 	const regionGeoJSON: FeatureCollection = {
@@ -62,7 +63,12 @@ export default function Map({
 		],
 	};
 	useEffect(() => {
-		const createSphereLayer = (position: mapboxgl.MercatorCoordinate, power: number, index: number) => {
+		const createSphereLayer = (
+			position: mapboxgl.MercatorCoordinate,
+			power: number,
+			rayIndex: number,
+			pointIndex: number
+		) => {
 			const camera = new THREE.Camera();
 			const scene = new THREE.Scene();
 			const sphereGeometry = new THREE.SphereGeometry(1, 8, 8);
@@ -71,7 +77,7 @@ export default function Map({
 
 			const clampedPower = Math.min(Math.max(power, minPower), maxPower);
 			const normalizedPower = (clampedPower - minPower) / (maxPower - minPower);
-			const color = getHeatMapColor(normalizedPower);
+			const color = getHeatMapColor(normalizedPower)
 			const sphereMaterial = new THREE.MeshBasicMaterial({
 				color,
 				transparent: true,
@@ -99,7 +105,7 @@ export default function Map({
 			renderer.autoClear = false;
 
 			return {
-				id: `sphere-${index}`,
+				id: `sphere-ray${rayIndex}-point${pointIndex}`,
 				type: "custom",
 				renderingMode: "3d",
 				onAdd: () => {},
@@ -125,9 +131,11 @@ export default function Map({
 		if (!spherePositions || spherePositions.length === 0) return;
 
 		const addSphereLayers = () => {
-			spherePositions.forEach(({ coord, power }, index) => {
-				const customLayer = createSphereLayer(coord, power, index);
-				mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
+			spherePositions.forEach(({ rayIndex, positions }) => {
+				positions.forEach(({ coord, power }, pointIndex) => {
+					const customLayer = createSphereLayer(coord, power, rayIndex, pointIndex);
+					mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
+				});
 			});
 		};
 
@@ -139,11 +147,13 @@ export default function Map({
 
 		return () => {
 			if (mapRef.current) {
-				spherePositions?.forEach((_, index) => {
-					const layerId = `sphere-${index}`;
-					if (mapRef.current?.getLayer(layerId)) {
-						mapRef.current.removeLayer(layerId);
-					}
+				spherePositions?.forEach(({ rayIndex, positions }) => {
+					positions.forEach((_, pointIndex) => {
+						const layerId = `sphere-ray${rayIndex}-point${pointIndex}`;
+						if (mapRef.current?.getLayer(layerId)) {
+							mapRef.current.removeLayer(layerId);
+						}
+					});
 				});
 			}
 		};

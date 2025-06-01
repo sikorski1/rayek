@@ -10,6 +10,7 @@ type RayLaunching3DConfig struct {
 	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, RoofMapNumber, CornerMapNumber int
 	SizeX, SizeY, SizeZ, Step, ReflFactor, TransmitterPower, MinimalRayPower, TransmitterFreq, WaveLength float64
 	TransmitterPos Point3D
+	SingleRays []SingleRay
 }
 
 type RayPoint struct {
@@ -22,7 +23,7 @@ type RayLaunching3D struct {
 	PowerMap [][][]float64
 	WallNormals []Normal3D
 	Config RayLaunching3DConfig
-	RayPath []RayPoint
+	RayPaths [][]RayPoint  
 }
 
 
@@ -31,6 +32,7 @@ func NewRayLaunching3D(matrix [][][]float64, wallNormals []Normal3D, config RayL
 		PowerMap: matrix,
 		WallNormals: wallNormals,
 		Config: config,
+		RayPaths: make([][]RayPoint, len(config.SingleRays)),
 	}
 }
 
@@ -68,7 +70,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			y := rl.Config.TransmitterPos.Y + dy
 			z := rl.Config.TransmitterPos.Z + dz
 
-			isTargetRay := i==0 && j==8
+			targetRayIndex := rl.isTargetRay(i, j)
 
 			// initial counters
 			currInteractions := 0
@@ -142,8 +144,13 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
 						rl.PowerMap[zIdx][yIdx][xIdx] = currPower
 					} 
-					if isTargetRay {
-					rl.RayPath = append(rl.RayPath, RayPoint{X: float64(math.Round(x/rl.Config.Step)), Y: float64(math.Round(y/rl.Config.Step)), Z: float64(math.Round(z/rl.Config.Step)), Power:currPower})
+					if targetRayIndex >= 0 {
+						rl.RayPaths[targetRayIndex] = append(rl.RayPaths[targetRayIndex], RayPoint{
+							X: float64(math.Round(x/rl.Config.Step)), 
+							Y: float64(math.Round(y/rl.Config.Step)), 
+							Z: float64(math.Round(z/rl.Config.Step)), 
+							Power: currPower,
+						})
 				}
 				}
 				// update position
@@ -168,4 +175,13 @@ func calculateTransmittance(r, waveLength, reflectionRef float64) complex128 {
 	} else {
 		return 0
 	}
+}
+
+func (rl *RayLaunching3D) isTargetRay(i, j int) int {
+	for idx, singleRay := range rl.Config.SingleRays {
+		if i - singleRay.Azimuth == 0 && j - singleRay.Elevation == 0{
+			return idx
+		}
+	}
+	return -1 
 }

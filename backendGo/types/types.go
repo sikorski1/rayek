@@ -40,3 +40,8 @@ type Building struct {
 	Height float64 `json:"height"`
 	Walls  []Wall `json:"walls"`
 }
+
+type SingleRay struct {
+	Azimuth int `json:"azimuth"`
+	Elevation int `json:"elevation"`
+}

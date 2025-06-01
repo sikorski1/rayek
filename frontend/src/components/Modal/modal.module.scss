@@ -12,11 +12,15 @@
 }
 
 .modalContent {
+	position: relative;
 	@include shadow-strong();
 	background-color: rgba(255,255,255,0.2);
 	padding: 2rem 8rem;
 }
 .closeBtnBox {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
 	display: flex;
 	justify-content: flex-end;
 	transition: background-color 0.3s;

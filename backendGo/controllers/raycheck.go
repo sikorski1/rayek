@@ -199,6 +199,7 @@ type RayLaunchRequest struct {
 	NumberOfInteractions int              `json:"numberOfInteractions"`
 	StationPower         float64          `json:"stationPower"`
 	MinimalRayPower         float64          `json:"minimalRayPower"`
+	SingleRays			[]SingleRay			`json:"singleRays"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
@@ -215,6 +216,7 @@ func Create3DRayLaunching(context *gin.Context) {
 		log.Println(err)
 	}
 	var matrix [][][]float64
+	fmt.Printf("Single rays: %v", request.SingleRays)
 	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D_floor.bin"), &matrix)
 	if err != nil {
 		log.Println("Failed to load matrix:", err)
@@ -247,11 +249,13 @@ func Create3DRayLaunching(context *gin.Context) {
 		TransmitterFreq:      request.Frequency*1e9,   // Hz
 		WaveLength:           0,  
 		TransmitterPos: Point3D{X:request.StationPos.X, Y:request.StationPos.Y, Z:request.StationPos.Z},
+		SingleRays: request.SingleRays,
 	}
 	config.WaveLength = 299792458 / (config.TransmitterFreq)
 	start := time.Now()
 	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals,config)
 	rayLaunching.CalculateRayLaunching3D()
+	fmt.Printf("RayPaths: %v", rayLaunching.RayPaths)
 	stop := time.Since(start)
 	fmt.Printf("RayLaunching 3D calculation time: %v\n", stop)
 	outputDir := filepath.Join("data", mapTitle, "imgs")
@@ -329,6 +333,6 @@ func Create3DRayLaunching(context *gin.Context) {
 		"mapTitle":     mapTitle,
 		"stationPos":     request.StationPos,
 		"powerMap": rayLaunching.PowerMap,
-		"rayPath":       rayLaunching.RayPath,
+		"rayPaths":       rayLaunching.RayPaths,
 	})
 }

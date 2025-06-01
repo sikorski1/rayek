@@ -29,13 +29,6 @@ const initialSettingsData: SettingsDataTypes = {
 	singleRays: [],
 };
 
-const fadeVariants = {
-	initial: { opacity: 0, x: 20 },
-	animate: { opacity: 1, x: 0 },
-	exit: { opacity: 0, x: -20 },
-	transition: { duration: 0.3 },
-};
-
 export default function SingleMap() {
 	const [settingsData, setSettingsData] = useState<SettingsDataTypes>(initialSettingsData);
 	const [wallMatrix, setWallMatrix] = useState<Float64Array | null>(null);
@@ -76,7 +69,7 @@ export default function SingleMap() {
 		const form = event.currentTarget;
 		const formData = new FormData(form);
 
-		const updatedSettingsData: Omit<SettingsDataTypes, "settingsType" | "singleRays"> = {
+		const updatedSettingsData: Omit<SettingsDataTypes, "settingsType" | "singleRays" | "isOpen"> = {
 			numberOfRaysAzimuth: Number(formData.get("raysAzimuth")),
 			numberOfRaysElevation: Number(formData.get("raysElevation")),
 			frequency: Number(formData.get("frequency")),
@@ -86,7 +79,14 @@ export default function SingleMap() {
 			stationPower: Number(formData.get("stationPower")),
 			minimalRayPower: Number(formData.get("minimalRayPower")),
 		};
-		setSettingsData(prev => ({ ...prev, ...updatedSettingsData }));
+		if (
+			updatedSettingsData.numberOfRaysAzimuth !== settingsData.numberOfRaysAzimuth ||
+			updatedSettingsData.numberOfRaysElevation !== settingsData.numberOfRaysElevation
+		) {
+			setSettingsData(prev => ({ ...prev, ...updatedSettingsData, singleRays: [] }));
+		} else {
+			setSettingsData(prev => ({ ...prev, ...updatedSettingsData }));
+		}
 	};
 	const handleSingleRaySettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -106,7 +106,7 @@ export default function SingleMap() {
 	};
 
 	const handleOnSuccess = (data: any) => {
-		setRayLaunchData(data.rayPath);
+		setRayLaunchData(data.rayPaths);
 	};
 	const { mutate, isPending: isPendingRayLaunch } = useRayLaunching(handleOnSuccess);
 	const handleComputeBtn = async () => {
@@ -148,28 +148,33 @@ export default function SingleMap() {
 		return { matrixIndexValue, i, j };
 	}, [wallMatrix, settingsData?.stationHeight, settingsData?.stationPos, data?.mapData?.coordinates]);
 	const spherePositions = useMemo(() => {
-		if (!data?.mapData?.coordinates || !rayLaunchData) return;
+		if (!data?.mapData?.coordinates || !rayLaunchData || !Array.isArray(rayLaunchData)) return [];
 		const coordinates = data.mapData.coordinates;
-		const filteredRayData = rayLaunchData.filter((_, index) => index % 3 === 0);
 
-		return filteredRayData.map(({ x, y, z, power }) => {
-			const { lon, lat } = matrixIndexToGeo(
-				x,
-				y,
-				coordinates[0][0][0],
-				coordinates[0][2][0],
-				coordinates[0][0][1],
-				coordinates[0][2][1],
-				250
-			);
-			const coord = mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z ?? 0);
+		return rayLaunchData.map((rayPath, rayIndex) => {
+			const filteredRayData = rayPath.filter((_, index) => index % 3 === 0);
 			return {
-				coord,
-				power,
+				rayIndex,
+				positions: filteredRayData.map(({ x, y, z, power }) => {
+					const { lon, lat } = matrixIndexToGeo(
+						x,
+						y,
+						coordinates[0][0][0],
+						coordinates[0][2][0],
+						coordinates[0][0][1],
+						coordinates[0][2][1],
+						250
+					);
+					const coord = mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z ?? 0);
+					return {
+						coord,
+						power,
+					};
+				}),
 			};
 		});
 	}, [rayLaunchData, data?.mapData?.coordinates]);
-	console.log(setSettingsData);
+	console.log(rayLaunchData);
 	return (
 		<>
 			{settingsData.isOpen && (

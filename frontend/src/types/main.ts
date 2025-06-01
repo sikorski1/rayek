@@ -30,7 +30,7 @@ export type RayLaunchType = {
 	y: number;
 	z: number;
 	power: number;
-}[];
+}[][];
 
 export type SingleMapDataTypes = {
 	stationPos: mapboxgl.LngLatLike[];
@@ -52,7 +52,7 @@ export type MapTypesExtended = MapTypes & {
 	buildingsData: GeoJSON.FeatureCollection | null;
 	computationResult: mapboxgl.LngLatLike[][];
 	wallMatrix: Float64Array;
-	spherePositions: { coord: MercatorCoordinate; power: number }[] | undefined;
+	spherePositions: { positions: { coord: MercatorCoordinate; power: number }[]; rayIndex: number }[] | undefined;
 };
 
 export type PostComputeTypes = {
