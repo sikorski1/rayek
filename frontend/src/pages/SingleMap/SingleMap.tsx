@@ -1,19 +1,22 @@
-import FormField from "@/components/FormField/FormField";
 import SpinWifi from "@/components/Loaders/SpinWifi";
+import GlobalSettings from "@/components/Modal/GlobalSettings/GlobalSettings";
 import Modal from "@/components/Modal/Modal";
+import SingleRaySettings from "@/components/Modal/SingleRaySettings/SingleRaySettings";
 import { useGetMapById, useRayLaunching } from "@/hooks/useMap";
 import Map from "@/pages/SingleMap/Map/Map";
-import { PopupDataTypes, RayLaunchType } from "@/types/main";
+import { RayLaunchType, SettingsDataTypes } from "@/types/main";
 import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
 import { getMatrixValue } from "@/utils/getMatrixValue";
 import { loadWallMatrix } from "@/utils/loadWallMatrix";
 import { matrixIndexToGeo } from "@/utils/matrixIndexToGeo";
+import { AnimatePresence, motion } from "framer-motion";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useMemo, useState } from "react";
 import { IoMdSettings } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
-const initialPopupData: PopupDataTypes = {
+const initialSettingsData: SettingsDataTypes = {
+	settingsType: "global",
 	isOpen: false,
 	frequency: 5,
 	stationHeight: 5,
@@ -23,37 +26,57 @@ const initialPopupData: PopupDataTypes = {
 	reflectionFactor: 0.5,
 	stationPower: 5,
 	minimalRayPower: -120,
+	singleRays: [],
+};
+
+const fadeVariants = {
+	initial: { opacity: 0, x: 20 },
+	animate: { opacity: 1, x: 0 },
+	exit: { opacity: 0, x: -20 },
+	transition: { duration: 0.3 },
 };
 
 export default function SingleMap() {
-	const [popupData, setPopupData] = useState<PopupDataTypes>(initialPopupData);
+	const [settingsData, setSettingsData] = useState<SettingsDataTypes>(initialSettingsData);
 	const [wallMatrix, setWallMatrix] = useState<Float64Array | null>(null);
 	const [rayLaunchData, setRayLaunchData] = useState<RayLaunchType | null>(null);
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
 
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
-		setPopupData(prev => {
+		setSettingsData(prev => {
 			const updatedSingleMapData = { ...prev, stationPos: stationPos };
 			return updatedSingleMapData;
 		});
 	};
 
 	const handleOnSettingsClose = () => {
-		setPopupData(prevPopupData => {
-			const updatedPopupData = { ...prevPopupData, isOpen: false };
-			return updatedPopupData;
+		setSettingsData(prevSettingsData => {
+			const updatedsettingsData = { ...prevSettingsData, isOpen: false };
+			return updatedsettingsData;
 		});
 	};
+	const handleAddRay = () => {
+		if (settingsData.singleRays.length >= 4) return;
 
-	const handleDialogFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		setSettingsData(prev => ({
+			...prev,
+			singleRays: [...prev.singleRays, { azimuth: 0, elevation: 0 }],
+		}));
+	};
+	const handleRemoveRay = (index: number) => {
+		setSettingsData(prev => ({
+			...prev,
+			singleRays: prev.singleRays.filter((_, i) => i !== index),
+		}));
+	};
+	const handleGlobalSettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 
 		const form = event.currentTarget;
 		const formData = new FormData(form);
 
-		const updatedPopupData: PopupDataTypes = {
-			isOpen: false,
+		const updatedSettingsData: Omit<SettingsDataTypes, "settingsType" | "singleRays"> = {
 			numberOfRaysAzimuth: Number(formData.get("raysAzimuth")),
 			numberOfRaysElevation: Number(formData.get("raysElevation")),
 			frequency: Number(formData.get("frequency")),
@@ -63,14 +86,31 @@ export default function SingleMap() {
 			stationPower: Number(formData.get("stationPower")),
 			minimalRayPower: Number(formData.get("minimalRayPower")),
 		};
-		setPopupData(prev => ({ ...prev, ...updatedPopupData }));
+		setSettingsData(prev => ({ ...prev, ...updatedSettingsData }));
 	};
+	const handleSingleRaySettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+
+		const form = event.currentTarget;
+		const formData = new FormData(form);
+
+		const newSingleRays = settingsData.singleRays.map((_, index) => ({
+			azimuth: Number(formData.getAll("azimuth")[index]),
+			elevation: Number(formData.getAll("elevation")[index]),
+		}));
+
+		setSettingsData(prev => ({
+			...prev,
+			singleRays: newSingleRays,
+		}));
+	};
+
 	const handleOnSuccess = (data: any) => {
 		setRayLaunchData(data.rayPath);
 	};
 	const { mutate, isPending: isPendingRayLaunch } = useRayLaunching(handleOnSuccess);
 	const handleComputeBtn = async () => {
-		const { stationPos, stationHeight, ...restData } = popupData;
+		const { stationPos, stationHeight, isOpen, ...restData } = settingsData;
 		mutate({
 			mapTitle: id!,
 			configData: { stationPos: { x: i, y: j, z: Number(stationHeight) }, ...restData },
@@ -78,7 +118,7 @@ export default function SingleMap() {
 	};
 	useEffect(() => {
 		if (!data) return;
-		setPopupData(prev => ({ ...prev, stationPos: data.mapData.center }));
+		setSettingsData(prev => ({ ...prev, stationPos: data.mapData.center }));
 	}, [data]);
 
 	useEffect(() => {
@@ -87,21 +127,26 @@ export default function SingleMap() {
 	}, [id]);
 
 	const { matrixIndexValue, i, j } = useMemo(() => {
-		if (!wallMatrix || !popupData?.stationHeight || !popupData?.stationPos || popupData.stationPos.length < 2) {
+		if (
+			!wallMatrix ||
+			!settingsData?.stationHeight ||
+			!settingsData?.stationPos ||
+			settingsData.stationPos.length < 2
+		) {
 			return { matrixIndexValue: undefined, i: undefined, j: undefined };
 		}
 		const { i, j } = geoToMatrixIndex(
-			popupData.stationPos[0] as unknown as number,
-			popupData.stationPos[1] as unknown as number,
+			settingsData.stationPos[0] as unknown as number,
+			settingsData.stationPos[1] as unknown as number,
 			data.mapData.coordinates[0][0][0],
 			data.mapData.coordinates[0][2][0],
 			data.mapData.coordinates[0][0][1],
 			data.mapData.coordinates[0][2][1],
 			250
 		);
-		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(popupData.stationHeight));
+		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(settingsData.stationHeight));
 		return { matrixIndexValue, i, j };
-	}, [wallMatrix, popupData?.stationHeight, popupData?.stationPos, data?.mapData?.coordinates]);
+	}, [wallMatrix, settingsData?.stationHeight, settingsData?.stationPos, data?.mapData?.coordinates]);
 	const spherePositions = useMemo(() => {
 		if (!data?.mapData?.coordinates || !rayLaunchData) return;
 		const coordinates = data.mapData.coordinates;
@@ -111,115 +156,55 @@ export default function SingleMap() {
 			const { lon, lat } = matrixIndexToGeo(
 				x,
 				y,
-				coordinates[0][0][0], 
+				coordinates[0][0][0],
 				coordinates[0][2][0],
-				coordinates[0][0][1], 
+				coordinates[0][0][1],
 				coordinates[0][2][1],
-				250 
-			)
+				250
+			);
 			const coord = mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z ?? 0);
 			return {
 				coord,
-				power, 
+				power,
 			};
 		});
 	}, [rayLaunchData, data?.mapData?.coordinates]);
+	console.log(setSettingsData);
 	return (
 		<>
-			{popupData.isOpen && (
+			{settingsData.isOpen && (
 				<Modal onClose={handleOnSettingsClose}>
-					<div className={styles.dialogBox}>
-						<form onSubmit={handleDialogFormSubmit} className={styles.formBox}>
-							<div className={styles.formInputBox}>
-								<FormField
-									label="RAYS AZIMUTH"
-									name="raysAzimuth"
-									defaultValue={popupData.numberOfRaysAzimuth}
-									placeholder="Enter number of rays azimuth"
-									min={1}
-									max={1440}
-									step={1}
-									required
-								/>
-								<FormField
-									label="STATION POWER (watt)"
-									name="stationPower"
-									defaultValue={popupData.stationPower}
-									placeholder="Enter station power in watt"
-									min={0.1}
-									max={100}
-									step={0.1}
-									required
-								/>
-								<FormField
-									label="FREQUENCY (GHz)"
-									name="frequency"
-									defaultValue={popupData.frequency}
-									placeholder="Enter frequency in MHz"
-									min={0.1}
-									max={100}
-									step={0.1}
-									required
-								/>
-								<FormField
-									label="REFLECTION FACTOR"
-									name="relfectionFactor"
-									defaultValue={popupData.reflectionFactor}
-									placeholder="Enter reflection factor"
-									min={0}
-									max={1}
-									step={0.01}
-									required
-								/>
-							</div>
-
-							<div className={styles.formInputBox}>
-								<FormField
-									label="RAYS ELEVATION"
-									name="raysElevation"
-									defaultValue={popupData.numberOfRaysElevation}
-									placeholder="Enter number of rays elevation"
-									min={1}
-									max={1440}
-									step={1}
-									required
-								/>
-								<FormField
-									label="STATION HEIGHT (m)"
-									name="stationHeight"
-									defaultValue={popupData.stationHeight}
-									placeholder="Enter station height in meters"
-									min={0}
-									max={29}
-									step={1}
-									required
-								/>
-								<FormField
-									label="INTERACTIONS"
-									name="interactions"
-									defaultValue={popupData.numberOfInteractions}
-									placeholder="Enter number of interactions"
-									min={1}
-									max={10}
-									step={1}
-									required
-								/>
-								<FormField
-									label="MINIMAL RAY POWER (dBm)"
-									name="minimalRayPower"
-									defaultValue={popupData.minimalRayPower}
-									placeholder="Enter minimal ray power in dBm"
-									min={-160}
-									max={-60}
-									step={0.01}
-									required
-								/>
-							</div>
-							<button className={styles.submitBtn} type="submit">
-								Enter
-							</button>
-						</form>
+					<div className={styles.settingsBtnsBox}>
+						<button
+							onClick={() => setSettingsData(prev => ({ ...prev, settingsType: "global" }))}
+							className={`${styles.settingsTypeBtn} ${
+								settingsData.settingsType === "global" ? styles.settingsTypeBtnActive : ""
+							}`}>
+							Global
+						</button>
+						<button
+							onClick={() => setSettingsData(prev => ({ ...prev, settingsType: "singleRay" }))}
+							className={`${styles.settingsTypeBtn} ${
+								settingsData.settingsType === "singleRay" ? styles.settingsTypeBtnActive : ""
+							}`}>
+							Single Ray
+						</button>
 					</div>
+					<motion.div className={styles.dialogBox}>
+						<AnimatePresence mode="wait">
+							{settingsData.settingsType === "global" && (
+								<GlobalSettings handleFormSubmit={handleGlobalSettingsSubmit} formData={settingsData} />
+							)}
+							{settingsData.settingsType === "singleRay" && (
+								<SingleRaySettings
+									handleFormSubmit={handleSingleRaySettingsSubmit}
+									formData={settingsData}
+									handleAddRay={handleAddRay}
+									handleRemoveRay={handleRemoveRay}
+								/>
+							)}
+						</AnimatePresence>
+					</motion.div>
 				</Modal>
 			)}
 			{isPendingRayLaunch && (
@@ -233,10 +218,10 @@ export default function SingleMap() {
 						<h3>{data.mapData.title}</h3>
 					</div>
 					<div className={styles.mapBox}>
-						{popupData.stationPos && matrixIndexValue && (
+						{settingsData.stationPos && matrixIndexValue && (
 							<Map
 								{...data.mapData}
-								{...popupData}
+								{...settingsData}
 								handleStationPosUpdate={handleStationPosUpdate}
 								buildingsData={data.buildingsData}
 								spherePositions={spherePositions}
@@ -244,15 +229,15 @@ export default function SingleMap() {
 							/>
 						)}
 						<div className={styles.stationPosContener}>
-							{popupData.stationPos && (
+							{settingsData.stationPos && (
 								<>
 									<p>Station position</p>
 									<p>
-										Longitude: {parseFloat(popupData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
+										Longitude: {parseFloat(settingsData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
-												popupData.stationPos[0] as unknown as number,
-												popupData.stationPos[1] as unknown as number,
+												settingsData.stationPos[0] as unknown as number,
+												settingsData.stationPos[1] as unknown as number,
 												data.mapData.coordinates[0][0][0],
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],
@@ -262,11 +247,11 @@ export default function SingleMap() {
 										}{" "}
 									</p>
 									<p>
-										Latitude: {parseFloat(popupData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
+										Latitude: {parseFloat(settingsData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
-												popupData.stationPos[0] as unknown as number,
-												popupData.stationPos[1] as unknown as number,
+												settingsData.stationPos[0] as unknown as number,
+												settingsData.stationPos[1] as unknown as number,
 												data.mapData.coordinates[0][0][0],
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],
@@ -284,9 +269,9 @@ export default function SingleMap() {
 					<button
 						className={styles.settingsBtn}
 						onClick={() =>
-							setPopupData(prevPopupData => {
-								const updatedPopupData = { ...prevPopupData, isOpen: !prevPopupData.isOpen };
-								return updatedPopupData;
+							setSettingsData(prevSettingsData => {
+								const updatedsettingsData = { ...prevSettingsData, isOpen: !prevSettingsData.isOpen };
+								return updatedsettingsData;
 							})
 						}>
 						<IoMdSettings />

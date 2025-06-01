@@ -1,0 +1,56 @@
+@use "@/constants/colors.scss" as *;
+@use "@/constants/mixins.scss" as *;
+.formBox {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 2rem;
+	.singleRayBox {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+	.angleInfo {
+        min-width: 120px;
+		align-self: end;
+		font-size: 2.8rem;
+		color: $white;
+	}
+	.removeSingleRayBtn {
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, red);
+		align-self: end;
+		width: 40px;
+		height: 40px;
+		color: $white;
+		background-color: rgba(255, 0, 0, 0.6);
+	}
+	.noSingleRaysInfo {
+		display: inline-block;
+		font-size: 2.4rem;
+		font-weight: bold;
+		color: $white;
+	}
+	.addSingleRayBtn {
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, $green-400);
+		margin-top: 2rem;
+		padding: 1rem 6rem;
+		font-size: 2.4rem;
+		text-transform: uppercase;
+	}
+	.submitBtn {
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, $green-400);
+		grid-column: 2/3;
+		padding: 1rem;
+		margin-left: auto;
+		margin-bottom: 1rem;
+		font-size: 2.4rem;
+		text-transform: uppercase;
+		&:hover {
+			background-color: $green-400;
+		}
+	}
+}

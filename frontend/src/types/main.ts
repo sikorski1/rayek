@@ -6,7 +6,12 @@ export type Maps = {
 	img: string;
 };
 
-export type PopupDataTypes = {
+export type SingleRay = {
+	azimuth: number;
+	elevation: number;
+};
+export type SettingsDataTypes = {
+	settingsType: string;
 	isOpen: boolean;
 	frequency: number;
 	stationHeight: number;
@@ -17,6 +22,7 @@ export type PopupDataTypes = {
 	stationPower: number;
 	minimalRayPower: number;
 	stationPos?: [number, number];
+	singleRays: SingleRay[];
 };
 
 export type RayLaunchType = {

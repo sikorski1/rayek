@@ -13,7 +13,20 @@ interface FormFieldProps {
 	required?: boolean;
 }
 
-const FormField: React.FC<FormFieldProps> = ({
+import { motion } from "framer-motion";
+
+const labelVariants = {
+	initial: { opacity: 0, y: 20 },
+	animate: (custom: number) => ({
+		opacity: 1,
+		y: 0,
+		transition: { delay: custom * 0.1, duration: 0.3 },
+	}),
+};
+
+const inputVariants = labelVariants;
+
+const FormField: React.FC<FormFieldProps & { index?: number }> = ({
 	label,
 	name,
 	type = "number",
@@ -23,13 +36,19 @@ const FormField: React.FC<FormFieldProps> = ({
 	max,
 	step,
 	required = false,
+	index = 0,
 }) => {
 	return (
 		<>
-			<label htmlFor={name} className={styles.label}>
+			<motion.label
+				className={styles.label}
+				variants={labelVariants}
+				initial="initial"
+				animate="animate"
+				custom={index}>
 				{label}
-			</label>
-			<input
+			</motion.label>
+			<motion.input
 				id={name}
 				name={name}
 				type={type}
@@ -40,6 +59,10 @@ const FormField: React.FC<FormFieldProps> = ({
 				max={max}
 				step={step}
 				required={required}
+				variants={inputVariants}
+				initial="initial"
+				animate="animate"
+				custom={index}
 			/>
 		</>
 	);

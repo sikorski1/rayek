@@ -1,0 +1,32 @@
+@use "@/constants/colors.scss" as *;
+@use "@/constants/mixins.scss" as *;
+.formBox {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 2rem;
+	.formInputBox {
+		margin-bottom: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+	}
+	.singleInputBox {
+		width: 50%;
+	}
+	.submitBtn {
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, $green-400);
+		grid-column: 2/3;
+		padding: 1rem;
+		margin-left: auto;
+		margin-right: 0.4rem;
+		margin-bottom: 1rem;
+		background: $white-strong;
+		color: $black;
+		font-size: 2.4rem;
+		text-transform: uppercase;
+		&:hover {
+			background-color: $green-400;
+		}
+	}
+}

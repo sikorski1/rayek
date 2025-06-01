@@ -5,14 +5,15 @@
 	transition: background-color 0.3s ease, color 0.3s ease;
 }
 @mixin shadow-strong-hover-clickable($color: black, $bg-hover: black, $text-hover: white) {
+	cursor: pointer;
 	&:hover {
-		transform: translate(-1px, -1px);
+		transform: translate(-1px, -1px) !important;
 		background-color: $bg-hover;
 		color: $text-hover;
 		box-shadow: 5px 4px 2px $color;
 	}
 	&:active {
-		transform: translate(2px, 2px);
+		transform: translate(2px, 2px) !important;
 		box-shadow: 2px 1px 0px $color;
 	}
 }
