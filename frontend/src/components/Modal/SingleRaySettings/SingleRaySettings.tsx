@@ -44,7 +44,7 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 							<FormField
 								key={ray.azimuth}
 								index={i}
-								label="Azimuth"
+								label="Azimuth ray number"
 								name="azimuth"
 								defaultValue={ray.azimuth}
 								placeholder={`Enter azimuth`}
@@ -54,19 +54,11 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 								required
 							/>
 						</div>
-						<motion.p
-							className={styles.angleInfo}
-							variants={itemVariants}
-							custom={i}
-							initial="initial"
-							animate="animate">
-							{((ray.azimuth * 360) / formData.numberOfRaysAzimuth).toFixed(2)}°
-						</motion.p>
 						<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 							<FormField
 								key={ray.elevation}
 								index={i}
-								label="Elevation"
+								label="Elevation ray number"
 								name="elevation"
 								defaultValue={ray.elevation}
 								placeholder={`Enter elevation`}
@@ -76,14 +68,6 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 								required
 							/>
 						</div>
-						<motion.p
-							className={styles.angleInfo}
-							variants={itemVariants}
-							custom={i}
-							initial="initial"
-							animate="animate">
-							{((ray.elevation * 360) / formData.numberOfRaysElevation - 180.00).toFixed(2)}°
-						</motion.p>
 						<motion.button
 							type="button"
 							onClick={() => handleRemoveRay(i)}

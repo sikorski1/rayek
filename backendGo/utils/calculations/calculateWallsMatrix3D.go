@@ -23,7 +23,6 @@ type Feature struct {
 	Type       string          `json:"type"`
 	Properties map[string]any  `json:"properties"`
 	Geometry   Geometry        `json:"geometry"`
-	ID         string          `json:"id,omitempty"`
 }
 
 type Geometry struct {
@@ -235,7 +234,7 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 			if normal.Nx == 0 && normal.Ny == 0 {
 				continue
 			} 
-			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex, 250, 250)
+			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex, size, size)
 			wallNormals = append(wallNormals, normal)
 			wallHeights[wallsMapIndex] = z1
 			wallsMapIndex++
@@ -245,39 +244,6 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 	fmt.Printf("normals: %v \n", len(wallNormals))
 	return matrix, wallNormals
 }
-
-// func createBuildingCeil(matrix [][][]float64, wallHeights map[int]int) [][][]float64 {
-// 	maxSizeX := (float64(len(matrix[0][0]))-1)
-// 	maxSizeY := (float64(len(matrix[0]))-1)
-// 	genRaysNum := 7200
-	
-// 	for i:=0; i < genRaysNum; i++ {
-// 		dRadians := 2*math.Pi*float64(i)/float64(genRaysNum)
-// 		dx, dy := math.Cos(dRadians), math.Sin(dRadians) 
-// 		x, y := 125.0 , 125.0 	
-// 		currWallIndex := -150
-// 		prevWallIndex := -150
-// 		for (x >= 0 && x <= maxSizeX) && (y >= 0 && y <= maxSizeY) {
-// 			xIdx := int(math.Round(x))
-// 			yIdx := int(math.Round(y))
-// 			index := int(matrix[0][yIdx][xIdx])
-// 			if currWallIndex >= 1000 && index >= 1000 && index != currWallIndex {
-// 				prevWallIndex = index
-// 				currWallIndex = -150
-// 				break
-// 			} else if currWallIndex == -150 && index >= 1000 && index != prevWallIndex {
-// 				prevWallIndex = -150
-// 				currWallIndex = index
-// 			} else if index == -150 && currWallIndex >= 1000 && currWallIndex != 10000 {
-// 				matrix[0][yIdx][xIdx] = float64(currWallIndex)
-// 			}
-// 			x += dx
-// 			y += dy
-// 		}  
-// 	}
-// 	return matrix
-// }
-
 
 func saveBinary(data interface{}, folderPath, filename string) error {
 	finalPath := filepath.Join(folderPath, filename)
@@ -289,41 +255,6 @@ func saveBinary(data interface{}, folderPath, filename string) error {
 	
 	encoder := gob.NewEncoder(file)
 	return encoder.Encode(data)
-}
-
-func flipY(data []float64, sizeX, sizeY, sizeZ int) []float64 {
-	flipped := make([]float64, len(data))
-	for z := 0; z < sizeZ; z++ {
-		for y := 0; y < sizeY; y++ {
-			for x := 0; x < sizeX; x++ {
-				srcIdx := z*sizeY*sizeX + y*sizeX + x
-				dstIdx := z*sizeY*sizeX + (sizeY-1-y)*sizeX + x
-				flipped[dstIdx] = data[srcIdx]
-			}
-		}
-	}
-	return flipped
-}
-
-func addFloor(matrix [][][]float64, folderPath, filename string) error {
-	path := filepath.Join(folderPath, filename)
-    file, err := os.Create(path)
-    if err != nil {
-        return err
-    }
-    defer file.Close()
-
-    for _, slice := range matrix {
-        for _, row := range slice {
-            for _, val := range row {
-                err := binary.Write(file, binary.LittleEndian, val)
-                if err != nil {
-                    return err
-                }
-            }
-        }
-    }
-    return nil
 }
 
 func LoadMatrixBinary(path string, data interface{}) error {
@@ -414,34 +345,6 @@ func loadRawBinary3D(path string, z, y, x int) ([][][]float64, error) {
 	}
 	fmt.Println("Zakończono odczyt surowych danych 3D.")
 	return data, nil
-}
-
-
-func saveGobBinary(data interface{}, folderPath, filename string) error {
-	// Utwórz folder, jeśli nie istnieje
-	err := os.MkdirAll(folderPath, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("błąd tworzenia folderu wyjściowego '%s': %w", folderPath, err)
-	}
-
-	// Połącz ścieżkę folderu i nazwę pliku
-	finalPath := filepath.Join(folderPath, filename)
-
-	file, err := os.Create(finalPath)
-	if err != nil {
-		return fmt.Errorf("błąd tworzenia pliku Gob '%s': %w", finalPath, err)
-	}
-	defer file.Close()
-
-	encoder := gob.NewEncoder(file)
-	fmt.Printf("Zapisywanie danych do pliku Gob: %s\n", finalPath)
-	err = encoder.Encode(data)
-	if err == nil {
-		fmt.Println("Zakończono zapis pliku Gob.")
-	} else {
-        return fmt.Errorf("błąd kodowania danych do formatu Gob w '%s': %w", finalPath, err)
-    }
-	return nil
 }
 
 	
