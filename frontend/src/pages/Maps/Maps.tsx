@@ -14,6 +14,7 @@ type MapData = {
 };
 export default function Maps() {
 	const { data, isLoading, error } = useGetMaps();
+	console.log(data);
 	return (
 		<PageTransition>
 			<Wrapper>
@@ -37,10 +38,7 @@ export default function Maps() {
 											<h3 className={styles.cardTitle}>{item.name}</h3>
 										</motion.div>
 										<div className={styles.cardBox}>
-											<Link
-												key={item.id}
-												to={item.name.replace(/\s+/g, "").toLocaleLowerCase()}
-												className={styles.link}></Link>
+											<Link key={item.id} to={item.id} className={styles.link}></Link>
 											<div className={styles.imgBox}>
 												<img className={styles.img} src={item.img || sampleImg} alt="map image" />
 											</div>

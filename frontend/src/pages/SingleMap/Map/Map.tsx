@@ -169,7 +169,7 @@ export default function Map({
 				coordinates[0][2][0],
 				coordinates[0][0][1],
 				coordinates[0][2][1],
-				250
+				400
 			);
 			const value = getMatrixValue(wallMatrix, i, j, Number(stationHeight));
 			canvas.style.cursor = "grabbing";

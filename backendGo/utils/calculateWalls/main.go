@@ -43,7 +43,7 @@ func main() {
 
 	calculations.CalculateWallsMatrix3D(mapFolderPath, config)
 
-	wallsMatrixPath := filepath.Join(mapFolderPath, "wallsMatrix3D.bin")
+	wallsMatrixPath := filepath.Join(mapFolderPath, "wallsMatrix3D_floor.bin")
 	wallNormalsPath := filepath.Join(mapFolderPath, "wallNormals3D.bin")
 
 	var matrix [][][]float64

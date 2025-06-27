@@ -37,6 +37,7 @@ export default function SingleMap() {
 	const { data, isLoading, error } = useGetMapById(id!);
 
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
+		console.log(stationPos);
 		setSettingsData(prev => {
 			const updatedSingleMapData = { ...prev, stationPos: stationPos };
 			return updatedSingleMapData;
@@ -142,7 +143,7 @@ export default function SingleMap() {
 			data.mapData.coordinates[0][2][0],
 			data.mapData.coordinates[0][0][1],
 			data.mapData.coordinates[0][2][1],
-			250
+			400
 		);
 		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(settingsData.stationHeight));
 		return { matrixIndexValue, i, j };
@@ -163,7 +164,7 @@ export default function SingleMap() {
 						coordinates[0][2][0],
 						coordinates[0][0][1],
 						coordinates[0][2][1],
-						250
+						400
 					);
 					const coord = mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z ?? 0);
 					return {
@@ -174,7 +175,6 @@ export default function SingleMap() {
 			};
 		});
 	}, [rayLaunchData, data?.mapData?.coordinates]);
-	console.log(rayLaunchData);
 	return (
 		<>
 			{settingsData.isOpen && (
@@ -247,7 +247,7 @@ export default function SingleMap() {
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],
 												data.mapData.coordinates[0][2][1],
-												250
+												400
 											).i
 										}{" "}
 									</p>
@@ -261,7 +261,7 @@ export default function SingleMap() {
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],
 												data.mapData.coordinates[0][2][1],
-												250
+												400
 											).j
 										}
 									</p>

@@ -3,8 +3,8 @@ export const getMatrixValue = (
 	x: number,
 	y: number,
 	z: number,
-	sizeX = 250,
-	sizeY = 250,
+	sizeX = 400,
+	sizeY = 400,
 	sizeZ = 30
 ): number | null => {
 	if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ) {

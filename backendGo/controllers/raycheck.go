@@ -42,7 +42,6 @@ type Features struct {
 	Type string `json:"type"`
 	Properties interface{} `json:"properties"`
 	Geometry interface{} `json:"geometry"`
-	Id string `json:"id"`
 }
 type BuildingsConfiguration struct {
 	Type string `json:"type"`
