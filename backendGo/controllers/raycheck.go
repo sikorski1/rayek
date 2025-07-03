@@ -36,6 +36,7 @@ type MapConfiguration struct {
 	Coordinates [][][]float64 `json:"coordinates"`
 	Center [2]float64 `json:"center"`
 	Bounds [2][2]float64 `json:"bounds"`
+	Size int `json:"size"`
 }
 
 type Features struct {
@@ -199,6 +200,7 @@ type RayLaunchRequest struct {
 	StationPower         float64          `json:"stationPower"`
 	MinimalRayPower         float64          `json:"minimalRayPower"`
 	SingleRays			[]SingleRay			`json:"singleRays"`
+	Size int `json:"size"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
@@ -238,8 +240,8 @@ func Create3DRayLaunching(context *gin.Context) {
 		WallMapNumber:        1000,      
 		RoofMapNumber:        5000,       
 		CornerMapNumber:      10000,       
-		SizeX:                250-1,    
-		SizeY:                250-1,
+		SizeX:                float64(request.Size-1),    
+		SizeY:                float64(request.Size-1),
 		SizeZ:                30-1,     
 		Step:                 1.0,    
 		ReflFactor:           request.ReflectionFactor,     

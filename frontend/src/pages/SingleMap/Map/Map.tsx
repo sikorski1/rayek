@@ -24,6 +24,7 @@ export default function Map({
 	coordinates,
 	center,
 	bounds,
+	size,
 	stationPos,
 	stationHeight,
 	minimalRayPower,
@@ -32,7 +33,6 @@ export default function Map({
 	spherePositions,
 	wallMatrix,
 }: MapTypesExtended) {
-	console.log(spherePositions);
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
 	const regionGeoJSON: FeatureCollection = {
@@ -169,7 +169,7 @@ export default function Map({
 				coordinates[0][2][0],
 				coordinates[0][0][1],
 				coordinates[0][2][1],
-				400
+				size
 			);
 			const value = getMatrixValue(wallMatrix, i, j, Number(stationHeight));
 			canvas.style.cursor = "grabbing";

@@ -35,7 +35,6 @@ export default function SingleMap() {
 	const [rayLaunchData, setRayLaunchData] = useState<RayLaunchType | null>(null);
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
-
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
 		console.log(stationPos);
 		setSettingsData(prev => {
@@ -114,7 +113,7 @@ export default function SingleMap() {
 		const { stationPos, stationHeight, isOpen, ...restData } = settingsData;
 		mutate({
 			mapTitle: id!,
-			configData: { stationPos: { x: i, y: j, z: Number(stationHeight) }, ...restData },
+			configData: { stationPos: { x: i, y: j, z: Number(stationHeight) }, size: data.mapData.size, ...restData },
 		});
 	};
 	useEffect(() => {
@@ -143,7 +142,7 @@ export default function SingleMap() {
 			data.mapData.coordinates[0][2][0],
 			data.mapData.coordinates[0][0][1],
 			data.mapData.coordinates[0][2][1],
-			400
+			data.mapData.size
 		);
 		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(settingsData.stationHeight));
 		return { matrixIndexValue, i, j };
@@ -164,7 +163,7 @@ export default function SingleMap() {
 						coordinates[0][2][0],
 						coordinates[0][0][1],
 						coordinates[0][2][1],
-						400
+						data.mapData.size
 					);
 					const coord = mapboxgl.MercatorCoordinate.fromLngLat([lon, lat], z ?? 0);
 					return {
@@ -247,7 +246,7 @@ export default function SingleMap() {
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],
 												data.mapData.coordinates[0][2][1],
-												400
+												data.mapData.size
 											).i
 										}{" "}
 									</p>
@@ -261,7 +260,7 @@ export default function SingleMap() {
 												data.mapData.coordinates[0][2][0],
 												data.mapData.coordinates[0][0][1],
 												data.mapData.coordinates[0][2][1],
-												400
+												data.mapData.size
 											).j
 										}
 									</p>
