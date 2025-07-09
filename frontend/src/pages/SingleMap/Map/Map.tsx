@@ -77,7 +77,7 @@ export default function Map({
 
 			const clampedPower = Math.min(Math.max(power, minPower), maxPower);
 			const normalizedPower = (clampedPower - minPower) / (maxPower - minPower);
-			const color = getHeatMapColor(normalizedPower)
+			const color = getHeatMapColor(normalizedPower);
 			const sphereMaterial = new THREE.MeshBasicMaterial({
 				color,
 				transparent: true,
@@ -171,7 +171,7 @@ export default function Map({
 				coordinates[0][2][1],
 				size
 			);
-			const value = getMatrixValue(wallMatrix, i, j, Number(stationHeight));
+			const value = getMatrixValue(wallMatrix, i, j, Number(stationHeight), size, size, 30);
 			canvas.style.cursor = "grabbing";
 
 			const pointGeometry = dragDropGeoJSON.features[0].geometry as GeoJSON.Point;

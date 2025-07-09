@@ -53,6 +53,7 @@ export type MapTypesExtended = MapTypes & {
 	computationResult: mapboxgl.LngLatLike[][];
 	wallMatrix: Float64Array;
 	spherePositions: { positions: { coord: MercatorCoordinate; power: number }[]; rayIndex: number }[] | undefined;
+	size: number;
 };
 
 export type PostComputeTypes = {

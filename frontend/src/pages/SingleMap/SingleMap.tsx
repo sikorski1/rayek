@@ -36,7 +36,6 @@ export default function SingleMap() {
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
-		console.log(stationPos);
 		setSettingsData(prev => {
 			const updatedSingleMapData = { ...prev, stationPos: stationPos };
 			return updatedSingleMapData;
@@ -144,7 +143,15 @@ export default function SingleMap() {
 			data.mapData.coordinates[0][2][1],
 			data.mapData.size
 		);
-		const matrixIndexValue = getMatrixValue(wallMatrix, i, j, Number(settingsData.stationHeight));
+		const matrixIndexValue = getMatrixValue(
+			wallMatrix,
+			i,
+			j,
+			Number(settingsData.stationHeight),
+			data.mapData.size,
+			data.mapData.size,
+			30
+		);
 		return { matrixIndexValue, i, j };
 	}, [wallMatrix, settingsData?.stationHeight, settingsData?.stationPos, data?.mapData?.coordinates]);
 	const spherePositions = useMemo(() => {

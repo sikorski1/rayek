@@ -79,6 +79,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			currStartLengthPos := Point3D{X:rl.Config.TransmitterPos.X, Y:rl.Config.TransmitterPos.Y, Z:rl.Config.TransmitterPos.Z}
 			currRayLength := 0.0
 			currSumRayLength := 0.0
+			currReflectionFactor := 1.0
 			// main loop
 			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y < rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
 				// reflection from the ground when z is below 0
@@ -88,6 +89,11 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					currInteractions++
 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
+					nx, ny, nz := 0.0, 0.0, 1.0
+					// calculate angle of incidence
+					cosTheta := -(dx*nx + dy*ny + dz*nz)
+					theta := math.Acos(cosTheta)
+					currReflectionFactor *= calculateReflectionFactor(theta, "medium-dry-ground")
 					z = 0
 				}
 				if (z < 0) {
@@ -101,7 +107,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				zIdx := int(math.Round(z/rl.Config.Step))
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
 				// if (i==0 && j == 10) {
-				// 	println("i:", i, "j:", j, "x:", xIdx, "y:", yIdx, "z:", zIdx, "index:", index,"currWallIndex:", currWallIndex, "dx:", dx, "dy:", dy, "dz:", dz)
+					// println("i:", i, "j:", j, "x:", xIdx, "y:", yIdx, "z:", zIdx, "index:", index,"currWallIndex:", currWallIndex, "dx:", dx, "dy:", dy, "dz:", dz)
 				// }
 				// reflection from the building roof
 				if (index == rl.Config.RoofMapNumber) && currWallIndex != rl.Config.RoofMapNumber {
@@ -110,6 +116,10 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					currInteractions++
 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
+					nx, ny, nz := 0.0, 0.0, 1.0
+					cosTheta := -(dx*nx + dy*ny + dz*nz)
+					theta := math.Acos(cosTheta)
+					currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
 					continue
 				} 
 				 if index == rl.Config.CornerMapNumber {
@@ -135,10 +145,20 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					// sum distance and set new start position
 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
+					cosTheta := -(dx*nx + dy*ny + dz*nz)
+					if cosTheta > 1 {
+						cosTheta = 1
+					}
+					if cosTheta < -1 {
+						cosTheta = -1
+					}
+					theta := math.Acos(cosTheta)
+					currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
 				} else {
 					// calculate distance and transmittance
 					currRayLength = calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z}) + currSumRayLength
-					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, math.Pow(rl.Config.ReflFactor, float64(currInteractions)))
+
+					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, currReflectionFactor)
 					currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H))
 					// update power map if power is higher than previous one
 					if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
@@ -153,6 +173,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 						})
 				}
 				}
+				// println("currReflectionFactor: ",currReflectionFactor)
 				// update position
 				x += dx
 				y += dy
@@ -184,4 +205,32 @@ func (rl *RayLaunching3D) isTargetRay(i, j int) int {
 		}
 	}
 	return -1 
+}
+func calculateReflectionFactor(angle float64, material string) float64 {
+	if angle > math.Pi/2 {
+		angle = math.Pi - angle
+	}
+	var eta float64;
+	switch material {
+		case "concrete":
+			eta = 5.31 
+		case "ceiling-board":
+			eta = 1.50
+		case "medium-dry-ground":
+			eta = 15
+		}
+	sinTheta := math.Sin(angle)
+	cosTheta := math.Cos(angle)
+	if cosTheta > 1 {
+    	cosTheta = 1
+	}
+	if cosTheta < -1 {
+		cosTheta = -1
+	}
+	root := math.Sqrt(eta - sinTheta*sinTheta)
+	R_TE := (cosTheta - root)/(cosTheta + root)
+	R_TM := (eta*cosTheta - root)/(eta*cosTheta + root)
+	reflectionFactor := (math.Pow(R_TE, 2) + math.Pow(R_TM, 2)) / 2
+	// println("ANGLE: ", angle, "root: ", root,"R_TE: ", R_TE, " R_TM: ", R_TM, " reflectionFactor ", reflectionFactor)
+	return reflectionFactor
 }
