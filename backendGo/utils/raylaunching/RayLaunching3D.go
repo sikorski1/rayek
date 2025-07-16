@@ -2,6 +2,7 @@ package raylaunching
 
 import (
 	. "backendGo/types"
+	"fmt"
 	"math"
 	"math/cmplx"
 )
@@ -122,8 +123,39 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
 					continue
 				} 
-				 if index == rl.Config.CornerMapNumber {
-					break
+				 if index == rl.Config.CornerMapNumber && currWallIndex != rl.Config.CornerMapNumber {
+					currWallIndex = rl.Config.CornerMapNumber
+					normals := getNeighborWallNormals(xIdx, yIdx, zIdx, rl)
+					if len(normals) !=0 {
+						maxTheta := -1.0
+						bestNormal := normals[0]
+						for k, n := range normals {
+							//!!! MAP IS MIRRORED BY Y SO ALL Y NORMALS SHOULD BE MIRRORED !!!
+								n.Ny = -n.Ny
+								cosTheta := -(dx*n.Nx + dy*n.Ny + dz*n.Nz)
+								theta := math.Acos(cosTheta)
+								if (theta > maxTheta) {
+									maxTheta = theta
+									bestNormal = n 
+								}
+								fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,theta)
+							}
+						
+							dot := 2 * (dx*bestNormal.Nx  + dy*bestNormal.Ny + dz*bestNormal.Nz)
+							dot = -dot
+							// "Zginamy" promień w drugą stronę
+							dx = dx - dot*bestNormal.Nx
+							dy = dy - dot*bestNormal.Ny
+							dz = dz - dot*bestNormal.Nz
+							length := math.Sqrt(dx*dx + dy*dy + dz*dz)
+							dx /= length
+							dy /= length
+							dz /= length
+					}
+					if len(normals) == 0 {
+						break // brak ścian w pobliżu, nie da się dyfraktować
+					}
+					
 				} 
 
 				if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != currWallIndex + rl.Config.WallMapNumber{ 	// check if there is wall and if its diffrent from previous one
@@ -233,4 +265,40 @@ func calculateReflectionFactor(angle float64, material string) float64 {
 	reflectionFactor := (math.Pow(R_TE, 2) + math.Pow(R_TM, 2)) / 2
 	// println("ANGLE: ", angle, "root: ", root,"R_TE: ", R_TE, " R_TM: ", R_TM, " reflectionFactor ", reflectionFactor)
 	return reflectionFactor
+}
+
+func getNeighborWallNormals(x, y, z int, rl *RayLaunching3D) []Normal3D {
+	neighborNormals := make(map[int]Normal3D)
+
+	// Przeszukaj kostkę 3x3x3 wokół punktu (x,y,z)
+	size :=3
+	for dx := -size; dx <= size; dx++ {
+		for dy := -size; dy <= size; dy++ {
+			for dz := -size; dz <= size; dz++ {
+				xprim := x + dx
+				yprim := y + dy
+				zprim := z + dz
+
+				// sprawdź zakresy, by nie wyjść poza mapę
+				if xprim < 0 || yprim < 0 || zprim < 0 || xprim >= int(rl.Config.SizeX )|| yprim >= int(rl.Config.SizeY) || zprim >= int(rl.Config.SizeZ) {
+					continue
+				}
+
+				index := int(rl.PowerMap[zprim][yprim][xprim])
+				if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber {
+					currWallIndex := index - rl.Config.WallMapNumber
+					if _, exists := neighborNormals[currWallIndex]; !exists {
+						neighborNormals[currWallIndex] = rl.WallNormals[currWallIndex]
+					}
+				}
+				
+			}
+		}
+	}
+	result := make([]Normal3D, 0, len(neighborNormals))
+	for _, normal := range neighborNormals {
+		result = append(result, normal)
+	}
+	
+	return result
 }
