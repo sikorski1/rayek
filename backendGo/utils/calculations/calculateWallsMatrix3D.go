@@ -113,9 +113,28 @@ func geoToMatrixIndex(lat, lon, latMin, latMax, lonMin, lonMax float64, size int
 	return i, j
 }
 
-func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIndex, sizeX, sizeY int) {
+func AngleBetweenNormals(a, b Normal3D) float64 {
+	dot := a.Nx*b.Nx + a.Ny*b.Ny + a.Nz*b.Nz
+	lenA := math.Sqrt(a.Nx*a.Nx + a.Ny*a.Ny + a.Nz*a.Nz)
+	lenB := math.Sqrt(b.Nx*b.Nx + b.Ny*b.Ny + b.Nz*b.Nz)
+
+	if lenA == 0 || lenB == 0 {
+		return 0
+	}
+
+	cosTheta := dot / (lenA * lenB)
+
+	cosTheta = math.Max(-1, math.Min(1, cosTheta))
+
+	theta := math.Acos(cosTheta)
+	return theta * 180 / math.Pi 
+}
+
+func drawLine(matrix [][][]float64, wallNormals []Normal3D, x1, y1, z1, x2, y2, z2, heightLevels, wallIndex, sizeX, sizeY int) {
 	dx := x2 - x1
 	dy := y2 - y1
+	minCornerAngle := 60.0
+	maxCornerAngle := 120.0
 	if z1 >= heightLevels {
 		z1 = heightLevels - 1
 	}
@@ -129,8 +148,15 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 		for y := y1; y <= y2; y++ {
 			if y >= 0 && y < sizeY{
 				for z := 0; z <= z1; z++ {
-					if matrix[z][y][x1] >= 1000 && matrix[z][y][x1] != float64(1000 + wallIndex) {
-						matrix[z][y][x1] = 10000 // Mark as corner
+					if matrix[z][y][x1] >= 1000  && matrix[z][y][x1] < 5000 && matrix[z][y][x1] != float64(1000 + wallIndex) {
+						wallA := wallNormals[int(matrix[z][y][x1]) - 1000]
+						wallB := wallNormals[wallIndex]
+						angle := AngleBetweenNormals(wallA, wallB)
+						if angle > minCornerAngle && angle < maxCornerAngle{
+							matrix[z][y][x1] = 10000
+						} else {
+							matrix[z][y][x1] =  float64(1000 + wallIndex)
+						}
 					} else {
 						matrix[z][y][x1] = float64(1000 + wallIndex)
 					}
@@ -144,8 +170,15 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 		for x := x1; x <= x2; x++ {
 			if x >= 0 && x < sizeX {
 				for z := 0; z <= z1; z++ {
-					if matrix[z][y1][x] >= 1000 && matrix[z][y1][x] != float64(1000 + wallIndex) {
-						matrix[z][y1][x] = 10000 // Mark as corner
+					if matrix[z][y1][x] >= 1000 && matrix[z][y1][x] < 5000 && matrix[z][y1][x] != float64(1000 + wallIndex) {
+						wallA := wallNormals[int(matrix[z][y1][x]) - 1000]
+						wallB := wallNormals[wallIndex]
+						angle := AngleBetweenNormals(wallA, wallB)
+						if angle > minCornerAngle && angle < maxCornerAngle{
+							matrix[z][y1][x] = 10000
+						} else {
+							matrix[z][y1][x] =  float64(1000 + wallIndex)
+						}
 					} else {
 						matrix[z][y1][x] = float64(1000 + wallIndex)
 					}
@@ -164,8 +197,15 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 			if prevXIdx < xIdx && prevYIdx < yIdx || prevXIdx < xIdx && prevYIdx > yIdx  {
 				if yIdx >= 0 && yIdx < sizeY && prevXIdx >= 0 && prevXIdx < sizeX {
 					for z := 0; z <= z1; z++ {
-						if matrix[z][yIdx][prevXIdx] >= 1000 && matrix[z][yIdx][prevXIdx] != float64(1000 + wallIndex) {
-							matrix[z][yIdx][prevXIdx] = 10000 // Mark as corner
+						if matrix[z][yIdx][prevXIdx] >= 1000 && matrix[z][yIdx][prevXIdx] < 5000 && matrix[z][yIdx][prevXIdx] != float64(1000 + wallIndex) {
+							wallA := wallNormals[int(matrix[z][yIdx][prevXIdx]) - 1000]
+							wallB := wallNormals[wallIndex]
+							angle := AngleBetweenNormals(wallA, wallB)
+							if angle > minCornerAngle && angle < maxCornerAngle{
+								matrix[z][yIdx][prevXIdx] = 10000
+							} else {
+								matrix[z][yIdx][prevXIdx] =  float64(1000 + wallIndex)
+							}
 						} else {
 							matrix[z][yIdx][prevXIdx] = float64(1000 + wallIndex)
 						}
@@ -175,8 +215,15 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 			if prevXIdx > xIdx && prevYIdx < yIdx  || prevXIdx > xIdx && prevYIdx > yIdx  {
 				if xIdx >=0 && xIdx < sizeX && prevYIdx >= 0 && prevYIdx < sizeY {
 					for z := 0; z <= z1; z++ {
-						if matrix[z][prevYIdx][xIdx] >= 1000 && matrix[z][prevYIdx][xIdx] != float64(1000 + wallIndex) {
-							matrix[z][prevYIdx][xIdx] = 10000 // Mark as corner
+						if matrix[z][prevYIdx][xIdx] >= 1000 && matrix[z][prevYIdx][xIdx] < 5000 && matrix[z][prevYIdx][xIdx] != float64(1000 + wallIndex) {
+							wallA := wallNormals[int(matrix[z][prevYIdx][xIdx]) - 1000]
+							wallB := wallNormals[wallIndex]
+							angle := AngleBetweenNormals(wallA, wallB)
+							if angle > minCornerAngle && angle < maxCornerAngle {
+								matrix[z][prevYIdx][xIdx] = 10000
+							} else {
+								matrix[z][prevYIdx][xIdx] =  float64(1000 + wallIndex)
+							}
 						} else {
 							matrix[z][prevYIdx][xIdx] = float64(1000 + wallIndex)
 						}
@@ -185,8 +232,16 @@ func drawLine(matrix [][][]float64, x1, y1, z1, x2, y2, z2, heightLevels, wallIn
 			} // walls continuity
 			if xIdx >= 0 && xIdx < sizeX && yIdx >= 0 && yIdx < sizeY {
 				for z := 0; z <= z1; z++ {
-					if matrix[z][yIdx][xIdx] >= 1000 && matrix[z][yIdx][xIdx] != float64(1000 + wallIndex) {
-						matrix[z][yIdx][xIdx] = 10000 // Mark as corner
+					if matrix[z][yIdx][xIdx] >= 1000 && matrix[z][yIdx][xIdx] < 5000 && matrix[z][yIdx][xIdx] != float64(1000 + wallIndex) {
+						wallA := wallNormals[int(matrix[z][yIdx][xIdx]) - 1000]
+						wallB := wallNormals[wallIndex]
+						angle := AngleBetweenNormals(wallA, wallB)
+						println(angle)
+						if angle > minCornerAngle && angle < maxCornerAngle {
+							matrix[z][yIdx][xIdx] = 10000
+						} else {
+							matrix[z][yIdx][xIdx] =  float64(1000 + wallIndex)
+						}
 					} else {
 						matrix[z][yIdx][xIdx] = float64(1000 + wallIndex)
 					}
@@ -234,8 +289,8 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 			if normal.Nx == 0 && normal.Ny == 0 {
 				continue
 			} 
-			drawLine(matrix, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex, size, size)
 			wallNormals = append(wallNormals, normal)
+			drawLine(matrix, wallNormals, i1, j1, z1, i2, j2, z2, heightLevels, wallsMapIndex, size, size)
 			wallHeights[wallsMapIndex] = z1
 			wallsMapIndex++
 		}

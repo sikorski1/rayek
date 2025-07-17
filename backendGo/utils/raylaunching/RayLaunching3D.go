@@ -138,7 +138,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 									maxTheta = theta
 									bestNormal = n 
 								}
-								fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,theta)
+								fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,cosTheta)
 							}
 						
 							dot := 2 * (dx*bestNormal.Nx  + dy*bestNormal.Ny + dz*bestNormal.Nz)
