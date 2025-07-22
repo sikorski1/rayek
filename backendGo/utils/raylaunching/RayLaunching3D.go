@@ -81,6 +81,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			currRayLength := 0.0
 			currSumRayLength := 0.0
 			currReflectionFactor := 1.0
+			diffLossLdB:=0.0
 			// main loop
 			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y < rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
 				// reflection from the ground when z is below 0
@@ -137,10 +138,29 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 								if (theta > maxTheta) {
 									maxTheta = theta
 									bestNormal = n 
+									fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,cosTheta)
 								}
-								fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,cosTheta)
+							} 
+							fmt.Printf("Promien %d, %d, Max theta: %.3f,\n", i, j, maxTheta)
+							if ( maxTheta >= math.Pi - 0.3) {
+								break
 							}
-						
+							thetaDeg := maxTheta * 180.0 / math.Pi
+							println(thetaDeg)
+							q90 := 0.3
+							v := 3.5
+							qj := math.Pow(thetaDeg/90.0*q90, v)
+
+							// Illusory distance d1 = 1, d2 = 2 + qj (jak w dokumencie)
+							
+							d2 := 2 + qj
+
+							// Oblicz stratę dyfrakcyjną
+							diffLossLdB = 20 * math.Log10(4 * math.Pi * d2 / rl.Config.WaveLength)
+							println("Strata dyf: ", diffLossLdB)
+							// Oblicz współczynnik tłumienia w dziedzinie liniowej
+							currInteractions++
+							currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 							dot := 2 * (dx*bestNormal.Nx  + dy*bestNormal.Ny + dz*bestNormal.Nz)
 							dot = -dot
 							// "Zginamy" promień w drugą stronę
@@ -191,7 +211,12 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					currRayLength = calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z}) + currSumRayLength
 
 					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, currReflectionFactor)
-					currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H))
+					currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - diffLossLdB
+					if (diffLossLdB > 0.0) {
+
+						println("diffLoss: ",diffLossLdB)
+						println("currPorwe: ",currPower)
+					}
 					// update power map if power is higher than previous one
 					if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
 						rl.PowerMap[zIdx][yIdx][xIdx] = currPower
