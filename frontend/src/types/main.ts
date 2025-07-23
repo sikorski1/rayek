@@ -54,6 +54,7 @@ export type MapTypesExtended = MapTypes & {
 	wallMatrix: Float64Array;
 	spherePositions: { positions: { coord: MercatorCoordinate; power: number }[]; rayIndex: number }[] | undefined;
 	size: number;
+	powerMap: number[][][];
 };
 
 export type PostComputeTypes = {

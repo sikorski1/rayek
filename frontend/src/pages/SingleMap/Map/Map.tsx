@@ -19,6 +19,15 @@ const checkBounds = (coords: number[], bounds: number[][]) => {
 	}
 };
 
+const normalizePower = (value: number) => {
+	const minPowerDb = -160;
+	const maxPowerDb = -0.1;
+
+	const clamped = Math.max(minPowerDb, Math.min(maxPowerDb, value));
+
+	return (clamped - minPowerDb) / (maxPowerDb - minPowerDb);
+};
+
 export default function Map({
 	title,
 	coordinates,
@@ -27,11 +36,11 @@ export default function Map({
 	size,
 	stationPos,
 	stationHeight,
-	minimalRayPower,
 	handleStationPosUpdate,
 	buildingsData,
 	spherePositions,
 	wallMatrix,
+	powerMap,
 }: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -62,6 +71,137 @@ export default function Map({
 			},
 		],
 	};
+	useEffect(() => {
+		if (!powerMap || !mapRef.current?.isStyleLoaded()) return;
+
+		const depth = powerMap.length;
+		const layerIds: string[] = [];
+
+		// Utwórz heatmapę dla każdej wysokości (co 5 poziomów dla wydajności)
+		for (let z = 0; z < depth; z++) {
+			const layerData = powerMap[z];
+			const width = layerData[0].length;
+			const height = layerData.length;
+
+			// Stwórz canvas dla tej warstwy
+			const canvas = document.createElement("canvas");
+			canvas.width = width;
+			canvas.height = height;
+			const ctx = canvas.getContext("2d");
+
+			if (!ctx) continue;
+
+			const imageData = ctx.createImageData(width, height);
+			const data = imageData.data;
+
+			for (let y = 0; y < height; y++) {
+				for (let x = 0; x < width; x++) {
+					const flippedY = height - y - 1;
+					const value = layerData[flippedY][x];
+					const normalized = normalizePower(value);
+					const color = getHeatMapColor(normalized);
+
+					const index = (y * width + x) * 4;
+					data[index] = color.r * 255;
+					data[index + 1] = color.g * 255;
+					data[index + 2] = color.b * 255;
+					data[index + 3] = normalized * 180; // Trochę przezroczyste
+				}
+			}
+
+			ctx.putImageData(imageData, 0, 0);
+			const imageUrl = canvas.toDataURL();
+
+			const sourceId = `power-layer-${z}`;
+			const layerId = `power-heatmap-${z}`;
+
+			mapRef.current.addSource(sourceId, {
+				type: "image",
+				url: imageUrl,
+				coordinates: [
+					[coordinates[0][0][0], coordinates[0][0][1]],
+					[coordinates[0][1][0], coordinates[0][1][1]],
+					[coordinates[0][2][0], coordinates[0][2][1]],
+					[coordinates[0][3][0], coordinates[0][3][1]],
+				],
+			});
+
+			mapRef.current.addLayer({
+				id: layerId,
+				type: "raster",
+				source: sourceId,
+				paint: {
+					"raster-opacity": z === 0 ? 0.8 : 0, // Pierwsza warstwa najbardziej widoczna
+				},
+			});
+
+			layerIds.push(layerId);
+		}
+
+		// Dodaj kontrolę dla przełączania warstw
+		const addLayerControl = () => {
+			const controlDiv = document.createElement("div");
+			controlDiv.className = "mapboxgl-ctrl mapboxgl-ctrl-group";
+			controlDiv.style.position = "absolute";
+			controlDiv.style.top = "10px";
+			controlDiv.style.right = "10px";
+			controlDiv.style.background = "white";
+			controlDiv.style.padding = "10px";
+			controlDiv.style.borderRadius = "3px";
+
+			const slider = document.createElement("input");
+			slider.type = "range";
+			slider.min = "0";
+			slider.max = String(depth-1);
+			slider.value = "0";
+			slider.style.width = "150px";
+
+			const label = document.createElement("div");
+			label.textContent = `Wysokość: ${0 * 1}m`;
+			label.style.marginBottom = "5px";
+			label.style.fontSize = "12px";
+
+			slider.addEventListener("input", e => {
+				const selectedLayer = parseInt((e.target as HTMLInputElement).value);
+				const heightInMeters = selectedLayer ; // każdy poziom to 2m, co 5 poziomów
+				label.textContent = `Wysokość: ${heightInMeters}m`;
+
+				// Ukryj wszystkie warstwy
+				layerIds.forEach((layerId, index) => {
+					const opacity = index === selectedLayer ? 0.8 : 0;
+					mapRef.current?.setPaintProperty(layerId, "raster-opacity", opacity);
+				});
+			});
+
+			controlDiv.appendChild(label);
+			controlDiv.appendChild(slider);
+			mapRef.current?.getContainer().appendChild(controlDiv);
+
+			return controlDiv;
+		};
+
+		const control = addLayerControl();
+
+		return () => {
+			// Cleanup
+			layerIds.forEach(layerId => {
+				if (mapRef.current?.getLayer(layerId)) {
+					mapRef.current.removeLayer(layerId);
+				}
+			});
+
+			for (let z = 0; z < depth; z += 1) {
+				const sourceId = `power-layer-${z}`;
+				if (mapRef.current?.getSource(sourceId)) {
+					mapRef.current.removeSource(sourceId);
+				}
+			}
+
+			if (control && control.parentNode) {
+				control.parentNode.removeChild(control);
+			}
+		};
+	}, [powerMap]);
 	useEffect(() => {
 		const createSphereLayer = (
 			position: mapboxgl.MercatorCoordinate,

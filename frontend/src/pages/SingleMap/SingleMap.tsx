@@ -33,6 +33,7 @@ export default function SingleMap() {
 	const [settingsData, setSettingsData] = useState<SettingsDataTypes>(initialSettingsData);
 	const [wallMatrix, setWallMatrix] = useState<Float64Array | null>(null);
 	const [rayLaunchData, setRayLaunchData] = useState<RayLaunchType | null>(null);
+	const [powerMapData, setPowerMapData] = useState<any>(null);
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
@@ -106,6 +107,7 @@ export default function SingleMap() {
 
 	const handleOnSuccess = (data: any) => {
 		setRayLaunchData(data.rayPaths);
+		setPowerMapData(data.powerMap);
 	};
 	const { mutate, isPending: isPendingRayLaunch } = useRayLaunching(handleOnSuccess);
 	const handleComputeBtn = async () => {
@@ -237,6 +239,7 @@ export default function SingleMap() {
 								buildingsData={data.buildingsData}
 								spherePositions={spherePositions}
 								wallMatrix={wallMatrix}
+								powerMap={powerMapData}
 							/>
 						)}
 						<div className={styles.stationPosContener}>

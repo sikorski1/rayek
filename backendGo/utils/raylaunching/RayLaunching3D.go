@@ -213,7 +213,6 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, currReflectionFactor)
 					currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - diffLossLdB
 					if (diffLossLdB > 0.0) {
-
 						println("diffLoss: ",diffLossLdB)
 						println("currPorwe: ",currPower)
 					}
