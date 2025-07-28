@@ -150,20 +150,16 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 							q90 := 0.3
 							v := 3.5
 							qj := math.Pow(thetaDeg/90.0*q90, v)
-
-							// Illusory distance d1 = 1, d2 = 2 + qj (jak w dokumencie)
 							
 							d2 := 2 + qj
-
-							// Oblicz stratę dyfrakcyjną
+				
 							diffLossLdB = 20 * math.Log10(4 * math.Pi * d2 / rl.Config.WaveLength)
-							println("Strata dyf: ", diffLossLdB)
-							// Oblicz współczynnik tłumienia w dziedzinie liniowej
+							println("Dyf loss: ", diffLossLdB)
 							currInteractions++
 							currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 							dot := 2 * (dx*bestNormal.Nx  + dy*bestNormal.Ny + dz*bestNormal.Nz)
 							dot = -dot
-							// "Zginamy" promień w drugą stronę
+					
 							dx = dx - dot*bestNormal.Nx
 							dy = dy - dot*bestNormal.Ny
 							dz = dz - dot*bestNormal.Nz
@@ -173,7 +169,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 							dz /= length
 					}
 					if len(normals) == 0 {
-						break // brak ścian w pobliżu, nie da się dyfraktować
+						break 
 					}
 					
 				} 

@@ -41,9 +41,17 @@ export default function Map({
 	spherePositions,
 	wallMatrix,
 	powerMap,
+	powerMapHeight,
 }: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
+	const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+	const powerMapUpdateTimeoutRef = useRef<NodeJS.Timeout>();
+	const renderStateRef = useRef({
+		isRendering: false,
+		pendingRenders: new Set<Function>(),
+	});
+
 	const regionGeoJSON: FeatureCollection = {
 		type: "FeatureCollection",
 		features: [
@@ -71,137 +79,158 @@ export default function Map({
 			},
 		],
 	};
-	useEffect(() => {
-		if (!powerMap || !mapRef.current?.isStyleLoaded()) return;
 
-		const depth = powerMap.length;
-		const layerIds: string[] = [];
+	// Funkcja do inicjalizacji wspólnego renderera
+	const getSharedRenderer = () => {
+		if (!rendererRef.current && mapRef.current) {
+			rendererRef.current = new THREE.WebGLRenderer({
+				canvas: mapRef.current.getCanvas(),
+				context: mapRef.current.painter.context.gl,
+				antialias: true,
+			});
+			rendererRef.current.autoClear = false;
+		}
+		return rendererRef.current;
+	};
 
-		// Utwórz heatmapę dla każdej wysokości (co 5 poziomów dla wydajności)
-		for (let z = 0; z < depth; z++) {
-			const layerData = powerMap[z];
-			const width = layerData[0].length;
-			const height = layerData.length;
-
-			// Stwórz canvas dla tej warstwy
-			const canvas = document.createElement("canvas");
-			canvas.width = width;
-			canvas.height = height;
-			const ctx = canvas.getContext("2d");
-
-			if (!ctx) continue;
-
-			const imageData = ctx.createImageData(width, height);
-			const data = imageData.data;
-
-			for (let y = 0; y < height; y++) {
-				for (let x = 0; x < width; x++) {
-					const flippedY = height - y - 1;
-					const value = layerData[flippedY][x];
-					const normalized = normalizePower(value);
-					const color = getHeatMapColor(normalized);
-
-					const index = (y * width + x) * 4;
-					data[index] = color.r * 255;
-					data[index + 1] = color.g * 255;
-					data[index + 2] = color.b * 255;
-					data[index + 3] = normalized * 180; // Trochę przezroczyste
-				}
+	// Wrapper dla bezpiecznego renderowania
+	const createSafeRenderFunction = (originalRender: Function, layerId: string) => {
+		return (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+			// Sprawdź czy inne warstwy się renderują
+			if (renderStateRef.current.isRendering) {
+				renderStateRef.current.pendingRenders.add(() => originalRender(gl, matrix));
+				return;
 			}
 
-			ctx.putImageData(imageData, 0, 0);
-			const imageUrl = canvas.toDataURL();
+			renderStateRef.current.isRendering = true;
 
-			const sourceId = `power-layer-${z}`;
-			const layerId = `power-heatmap-${z}`;
+			try {
+				originalRender(gl, matrix);
+			} finally {
+				renderStateRef.current.isRendering = false;
 
-			mapRef.current.addSource(sourceId, {
-				type: "image",
-				url: imageUrl,
-				coordinates: [
-					[coordinates[0][0][0], coordinates[0][0][1]],
-					[coordinates[0][1][0], coordinates[0][1][1]],
-					[coordinates[0][2][0], coordinates[0][2][1]],
-					[coordinates[0][3][0], coordinates[0][3][1]],
-				],
-			});
+				// Wykonaj pending renders
+				const pending = Array.from(renderStateRef.current.pendingRenders);
+				renderStateRef.current.pendingRenders.clear();
+				pending.forEach(render => render());
+			}
+		};
+	};
 
-			mapRef.current.addLayer({
-				id: layerId,
-				type: "raster",
-				source: sourceId,
-				paint: {
-					"raster-opacity": z === 0 ? 0.8 : 0, // Pierwsza warstwa najbardziej widoczna
-				},
-			});
-
-			layerIds.push(layerId);
+	// Optymalizowane renderowanie power-map z debouncing
+	useEffect(() => {
+		if (powerMapUpdateTimeoutRef.current) {
+			clearTimeout(powerMapUpdateTimeoutRef.current);
 		}
 
-		// Dodaj kontrolę dla przełączania warstw
-		const addLayerControl = () => {
-			const controlDiv = document.createElement("div");
-			controlDiv.className = "mapboxgl-ctrl mapboxgl-ctrl-group";
-			controlDiv.style.position = "absolute";
-			controlDiv.style.top = "10px";
-			controlDiv.style.right = "10px";
-			controlDiv.style.background = "white";
-			controlDiv.style.padding = "10px";
-			controlDiv.style.borderRadius = "3px";
+		powerMapUpdateTimeoutRef.current = setTimeout(() => {
+			if (!powerMap || !mapRef.current?.isStyleLoaded()) return;
 
-			const slider = document.createElement("input");
-			slider.type = "range";
-			slider.min = "0";
-			slider.max = String(depth-1);
-			slider.value = "0";
-			slider.style.width = "150px";
-
-			const label = document.createElement("div");
-			label.textContent = `Wysokość: ${0 * 1}m`;
-			label.style.marginBottom = "5px";
-			label.style.fontSize = "12px";
-
-			slider.addEventListener("input", e => {
-				const selectedLayer = parseInt((e.target as HTMLInputElement).value);
-				const heightInMeters = selectedLayer ; // każdy poziom to 2m, co 5 poziomów
-				label.textContent = `Wysokość: ${heightInMeters}m`;
-
-				// Ukryj wszystkie warstwy
-				layerIds.forEach((layerId, index) => {
-					const opacity = index === selectedLayer ? 0.8 : 0;
-					mapRef.current?.setPaintProperty(layerId, "raster-opacity", opacity);
-				});
-			});
-
-			controlDiv.appendChild(label);
-			controlDiv.appendChild(slider);
-			mapRef.current?.getContainer().appendChild(controlDiv);
-
-			return controlDiv;
-		};
-
-		const control = addLayerControl();
-
-		return () => {
-			// Cleanup
-			layerIds.forEach(layerId => {
-				if (mapRef.current?.getLayer(layerId)) {
+			// Usuń poprzednie warstwy przed dodaniem nowych
+			for (let z = 0; z < 50; z++) {
+				// Assume max 50 layers
+				const layerId = `power-heatmap-${z}`;
+				if (mapRef.current.getLayer(layerId)) {
 					mapRef.current.removeLayer(layerId);
 				}
-			});
-
-			for (let z = 0; z < depth; z += 1) {
 				const sourceId = `power-layer-${z}`;
-				if (mapRef.current?.getSource(sourceId)) {
+				if (mapRef.current.getSource(sourceId)) {
 					mapRef.current.removeSource(sourceId);
 				}
 			}
 
-			if (control && control.parentNode) {
-				control.parentNode.removeChild(control);
+			const depth = powerMap.length;
+			const layerIds: string[] = [];
+
+			// Batch processing - przetwarzaj tylko widoczne warstwy
+			const visibleLayers = [powerMapHeight]; // Tylko aktywna warstwa
+
+			visibleLayers.forEach(z => {
+				if (z >= 0 && z < depth) {
+					const layerData = powerMap[z];
+					const width = layerData[0].length;
+					const height = layerData.length;
+
+					const canvas = document.createElement("canvas");
+					canvas.width = width;
+					canvas.height = height;
+					const ctx = canvas.getContext("2d");
+					if (!ctx) return;
+
+					const imageData = ctx.createImageData(width, height);
+					const data = imageData.data;
+
+					for (let y = 0; y < height; y++) {
+						for (let x = 0; x < width; x++) {
+							const flippedY = height - y - 1;
+							const value = layerData[flippedY][x];
+							const normalized = normalizePower(value);
+							const color = getHeatMapColor(normalized);
+
+							const index = (y * width + x) * 4;
+							data[index] = color.r * 255;
+							data[index + 1] = color.g * 255;
+							data[index + 2] = color.b * 255;
+							data[index + 3] = normalized * 180;
+						}
+					}
+
+					ctx.putImageData(imageData, 0, 0);
+					const imageUrl = canvas.toDataURL();
+
+					const sourceId = `power-layer-${z}`;
+					const layerId = `power-heatmap-${z}`;
+
+					mapRef.current?.addSource(sourceId, {
+						type: "image",
+						url: imageUrl,
+						coordinates: [
+							[coordinates[0][0][0], coordinates[0][0][1]],
+							[coordinates[0][1][0], coordinates[0][1][1]],
+							[coordinates[0][2][0], coordinates[0][2][1]],
+							[coordinates[0][3][0], coordinates[0][3][1]],
+						],
+					});
+
+					// Dodaj power-mapę PRZED spheres
+					mapRef.current?.addLayer(
+						{
+							id: layerId,
+							type: "raster",
+							source: sourceId,
+							paint: {
+								"raster-opacity": 0.8,
+							},
+						},
+						mapRef.current?.getStyle()?.layers?.[37]?.id // Dodaj przed buildings, ale po podstawowych warstwach
+					);
+
+					layerIds.push(layerId);
+				}
+			});
+		}, 500); // 100ms debounce
+
+		return () => {
+			if (powerMapUpdateTimeoutRef.current) {
+				clearTimeout(powerMapUpdateTimeoutRef.current);
 			}
 		};
-	}, [powerMap]);
+	}, [powerMap, powerMapHeight]);
+
+	// Uproszczone przełączanie opacity dla power-map
+	useEffect(() => {
+		if (!mapRef.current) return;
+
+		for (let i = 0; i < (powerMap?.length || 0); i++) {
+			const layerId = `power-heatmap-${i}`;
+			const opacity = i === powerMapHeight ? 0.8 : 0;
+			if (mapRef.current.getLayer(layerId)) {
+				mapRef.current.setPaintProperty(layerId, "raster-opacity", opacity);
+			}
+		}
+	}, [powerMapHeight]);
+
+	// Renderowanie spherePositions z wspólnym rendererem
 	useEffect(() => {
 		const createSphereLayer = (
 			position: mapboxgl.MercatorCoordinate,
@@ -237,19 +266,15 @@ export default function Map({
 				scale: position.meterInMercatorCoordinateUnits(),
 			};
 
-			const renderer = new THREE.WebGLRenderer({
-				canvas: mapRef.current?.getCanvas(),
-				context: mapRef.current?.painter.context.gl,
-				antialias: true,
-			});
-			renderer.autoClear = false;
-
 			return {
 				id: `sphere-ray${rayIndex}-point${pointIndex}`,
 				type: "custom",
 				renderingMode: "3d",
 				onAdd: () => {},
-				render: (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+				render: createSafeRenderFunction((gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+					const renderer = getSharedRenderer();
+					if (!renderer) return;
+
 					const m = new THREE.Matrix4().fromArray(matrix as unknown as ArrayLike<number>);
 					const l = new THREE.Matrix4()
 						.makeTranslation(
@@ -264,7 +289,7 @@ export default function Map({
 					renderer.resetState();
 					renderer.render(scene, camera);
 					mapRef.current?.triggerRepaint();
-				},
+				}, `sphere-ray${rayIndex}-point${pointIndex}`),
 			};
 		};
 
@@ -274,7 +299,8 @@ export default function Map({
 			spherePositions.forEach(({ rayIndex, positions }) => {
 				positions.forEach(({ coord, power }, pointIndex) => {
 					const customLayer = createSphereLayer(coord, power, rayIndex, pointIndex);
-					mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface, "waterway-label");
+					// Dodaj spheres NA SAMYM KOŃCU, żeby były na wierzchu
+					mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface);
 				});
 			});
 		};
@@ -298,6 +324,8 @@ export default function Map({
 			}
 		};
 	}, [spherePositions]);
+
+	// Główny useEffect dla mapy
 	useEffect(() => {
 		let lastValidCoords: [number, number] | null = null;
 		function onMove(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
@@ -344,6 +372,7 @@ export default function Map({
 			mapRef.current?.off("mousemove", onMove);
 			mapRef.current?.off("touchmove", onMove);
 		}
+
 		const createCustomLayer = () => {
 			const camera = new THREE.Camera();
 			const scene = new THREE.Scene();
@@ -361,18 +390,15 @@ export default function Map({
 				scene.add(gltf.scene);
 			});
 
-			const renderer = new THREE.WebGLRenderer({
-				canvas: mapRef.current?.getCanvas(),
-				context: mapRef.current?.painter.context.gl,
-				antialias: true,
-			});
-			renderer.autoClear = false;
 			return {
 				id: "3d-5gtower",
 				type: "custom",
 				renderingMode: "3d",
 				onAdd: () => {},
-				render: (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+				render: createSafeRenderFunction((gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+					const renderer = getSharedRenderer();
+					if (!renderer) return;
+
 					const rotationX = new THREE.Matrix4().makeRotationAxis(
 						new THREE.Vector3(1, 0, 0),
 						towerModelTransform.rotateX
@@ -402,7 +428,7 @@ export default function Map({
 					renderer.resetState();
 					renderer.render(scene, camera);
 					mapRef.current?.triggerRepaint();
-				},
+				}, "3d-5gtower"),
 			};
 		};
 
@@ -536,7 +562,21 @@ export default function Map({
 				mapRef.current?.once("touchend", onUp);
 			});
 		});
-		return () => mapRef.current?.remove();
+
+		return () => {
+			// Cleanup renderer
+			if (rendererRef.current) {
+				rendererRef.current.dispose();
+				rendererRef.current = null;
+			}
+			// Cleanup timeouts
+			if (powerMapUpdateTimeoutRef.current) {
+				clearTimeout(powerMapUpdateTimeoutRef.current);
+			}
+			// Cleanup map
+			mapRef.current?.remove();
+		};
 	}, [stationHeight]);
+
 	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
 }

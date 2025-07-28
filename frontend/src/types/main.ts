@@ -23,6 +23,7 @@ export type SettingsDataTypes = {
 	minimalRayPower: number;
 	stationPos?: [number, number];
 	singleRays: SingleRay[];
+	powerMapHeight: number;
 };
 
 export type RayLaunchType = {
@@ -55,6 +56,7 @@ export type MapTypesExtended = MapTypes & {
 	spherePositions: { positions: { coord: MercatorCoordinate; power: number }[]; rayIndex: number }[] | undefined;
 	size: number;
 	powerMap: number[][][];
+	powerMapHeight: number;
 };
 
 export type PostComputeTypes = {

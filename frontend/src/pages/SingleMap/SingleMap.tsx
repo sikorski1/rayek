@@ -27,6 +27,7 @@ const initialSettingsData: SettingsDataTypes = {
 	stationPower: 5,
 	minimalRayPower: -120,
 	singleRays: [],
+	powerMapHeight: 5,
 };
 
 export default function SingleMap() {
@@ -280,6 +281,21 @@ export default function SingleMap() {
 						</div>
 						<p className={styles.brandName}>Rayek</p>
 					</div>
+					<motion.div
+						className={styles.sliderBox}
+						initial={{ opacity: 0, y: -20 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.5 }}>
+						<label>Height: {settingsData.powerMapHeight}m</label>
+						<input
+							className={styles.slider}
+							type="range"
+							value={settingsData.powerMapHeight}
+							onChange={e => setSettingsData(prev => ({ ...prev, powerMapHeight: Number(e.target.value) }))}
+							min={0}
+							max={29}
+						/>
+					</motion.div>
 					<button
 						className={styles.settingsBtn}
 						onClick={() =>
