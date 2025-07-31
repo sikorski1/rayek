@@ -33,7 +33,22 @@
 		font-size: 2.4rem;
 		font-weight: bold;
 		color: $green-400;
-		
+		.onOffBox {
+			position: absolute;
+			top: 0;
+			right: 1rem;
+			.onOffBtn {
+				@include shadow-strong();
+				@include shadow-strong-hover-clickable(black, $green-400);
+				width: 30px; 
+				height: 30px;
+				color: $white;
+				border: none;
+				background-color: $green-400;
+				border-radius: 50%;
+				cursor: pointer;
+			}
+		}
 		.slider {
 			-webkit-appearance: none; // Chrome/Safari
 			width: 100%;

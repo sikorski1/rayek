@@ -42,6 +42,7 @@ export default function Map({
 	wallMatrix,
 	powerMap,
 	powerMapHeight,
+	isPowerMapVisible,
 }: MapTypesExtended) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -80,7 +81,6 @@ export default function Map({
 		],
 	};
 
-	// Funkcja do inicjalizacji wspólnego renderera
 	const getSharedRenderer = () => {
 		if (!rendererRef.current && mapRef.current) {
 			rendererRef.current = new THREE.WebGLRenderer({
@@ -93,10 +93,8 @@ export default function Map({
 		return rendererRef.current;
 	};
 
-	// Wrapper dla bezpiecznego renderowania
 	const createSafeRenderFunction = (originalRender: Function, layerId: string) => {
 		return (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
-			// Sprawdź czy inne warstwy się renderują
 			if (renderStateRef.current.isRendering) {
 				renderStateRef.current.pendingRenders.add(() => originalRender(gl, matrix));
 				return;
@@ -109,15 +107,12 @@ export default function Map({
 			} finally {
 				renderStateRef.current.isRendering = false;
 
-				// Wykonaj pending renders
 				const pending = Array.from(renderStateRef.current.pendingRenders);
 				renderStateRef.current.pendingRenders.clear();
 				pending.forEach(render => render());
 			}
 		};
 	};
-
-	// Optymalizowane renderowanie power-map z debouncing
 	useEffect(() => {
 		if (powerMapUpdateTimeoutRef.current) {
 			clearTimeout(powerMapUpdateTimeoutRef.current);
@@ -126,9 +121,7 @@ export default function Map({
 		powerMapUpdateTimeoutRef.current = setTimeout(() => {
 			if (!powerMap || !mapRef.current?.isStyleLoaded()) return;
 
-			// Usuń poprzednie warstwy przed dodaniem nowych
 			for (let z = 0; z < 50; z++) {
-				// Assume max 50 layers
 				const layerId = `power-heatmap-${z}`;
 				if (mapRef.current.getLayer(layerId)) {
 					mapRef.current.removeLayer(layerId);
@@ -142,8 +135,7 @@ export default function Map({
 			const depth = powerMap.length;
 			const layerIds: string[] = [];
 
-			// Batch processing - przetwarzaj tylko widoczne warstwy
-			const visibleLayers = [powerMapHeight]; // Tylko aktywna warstwa
+			const visibleLayers = [powerMapHeight];
 
 			visibleLayers.forEach(z => {
 				if (z >= 0 && z < depth) {
@@ -192,7 +184,6 @@ export default function Map({
 						],
 					});
 
-					// Dodaj power-mapę PRZED spheres
 					mapRef.current?.addLayer(
 						{
 							id: layerId,
@@ -202,13 +193,13 @@ export default function Map({
 								"raster-opacity": 0.8,
 							},
 						},
-						mapRef.current?.getStyle()?.layers?.[37]?.id // Dodaj przed buildings, ale po podstawowych warstwach
+						mapRef.current?.getStyle()?.layers?.[37]?.id
 					);
 
 					layerIds.push(layerId);
 				}
 			});
-		}, 500); // 100ms debounce
+		}, 500);
 
 		return () => {
 			if (powerMapUpdateTimeoutRef.current) {
@@ -216,21 +207,18 @@ export default function Map({
 			}
 		};
 	}, [powerMap, powerMapHeight]);
-
-	// Uproszczone przełączanie opacity dla power-map
 	useEffect(() => {
-		if (!mapRef.current) return;
+		if (!mapRef.current || !powerMap) return;
 
-		for (let i = 0; i < (powerMap?.length || 0); i++) {
+		for (let i = 0; i < powerMap.length; i++) {
 			const layerId = `power-heatmap-${i}`;
-			const opacity = i === powerMapHeight ? 0.8 : 0;
+			const opacity = isPowerMapVisible && i === powerMapHeight ? 0.8 : 0;
+
 			if (mapRef.current.getLayer(layerId)) {
 				mapRef.current.setPaintProperty(layerId, "raster-opacity", opacity);
 			}
 		}
-	}, [powerMapHeight]);
-
-	// Renderowanie spherePositions z wspólnym rendererem
+	}, [isPowerMapVisible, powerMapHeight]);
 	useEffect(() => {
 		const createSphereLayer = (
 			position: mapboxgl.MercatorCoordinate,
@@ -299,7 +287,6 @@ export default function Map({
 			spherePositions.forEach(({ rayIndex, positions }) => {
 				positions.forEach(({ coord, power }, pointIndex) => {
 					const customLayer = createSphereLayer(coord, power, rayIndex, pointIndex);
-					// Dodaj spheres NA SAMYM KOŃCU, żeby były na wierzchu
 					mapRef.current?.addLayer(customLayer as unknown as CustomLayerInterface);
 				});
 			});
@@ -325,7 +312,6 @@ export default function Map({
 		};
 	}, [spherePositions]);
 
-	// Główny useEffect dla mapy
 	useEffect(() => {
 		let lastValidCoords: [number, number] | null = null;
 		function onMove(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {

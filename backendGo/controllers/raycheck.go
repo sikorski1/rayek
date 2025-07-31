@@ -217,7 +217,7 @@ func Create3DRayLaunching(context *gin.Context) {
 		log.Println(err)
 	}
 	var matrix [][][]float64
-	fmt.Printf("Single rays: %v", request.SingleRays)
+	// fmt.Printf("Single rays: %v", request.SingleRays)
 	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D_floor.bin"), &matrix)
 	if err != nil {
 		log.Println("Failed to load matrix:", err)

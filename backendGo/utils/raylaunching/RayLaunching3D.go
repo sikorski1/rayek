@@ -2,7 +2,7 @@ package raylaunching
 
 import (
 	. "backendGo/types"
-	"fmt"
+	// "fmt"
 	"math"
 	"math/cmplx"
 )
@@ -130,7 +130,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					if len(normals) !=0 {
 						maxTheta := -1.0
 						bestNormal := normals[0]
-						for k, n := range normals {
+						for _, n := range normals {
 							//!!! MAP IS MIRRORED BY Y SO ALL Y NORMALS SHOULD BE MIRRORED !!!
 								n.Ny = -n.Ny
 								cosTheta := -(dx*n.Nx + dy*n.Ny + dz*n.Nz)
@@ -138,15 +138,15 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 								if (theta > maxTheta) {
 									maxTheta = theta
 									bestNormal = n 
-									fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,cosTheta)
+									// fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,cosTheta)
 								}
 							} 
-							fmt.Printf("Promien %d, %d, Max theta: %.3f,\n", i, j, maxTheta)
+							// fmt.Printf("Promien %d, %d, Max theta: %.3f,\n", i, j, maxTheta)
 							if ( maxTheta >= math.Pi - 0.3) {
 								break
 							}
 							thetaDeg := maxTheta * 180.0 / math.Pi
-							println(thetaDeg)
+							// println(thetaDeg)
 							q90 := 0.3
 							v := 3.5
 							qj := math.Pow(thetaDeg/90.0*q90, v)
@@ -154,7 +154,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 							d2 := 2 + qj
 				
 							diffLossLdB = 20 * math.Log10(4 * math.Pi * d2 / rl.Config.WaveLength)
-							println("Dyf loss: ", diffLossLdB)
+							// println("Dyf loss: ", diffLossLdB)
 							currInteractions++
 							currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
 							dot := 2 * (dx*bestNormal.Nx  + dy*bestNormal.Ny + dz*bestNormal.Nz)
@@ -209,8 +209,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, currReflectionFactor)
 					currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - diffLossLdB
 					if (diffLossLdB > 0.0) {
-						println("diffLoss: ",diffLossLdB)
-						println("currPorwe: ",currPower)
+						// println("diffLoss: ",diffLossLdB)
+						// println("currPorwe: ",currPower)
 					}
 					// update power map if power is higher than previous one
 					if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {

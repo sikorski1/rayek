@@ -28,6 +28,7 @@ const initialSettingsData: SettingsDataTypes = {
 	minimalRayPower: -120,
 	singleRays: [],
 	powerMapHeight: 5,
+	isPowerMapVisible: true,
 };
 
 export default function SingleMap() {
@@ -63,6 +64,9 @@ export default function SingleMap() {
 			...prev,
 			singleRays: prev.singleRays.filter((_, i) => i !== index),
 		}));
+	};
+	const handleOnOffPowerMap = () => {
+		setSettingsData(prev => ({ ...prev, isPowerMapVisible: !prev.isPowerMapVisible }));
 	};
 	const handleGlobalSettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -286,6 +290,11 @@ export default function SingleMap() {
 						initial={{ opacity: 0, y: -20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5 }}>
+						<div className={styles.onOffBox}>
+							<button onClick={handleOnOffPowerMap} className={styles.onOffBtn}>
+								{settingsData.isPowerMapVisible ? "ON" : "OFF"}
+							</button>
+						</div>
 						<label>Height: {settingsData.powerMapHeight}m</label>
 						<input
 							className={styles.slider}
