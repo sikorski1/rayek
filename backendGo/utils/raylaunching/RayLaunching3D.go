@@ -2,6 +2,8 @@ package raylaunching
 
 import (
 	. "backendGo/types"
+	"fmt"
+
 	// "fmt"
 	"math"
 	"math/cmplx"
@@ -27,6 +29,48 @@ type RayLaunching3D struct {
 	RayPaths [][]RayPoint  
 }
 
+
+type Vector3D struct {
+    X, Y, Z float64
+}
+
+// Normalizacja wektora
+func normalize(v Vector3D) Vector3D {
+    length := math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
+    if length == 0 {
+        return Vector3D{0, 0, 0} // unikamy dzielenia przez zero
+    }
+    return Vector3D{
+        X: v.X / length,
+        Y: v.Y / length,
+        Z: v.Z / length,
+    }
+}
+
+// Iloczyn wektorowy (cross product)
+func (v Vector3D) cross(u Vector3D) Vector3D {
+    return Vector3D{
+        X: v.Y*u.Z - v.Z*u.Y,
+        Y: v.Z*u.X - v.X*u.Z,
+        Z: v.X*u.Y - v.Y*u.X,
+    }
+}
+
+func (v Vector3D) add(u Vector3D) Vector3D {
+    return Vector3D{
+        X: v.X + u.X,
+        Y: v.Y + u.Y,
+        Z: v.Z + u.Z,
+    }
+}
+
+func (v Vector3D) mulScalar(s float64) Vector3D {
+    return Vector3D{
+        X: v.X * s,
+        Y: v.Y * s,
+        Z: v.Z * s,
+    }
+}
 
 func NewRayLaunching3D(matrix [][][]float64, wallNormals []Normal3D, config RayLaunching3DConfig) *RayLaunching3D {
 	return &RayLaunching3D{
@@ -127,51 +171,53 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				 if index == rl.Config.CornerMapNumber && currWallIndex != rl.Config.CornerMapNumber {
 					currWallIndex = rl.Config.CornerMapNumber
 					normals := getNeighborWallNormals(xIdx, yIdx, zIdx, rl)
-					if len(normals) !=0 {
-						maxTheta := -1.0
-						bestNormal := normals[0]
-						for _, n := range normals {
-							//!!! MAP IS MIRRORED BY Y SO ALL Y NORMALS SHOULD BE MIRRORED !!!
-								n.Ny = -n.Ny
-								cosTheta := -(dx*n.Nx + dy*n.Ny + dz*n.Nz)
-								theta := math.Acos(cosTheta)
-								if (theta > maxTheta) {
-									maxTheta = theta
-									bestNormal = n 
-									// fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Theta=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz,cosTheta)
-								}
-							} 
-							// fmt.Printf("Promien %d, %d, Max theta: %.3f,\n", i, j, maxTheta)
-							if ( maxTheta >= math.Pi - 0.3) {
-								break
-							}
-							thetaDeg := maxTheta * 180.0 / math.Pi
-							// println(thetaDeg)
-							q90 := 0.3
-							v := 3.5
-							qj := math.Pow(thetaDeg/90.0*q90, v)
-							
-							d2 := 2 + qj
-				
-							diffLossLdB = 20 * math.Log10(4 * math.Pi * d2 / rl.Config.WaveLength)
-							// println("Dyf loss: ", diffLossLdB)
-							currInteractions++
-							currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
-							dot := 2 * (dx*bestNormal.Nx  + dy*bestNormal.Ny + dz*bestNormal.Nz)
-							dot = -dot
-					
-							dx = dx - dot*bestNormal.Nx
-							dy = dy - dot*bestNormal.Ny
-							dz = dz - dot*bestNormal.Nz
-							length := math.Sqrt(dx*dx + dy*dy + dz*dz)
-							dx /= length
-							dy /= length
-							dz /= length
-					}
 					if len(normals) == 0 {
-						break 
+						break
 					}
+					bestDot := -math.MaxFloat64
+					var bestNormal Normal3D
 					
+					for k, n := range normals {
+					
+				
+						dot := dx*n.Nx + dy*n.Ny + dz*n.Nz
+
+				
+						n.Nx, n.Ny, n.Nz = -n.Nx, -n.Ny, -n.Nz
+						dot = -dot
+					
+					
+						if dot > bestDot {
+							bestDot = dot
+							bestNormal = n
+						}
+
+						fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Dot=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz, dot)
+					}
+					fmt.Printf("Best Dot: %.3f, bestNormal: %v \n", bestDot, bestNormal)
+					cosTheta := dx*bestNormal.Nx + dy*bestNormal.Ny + dz*bestNormal.Nz
+					if cosTheta > 1 {
+						cosTheta = 1
+					}
+					if cosTheta < -1 {
+						cosTheta = -1
+					}
+					theta := math.Acos(cosTheta)
+					finalTheta := math.Pi/2 - theta
+					stepResolution := 5.0
+					oneStep := finalTheta/stepResolution
+					
+					fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f \n", cosTheta, theta, finalTheta)
+
+					
+					for step := 0; step <= 5; step++ {
+						angle := float64(step) * oneStep
+						newDx := dx * math.Cos(angle) - dy * math.Sin(angle)
+						newDy := dx * math.Sin(angle) + dy * math.Cos(angle)
+						
+						fmt.Printf("Step %d: dx=%.3f dy=%.3f dz=%.3f\n", step, newDx, newDy, dz)
+					}
+	
 				} 
 
 				if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != currWallIndex + rl.Config.WallMapNumber{ 	// check if there is wall and if its diffrent from previous one
@@ -179,12 +225,16 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 
 					//get wall normal
 					nx, ny, nz := rl.WallNormals[currWallIndex].Nx, rl.WallNormals[currWallIndex].Ny, rl.WallNormals[currWallIndex].Nz
-
 					//!!! MAP IS MIRRORED BY Y SO ALL Y NORMALS SHOULD BE MIRRORED !!!
 					ny = -ny
-					dot := 2 * (dx*nx + dy*ny + dz*nz)
+					dot := dx*nx + dy*ny + dz*nz
+					if dot > 0 {
+						nx, ny, nz = -nx, -ny, -nz
+						dot = -dot
+					}
+					dot *= 2
+					fmt.Printf("Promien %d, %d Nx=%.3f, Ny=%.3f, Nz=%.3f dot:%.3f \n", i, j,  nx, ny, nz, dot)
 
-					// calculate new direction
 					dx = dx - dot*nx
 					dy = dy - dot*ny
 					dz = dz - dot*nz
@@ -290,7 +340,6 @@ func calculateReflectionFactor(angle float64, material string) float64 {
 func getNeighborWallNormals(x, y, z int, rl *RayLaunching3D) []Normal3D {
 	neighborNormals := make(map[int]Normal3D)
 
-	// Przeszukaj kostkę 3x3x3 wokół punktu (x,y,z)
 	size :=3
 	for dx := -size; dx <= size; dx++ {
 		for dy := -size; dy <= size; dy++ {
@@ -299,7 +348,6 @@ func getNeighborWallNormals(x, y, z int, rl *RayLaunching3D) []Normal3D {
 				yprim := y + dy
 				zprim := z + dz
 
-				// sprawdź zakresy, by nie wyjść poza mapę
 				if xprim < 0 || yprim < 0 || zprim < 0 || xprim >= int(rl.Config.SizeX )|| yprim >= int(rl.Config.SizeY) || zprim >= int(rl.Config.SizeZ) {
 					continue
 				}
