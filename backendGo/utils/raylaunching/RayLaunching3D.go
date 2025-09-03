@@ -275,24 +275,44 @@ func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float
 	}
 }
 
+
 func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy float64, state *RayState, i, j int) {
 	currentDx, currentDy, currentDz := newDx, newDy, state.dz
+	
 	for rl.isValidPosition(x, y, z) && state.currInteractions < rl.Config.NumOfInteractions && state.currPower >= rl.Config.MinimalRayPower {
-		xIdx := int(math.Round(x/rl.Config.Step))
-		yIdx := int(math.Round(y/rl.Config.Step))
-		zIdx := int(math.Round(z/rl.Config.Step))
+		tempState := &RayState{
+			x: x, y: y, z: z,
+			dx: currentDx, dy: currentDy, dz: currentDz,
+			currInteractions: state.currInteractions,
+			currWallIndex: state.currWallIndex,
+			currStartLengthPos: state.currStartLengthPos,
+			currSumRayLength: state.currSumRayLength,
+			currReflectionFactor: state.currReflectionFactor,
+			currPower: state.currPower,
+			diffLossLdB: state.diffLossLdB,
+		}	
+		rl.handleGroundReflection(tempState)
+	
+		x, z = tempState.x, tempState.z
+		currentDx, currentDy, currentDz = tempState.dx, tempState.dy, tempState.dz
+		
+		xIdx, yIdx, zIdx := rl.getMapIndices(x, y, z)
+		
 		index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-		fmt.Printf("xIdx: %v yIdx: %v zIdx: %v index: %v \n", xIdx, yIdx, zIdx, index)
+		fmt.Printf("xIdx: %v yIdx: %v zIdx: %v \n", xIdx, yIdx, zIdx)
+		
+		if rl.handleRoofReflection(tempState, index) {
+			currentDx, currentDy, currentDz = tempState.dx, tempState.dy, tempState.dz
+			state.currInteractions = tempState.currInteractions
+			state.currSumRayLength = tempState.currSumRayLength
+			state.currReflectionFactor = tempState.currReflectionFactor
+			state.currStartLengthPos = tempState.currStartLengthPos
+			state.currWallIndex = tempState.currWallIndex
+			continue
+		}
+		
 		
 		if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != state.currWallIndex + rl.Config.WallMapNumber {
-			tempState := &RayState{
-				x: x, y: y, z: z,
-				dx: newDx, dy: newDy, dz: state.dz,
-				currInteractions: state.currInteractions,
-				currStartLengthPos: state.currStartLengthPos,
-				currSumRayLength: state.currSumRayLength,
-				currReflectionFactor: state.currReflectionFactor,
-			}
 			rl.calculateWallReflection(tempState, index, i, j)
 			currentDx, currentDy, currentDz = tempState.dx, tempState.dy, tempState.dz
 			state.currInteractions = tempState.currInteractions
@@ -315,6 +335,7 @@ func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy float6
 		z += currentDz
 	}
 }
+
 
 func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 	for z := 0; z < int(rl.Config.TransmitterPos.Z); z++ {
