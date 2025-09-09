@@ -240,6 +240,7 @@ func Create3DRayLaunching(context *gin.Context) {
 		WallMapNumber:        1000,      
 		RoofMapNumber:        5000,       
 		CornerMapNumber:      10000,       
+		BuldingInteriorNumber: 10001,
 		SizeX:                float64(request.Size-1),    
 		SizeY:                float64(request.Size-1),
 		SizeZ:                30-1,     

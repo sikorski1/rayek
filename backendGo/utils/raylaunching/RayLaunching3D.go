@@ -10,7 +10,7 @@ import (
 )
 
 type RayLaunching3DConfig struct {
-	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, BuldingInterior, RoofMapNumber, CornerMapNumber int
+	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, BuldingInteriorNumber, RoofMapNumber, CornerMapNumber int
 	SizeX, SizeY, SizeZ, Step, ReflFactor, TransmitterPower, MinimalRayPower, TransmitterFreq, WaveLength float64
 	TransmitterPos Point3D
 	SingleRays []SingleRay
@@ -93,6 +93,14 @@ func (rl *RayLaunching3D) shouldContinueRay(state *RayState) bool {
 	return rl.isValidPosition(state.x, state.y, state.z) && 
 		   state.currInteractions < rl.Config.NumOfInteractions && 
 		   state.currPower >= rl.Config.MinimalRayPower
+}
+
+func (rl *RayLaunching3D) shouldBreakRayPropagation(state *RayState, index int) bool {
+	if index == rl.Config.BuldingInteriorNumber {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (rl *RayLaunching3D) handleGroundReflection(state *RayState) {
@@ -209,7 +217,7 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 	state.currWallIndex = rl.Config.CornerMapNumber
 	state.currStartLengthPos = Point3D{X: state.x, Y: state.y, Z: state.z}
 	normals := getNeighborWallNormals(xIdx, yIdx, zIdx, rl)
-	fmt.Printf("xIdx: %v yIdx: %v zIdx: %v \n", xIdx, yIdx, zIdx)
+	fmt.Printf("xIdx: %v yIdx: %v zIdx: %v dx: %v dy: %v dz: %v \n", xIdx, yIdx, zIdx, state.dx, state.dy, state.dz)
 	
 	if len(normals) == 0 {
 		return
@@ -217,15 +225,16 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 	
 	bestDot := -math.MaxFloat64
 	var bestNormal Normal3D
-	
+	var Nx float64
 	for k, n := range normals {
 		dot := state.dx*n.Nx + state.dy*n.Ny + state.dz*n.Nz
-		n.Nx, n.Ny, n.Nz = -n.Nx, -n.Ny, -n.Nz
+		n.Nx, n.Ny, n.Nz = -n.Nx, n.Ny, n.Nz
 		dot = -dot
 		
 		if dot > bestDot {
 			bestDot = dot
 			bestNormal = n
+			Nx = n.Nx
 		}
 		fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Dot=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz, dot)
 	}
@@ -234,15 +243,20 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 	cosTheta := state.dx*bestNormal.Nx + state.dy*bestNormal.Ny + state.dz*bestNormal.Nz
 	cosTheta = rl.clampCosTheta(cosTheta)
 	theta := math.Acos(cosTheta)
+	cross := state.dx*(-bestNormal.Ny) - state.dy*bestNormal.Nx
 	finalTheta := (math.Pi/2 - theta)
-	cross := state.dx*bestNormal.Ny - state.dy*bestNormal.Nx
 	if cross < 0 {
 		finalTheta = -finalTheta
 	}
 	stepResolution := 20
-	oneStep := finalTheta/float64(stepResolution)
+	var oneStep float64
+	if (Nx > 0) {
+		oneStep = finalTheta/float64(stepResolution)
+	} else {
+		oneStep = -finalTheta/float64(stepResolution)
+	}
 	
-	fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f \n", cosTheta, theta, finalTheta)
+	fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f cross: %.3f\n", cosTheta, theta, finalTheta, cross)
 	
 	rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, normals)
 }
@@ -261,7 +275,7 @@ func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float
 		y += newDy
 		z += state.dz
 
-		fmt.Printf("newDx: %v newDy: %v z: %v \n", x, y, z)
+		fmt.Printf("x: %v y: %v z: %v \n", x, y, z)
 		rl.processDiffractionRayPath(x, y, z, newDx, newDy, state, i, j, normalsAround)
 	}
 }
@@ -269,7 +283,6 @@ func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float
 
 func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy float64, state *RayState, i, j int, normalsAround []Normal3D) {
 	currentDx, currentDy, currentDz := newDx, newDy, state.dz
-	
 	for rl.isValidPosition(x, y, z) && state.currInteractions < rl.Config.NumOfInteractions && state.currPower >= rl.Config.MinimalRayPower {
 		tempState := &RayState{
 			x: x, y: y, z: z,
@@ -290,8 +303,7 @@ func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy float6
 		xIdx, yIdx, zIdx := rl.getMapIndices(x, y, z)
 		
 		index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-		fmt.Printf("xIdx: %v yIdx: %v zIdx: %v \n", xIdx, yIdx, zIdx)
-		
+fmt.Println("xIdx: ", xIdx, "yIdx: ", yIdx, "zIdx: ", zIdx, "index: ", index)
 		if rl.handleRoofReflection(tempState, index) {
 			currentDx, currentDy, currentDz = tempState.dx, tempState.dy, tempState.dz
 			state.currInteractions = tempState.currInteractions
@@ -304,7 +316,7 @@ func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy float6
 		if (index == rl.Config.CornerMapNumber) {
 			break
 		}
-		normalIndex:= index - rl.Config.WallMapNumber
+	normalIndex:= index - rl.Config.WallMapNumber
 		if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != state.currWallIndex + rl.Config.WallMapNumber {
 			if !containsNormal(normalsAround, rl.WallNormals[normalIndex]) {
 				rl.calculateWallReflection(tempState, index, i, j)
@@ -367,13 +379,19 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			targetRayIndex := rl.isTargetRay(i, j)
 
 			// main loop
+			// if (i != 7 && j != 4) {
+			// 	break;
+			// }
 			for rl.shouldContinueRay(state) {
 				// reflection from the ground when z is below 0
 				rl.handleGroundReflection(state)
 				
 				xIdx, yIdx, zIdx := rl.getMapIndices(state.x, state.y, state.z)
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-				fmt.Printf("Index: %v", index)
+				fmt.Println("xIdx: ", xIdx, "yIdx: ", yIdx, "zIdx: ", zIdx)
+				if (rl.shouldBreakRayPropagation(state, index)) {
+					break
+				}
 				// reflection from the building roof
 				if rl.handleRoofReflection(state, index) {
 					continue
