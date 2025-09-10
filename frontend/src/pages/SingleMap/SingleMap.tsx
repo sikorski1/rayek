@@ -164,8 +164,8 @@ export default function SingleMap() {
 	const spherePositions = useMemo(() => {
 		if (!data?.mapData?.coordinates || !rayLaunchData || !Array.isArray(rayLaunchData)) return [];
 		const coordinates = data.mapData.coordinates;
-
 		return rayLaunchData.map((rayPath, rayIndex) => {
+			if (rayPath.length === 0) return [];
 			const filteredRayData = rayPath.filter((_, index) => index % 3 === 0);
 			return {
 				rayIndex,
