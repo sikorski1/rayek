@@ -49,7 +49,7 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 								defaultValue={ray.azimuth}
 								placeholder={`Enter azimuth`}
 								min={0}
-								max={formData.numberOfRaysAzimuth}
+								max={formData.numberOfRaysAzimuth - 1}
 								step={1}
 								required
 							/>
@@ -63,7 +63,7 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 								defaultValue={ray.elevation}
 								placeholder={`Enter elevation`}
 								min={0}
-								max={formData.numberOfRaysElevation}
+								max={formData.numberOfRaysElevation - 1}
 								step={1}
 								required
 							/>
