@@ -13,10 +13,6 @@ import (
 	"strings"
 )
 
-
-
-
-
 func main() {
 	genHeatmaps := flag.Bool("gen-heatmaps", false, "Generate heatmaps to /imgs/raw folder")
 	flag.Parse()

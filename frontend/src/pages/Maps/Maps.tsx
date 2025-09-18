@@ -14,7 +14,6 @@ type MapData = {
 };
 export default function Maps() {
 	const { data, isLoading, error } = useGetMaps();
-	console.log(data);
 	return (
 		<PageTransition>
 			<Wrapper>

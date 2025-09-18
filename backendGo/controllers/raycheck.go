@@ -27,40 +27,39 @@ type Map struct {
 	Img         string `json:"img"`
 }
 type MapAndBuildingsResponse struct {
-	MapData      MapConfiguration      `json:"mapData"`
+	MapData       MapConfiguration       `json:"mapData"`
 	BuildingsData BuildingsConfiguration `json:"buildingsData"`
 }
 
 type MapConfiguration struct {
-	Title string `json:"title"`
+	Title       string        `json:"title"`
 	Coordinates [][][]float64 `json:"coordinates"`
-	Center [2]float64 `json:"center"`
-	Bounds [2][2]float64 `json:"bounds"`
-	Size int `json:"size"`
+	Center      [2]float64    `json:"center"`
+	Bounds      [2][2]float64 `json:"bounds"`
+	Size        int           `json:"size"`
 }
 
 type Features struct {
-	Type string `json:"type"`
+	Type       string      `json:"type"`
 	Properties interface{} `json:"properties"`
-	Geometry interface{} `json:"geometry"`
+	Geometry   interface{} `json:"geometry"`
 }
 type BuildingsConfiguration struct {
-	Type string `json:"type"`
+	Type     string     `json:"type"`
 	Features []Features `json:"features"`
 }
-
 
 func GetMaps(context *gin.Context) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
 	}
-	dataPath := filepath.Join(cwd, "data","maps.json")
+	dataPath := filepath.Join(cwd, "data", "maps.json")
 	fmt.Println(dataPath)
-	data, err := os.ReadFile(dataPath) 
+	data, err := os.ReadFile(dataPath)
 	if err != nil {
 		log.Println("Failed to read data file")
-		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read data file"})
 		return
 	}
 	var mapsData []Map
@@ -80,11 +79,11 @@ func GetMapById(context *gin.Context) {
 		log.Println(err)
 	}
 	mapTitle := context.Param("mapTitle")
-	fmt.Println(filepath.Join(cwd, "data", mapTitle,"mapData.json"))
-	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle,"mapData.json")) 
+	fmt.Println(filepath.Join(cwd, "data", mapTitle, "mapData.json"))
+	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle, "mapData.json"))
 	if err != nil {
 		log.Println("Failed to read data file")
-		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read data file"})
 		return
 	}
 	var mapData MapConfiguration
@@ -100,10 +99,10 @@ func GetMapById(context *gin.Context) {
 		return
 	}
 
-	data, err = os.ReadFile(filepath.Join(cwd, "data", mapTitle,"rawBuildings.json"))
+	data, err = os.ReadFile(filepath.Join(cwd, "data", mapTitle, "rawBuildings.json"))
 	if err != nil {
 		log.Println("Failed to read data file")
-		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read data file"})
 	}
 	var buildingsData BuildingsConfiguration
 	err = json.Unmarshal(data, &buildingsData)
@@ -119,7 +118,7 @@ func GetMapById(context *gin.Context) {
 		return
 	}
 	response := MapAndBuildingsResponse{
-		MapData:      mapData,
+		MapData:       mapData,
 		BuildingsData: buildingsData,
 	}
 	context.JSON(http.StatusOK, response)
@@ -149,10 +148,10 @@ func GetBuildings(context *gin.Context) {
 		log.Println(err)
 	}
 	mapTitle := context.Param("mapTitle")
-	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle,"rawBuildings.json"))
+	data, err := os.ReadFile(filepath.Join(cwd, "data", mapTitle, "rawBuildings.json"))
 	if err != nil {
 		log.Println("Failed to read data file")
-		context.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to read data file"})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read data file"})
 	}
 	var buildingData BuildingsConfiguration
 	err = json.Unmarshal(data, &buildingData)
@@ -171,13 +170,13 @@ func GetBuildings(context *gin.Context) {
 }
 
 func ComputeRays(context *gin.Context) {
-	southwest :=  [2]float64{19.914029, 50.065311}
+	southwest := [2]float64{19.914029, 50.065311}
 	southeast := [2]float64{19.917527, 50.065311}
 	northeast := [2]float64{19.917527, 50.067556}
 	numPoints := 500
 
-	xStep := (southeast[0] - southwest[0]) / (float64(numPoints - 1));
-	yStep := (northeast[1] - southeast[1]) / (float64(numPoints - 1));
+	xStep := (southeast[0] - southwest[0]) / (float64(numPoints - 1))
+	yStep := (northeast[1] - southeast[1]) / (float64(numPoints - 1))
 	points := make([][2]float64, 0, numPoints*numPoints)
 	for i := 0; i < numPoints; i++ {
 		for j := 0; j < numPoints; j++ {
@@ -191,16 +190,17 @@ func ComputeRays(context *gin.Context) {
 }
 
 type RayLaunchRequest struct {
-	StationPos           TransmitterPos3D `json:"stationPos"`
-	NumberOfRaysAzimuth  int              `json:"numberOfRaysAzimuth"`
-	NumberOfRaysElevation int             `json:"numberOfRaysElevation"`
-	Frequency            float64          `json:"frequency"`
-	ReflectionFactor     float64          `json:"reflectionFactor"`
-	NumberOfInteractions int              `json:"numberOfInteractions"`
-	StationPower         float64          `json:"stationPower"`
-	MinimalRayPower         float64          `json:"minimalRayPower"`
-	SingleRays			[]SingleRay			`json:"singleRays"`
-	Size int `json:"size"`
+	StationPos            TransmitterPos3D `json:"stationPos"`
+	NumberOfRaysAzimuth   int              `json:"numberOfRaysAzimuth"`
+	NumberOfRaysElevation int              `json:"numberOfRaysElevation"`
+	Frequency             float64          `json:"frequency"`
+	ReflectionFactor      float64          `json:"reflectionFactor"`
+	NumberOfInteractions  int              `json:"numberOfInteractions"`
+	StationPower          float64          `json:"stationPower"`
+	MinimalRayPower       float64          `json:"minimalRayPower"`
+	SingleRays            []SingleRay      `json:"singleRays"`
+	Size                  int              `json:"size"`
+	DiffractionRayNumber  int              `json:"diffractionRayNumber"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
@@ -234,28 +234,29 @@ func Create3DRayLaunching(context *gin.Context) {
 	// TESTING - START
 
 	config := raylaunching.RayLaunching3DConfig{
-		NumOfRaysAzim:        request.NumberOfRaysAzimuth,     
-		NumOfRaysElev:        request.NumberOfRaysElevation,    
-		NumOfInteractions:    request.NumberOfInteractions,     
-		WallMapNumber:        1000,      
-		RoofMapNumber:        5000,       
-		CornerMapNumber:      10000,       
+		NumOfRaysAzim:         request.NumberOfRaysAzimuth,
+		NumOfRaysElev:         request.NumberOfRaysElevation,
+		NumOfInteractions:     request.NumberOfInteractions,
+		WallMapNumber:         1000,
+		RoofMapNumber:         5000,
+		CornerMapNumber:       10000,
 		BuldingInteriorNumber: 10001,
-		SizeX:                float64(request.Size-1),    
-		SizeY:                float64(request.Size-1),
-		SizeZ:                30-1,     
-		Step:                 1.0,    
-		ReflFactor:           request.ReflectionFactor,     
-		TransmitterPower:     request.StationPower,   //watt  
-		MinimalRayPower:     request.MinimalRayPower, //dbm
-		TransmitterFreq:      request.Frequency*1e9,   // Hz
-		WaveLength:           0,  
-		TransmitterPos: Point3D{X:request.StationPos.X, Y:request.StationPos.Y, Z:request.StationPos.Z},
-		SingleRays: request.SingleRays,
+		SizeX:                 float64(request.Size - 1),
+		SizeY:                 float64(request.Size - 1),
+		SizeZ:                 30 - 1,
+		Step:                  1.0,
+		ReflFactor:            request.ReflectionFactor,
+		TransmitterPower:      request.StationPower,    //watt
+		MinimalRayPower:       request.MinimalRayPower, //dbm
+		TransmitterFreq:       request.Frequency * 1e9, // Hz
+		WaveLength:            0,
+		TransmitterPos:        Point3D{X: request.StationPos.X, Y: request.StationPos.Y, Z: request.StationPos.Z},
+		SingleRays:            request.SingleRays,
+		DiffractionRayNumber:  request.DiffractionRayNumber,
 	}
 	config.WaveLength = 299792458 / (config.TransmitterFreq)
 	start := time.Now()
-	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals,config)
+	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals, config)
 	rayLaunching.CalculateRayLaunching3D()
 	fmt.Printf("RayPaths: %v", rayLaunching.RayPaths)
 	stop := time.Since(start)
@@ -288,7 +289,7 @@ func Create3DRayLaunching(context *gin.Context) {
 			log.Printf("failed to open file %s: %v", filename, err)
 			continue
 		}
-		
+
 		img, err := png.Decode(f)
 		if err != nil {
 			log.Printf("failed to decode image %s: %v", filename, err)
@@ -296,15 +297,15 @@ func Create3DRayLaunching(context *gin.Context) {
 			continue
 		}
 		f.Close()
-		
+
 		bounds := img.Bounds()
 		palette := make(color.Palette, 256)
-		palette[0] = color.RGBA{0, 0, 0, 255} 
+		palette[0] = color.RGBA{0, 0, 0, 255}
 		for i := 1; i < 256; i++ {
 			palette[i] = color.RGBA{
-				uint8(i), 
-				uint8(i), 
-				uint8(255 - i), 
+				uint8(i),
+				uint8(i),
+				uint8(255 - i),
 				255,
 			}
 		}
@@ -325,16 +326,16 @@ func Create3DRayLaunching(context *gin.Context) {
 	if err != nil {
 		log.Printf("failed to encode GIF: %v", err)
 	}
-	gifFile.Close() 
+	gifFile.Close()
 	fmt.Printf("GIF animation created at %s\n", gifFilename)
 
 	// TESTING - END
 
 	context.JSON(http.StatusOK, gin.H{
-		"message":       "Request received successfully",
-		"mapTitle":     mapTitle,
-		"stationPos":     request.StationPos,
-		"powerMap": rayLaunching.PowerMap,
-		"rayPaths":       rayLaunching.RayPaths,
+		"message":    "Request received successfully",
+		"mapTitle":   mapTitle,
+		"stationPos": request.StationPos,
+		"powerMap":   rayLaunching.PowerMap,
+		"rayPaths":   rayLaunching.RayPaths,
 	})
 }

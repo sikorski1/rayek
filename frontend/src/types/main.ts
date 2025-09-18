@@ -25,6 +25,7 @@ export type SettingsDataTypes = {
 	singleRays: SingleRay[];
 	powerMapHeight: number;
 	isPowerMapVisible: boolean
+	diffractionRayNumber:number
 };
 
 export type RayLaunchType = {

@@ -29,6 +29,7 @@ const initialSettingsData: SettingsDataTypes = {
 	singleRays: [],
 	powerMapHeight: 5,
 	isPowerMapVisible: true,
+	diffractionRayNumber: 20,
 };
 
 export default function SingleMap() {
@@ -83,6 +84,7 @@ export default function SingleMap() {
 			numberOfInteractions: Number(formData.get("interactions")),
 			stationPower: Number(formData.get("stationPower")),
 			minimalRayPower: Number(formData.get("minimalRayPower")),
+			diffractionRayNumber: Number(formData.get("diffractionRayNumber")),
 		};
 		if (
 			updatedSettingsData.numberOfRaysAzimuth !== settingsData.numberOfRaysAzimuth ||

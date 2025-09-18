@@ -190,7 +190,7 @@ export default function Map({
 							type: "raster",
 							source: sourceId,
 							paint: {
-								"raster-opacity": 0.8,
+								"raster-opacity": 0.9,
 							},
 						},
 						mapRef.current?.getStyle()?.layers?.[37]?.id

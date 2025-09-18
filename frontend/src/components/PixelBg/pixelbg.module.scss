@@ -1,6 +1,6 @@
 @use "@/constants/colors" as *;
 .pixelBackground {
-	position: absolute;
+	position: fixed;
 	display: flex;
 	height: 100vh;
 	overflow: hidden;

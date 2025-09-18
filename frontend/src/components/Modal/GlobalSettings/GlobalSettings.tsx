@@ -49,6 +49,14 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						max: 1,
 						step: 0.01,
 					},
+					{
+						label: "DIFFRACTION RAY NUMBER",
+						name: "diffractionRayNumber",
+						value: formData.diffractionRayNumber,
+						min: 4,
+						max: 120,
+						step:1,
+					},
 				].map((field, i) => (
 					<FormField
 						key={field.name}
