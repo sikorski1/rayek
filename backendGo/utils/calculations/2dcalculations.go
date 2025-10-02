@@ -95,9 +95,11 @@ func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
             val := powerMap[y][x]
 
             switch {
-            case val == 10001:
+            case val == 20000:
                 img.Set(x, y, color.RGBA{255, 255, 0, 255})
-            case val >= 10000:
+            case val == 10001:
+                img.Set(x, y, color.RGBA{128, 0, 128, 255}) // Dark pink
+            case val == 10000:
                 img.Set(x, y, color.RGBA{255, 0, 255, 255}) // Bright pink
             case val == 5000:
                 img.Set(x, y, color.RGBA{192, 192, 192, 255})

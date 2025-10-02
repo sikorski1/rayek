@@ -2,7 +2,7 @@ package raylaunching
 
 import (
 	. "backendGo/types"
-	"fmt"
+	
 
 	// "fmt"
 	"math"
@@ -10,10 +10,10 @@ import (
 )
 
 type RayLaunching3DConfig struct {
-	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, BuldingInteriorNumber, RoofMapNumber, CornerMapNumber, DiffractionRayNumber int
-	SizeX, SizeY, SizeZ, Step, ReflFactor, TransmitterPower, MinimalRayPower, TransmitterFreq, WaveLength                                       float64
-	TransmitterPos                                                                                                                              Point3D
-	SingleRays                                                                                                                                  []SingleRay
+	NumOfRaysAzim, NumOfRaysElev, NumOfInteractions, WallMapNumber, BuldingInteriorNumber, RoofMapNumber, CornerMapNumber, RoofCornerMapNumber, DiffractionRayNumber int
+	SizeX, SizeY, SizeZ, Step, ReflFactor, TransmitterPower, MinimalRayPower, TransmitterFreq, WaveLength                                                            float64
+	TransmitterPos                                                                                                                                                   Point3D
+	SingleRays                                                                                                                                                       []SingleRay
 }
 
 type RayPoint struct {
@@ -167,13 +167,13 @@ func (rl *RayLaunching3D) calculateWallReflection(state *RayState, wallIndex int
 		dot = -dot
 	}
 	dot *= 2
-	fmt.Printf("Promien %d, %d Nx=%.3f, Ny=%.3f, Nz=%.3f dot:%.3f \n", i, j, nx, ny, nz, dot)
-	println("stateDx", state.dx, "stateDy", state.dy, "stateDz", state.dz)
+	// fmt.Printf("Promien %d, %d Nx=%.3f, Ny=%.3f, Nz=%.3f dot:%.3f \n", i, j, nx, ny, nz, dot)
+	// println("stateDx", state.dx, "stateDy", state.dy, "stateDz", state.dz)
 
 	cosTheta := -(state.dx*nx + state.dy*ny + state.dz*nz)
 	cosTheta = rl.clampCosTheta(cosTheta)
 	theta := math.Acos(cosTheta)
-	println("theta", theta)
+	// println("theta", theta)
 	state.currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
 	state.dx = state.dx - dot*nx
 	state.dy = state.dy - dot*ny
@@ -184,7 +184,7 @@ func (rl *RayLaunching3D) calculateWallReflection(state *RayState, wallIndex int
 	// sum distance and set new start position
 	state.currSumRayLength += calculateDistance(state.currStartLengthPos, Point3D{X: state.x, Y: state.y, Z: state.z})
 	state.currStartLengthPos = Point3D{X: state.x, Y: state.y, Z: state.z}
-	fmt.Println("Reflection Factor: %.3f", state.currReflectionFactor)
+	// fmt.Println("Reflection Factor: %.3f", state.currReflectionFactor)
 }
 
 func (rl *RayLaunching3D) updatePowerMap(state *RayState, xIdx, yIdx, zIdx int) {
@@ -200,8 +200,8 @@ func (rl *RayLaunching3D) updatePowerMap(state *RayState, xIdx, yIdx, zIdx int) 
 	H := calculateTransmittance(state.currRayLength, rl.Config.WaveLength, state.currReflectionFactor)
 	state.currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - state.diffLossLdB
 
-	println("diffLoss: ", state.diffLossLdB)
-	println("currPorwe: ", state.currPower)
+	// println("diffLoss: ", state.diffLossLdB)
+	// println("currPorwe: ", state.currPower)
 
 	// update power map if power is higher than previous one
 	if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < state.currPower {
@@ -220,13 +220,13 @@ func (rl *RayLaunching3D) addToRayPath(targetRayIndex int, state *RayState) {
 	}
 }
 
-func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, zIdx int, i, j int, diffractionRayNumber int) {
-	state.currWallIndex = rl.Config.CornerMapNumber
+func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, zIdx int, i, j int, diffractionRayNumber int, index int) {
+	state.currWallIndex = index
 	state.currSumRayLength += calculateDistance(state.currStartLengthPos, Point3D{X: state.x, Y: state.y, Z: state.z})
 	state.toDiffractionPointRayLength = state.currSumRayLength
 	state.currStartLengthPos = Point3D{X: state.x, Y: state.y, Z: state.z}
 	normals := getNeighborWallNormals(xIdx, yIdx, zIdx, rl)
-	fmt.Printf("xIdx: %v yIdx: %v zIdx: %v dx: %v dy: %v dz: %v rayLength: %.3f \n", xIdx, yIdx, zIdx, state.dx, state.dy, state.dz, state.currSumRayLength)
+	// fmt.Printf("xIdx: %v yIdx: %v zIdx: %v dx: %v dy: %v dz: %v rayLength: %.3f \n", xIdx, yIdx, zIdx, state.dx, state.dy, state.dz, state.currSumRayLength)
 
 	if len(normals) == 0 {
 		return
@@ -234,65 +234,109 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 
 	bestDot := -math.MaxFloat64
 	var bestNormal Normal3D
+	if index == rl.Config.CornerMapNumber {
+		for _, n := range normals {
+			n.Nx, n.Ny, n.Nz = -n.Nx, n.Ny, n.Nz
+			dot := state.dx*n.Nx + state.dy*n.Ny + state.dz*n.Nz
 
-	for k, n := range normals {
-		n.Nx, n.Ny, n.Nz = -n.Nx, n.Ny, n.Nz
-		dot := state.dx*n.Nx + state.dy*n.Ny + state.dz*n.Nz
+			if dot > bestDot {
+				bestDot = dot
+				bestNormal = n
 
-		if dot > bestDot {
-			bestDot = dot
-			bestNormal = n
-
+			}
+			// fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Dot=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz, dot)
 		}
-		fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Dot=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz, dot)
+		// fmt.Printf("Best Dot: %.3f, bestNormal: %v \n", bestDot, bestNormal)
+		cosTheta := state.dx*bestNormal.Nx + state.dy*bestNormal.Ny + state.dz*bestNormal.Nz
+		cosTheta = rl.clampCosTheta(cosTheta)
+		theta := math.Acos(cosTheta)
+		cross := state.dx*(-bestNormal.Ny) - state.dy*bestNormal.Nx
+		finalTheta := (math.Pi/2 - theta)
+		if cross < 0 {
+			finalTheta = -finalTheta
+		}
+		stepResolution := diffractionRayNumber
+
+		oneStep := computeOneStep(bestNormal.Nx, bestNormal.Ny, state.dx, state.dy, finalTheta, stepResolution)
+
+		// fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f cross: %.3f oneStep: %.3f\n", cosTheta, theta, finalTheta, cross, oneStep)
+
+		rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, normals, index)
+	} else if index == rl.Config.RoofCornerMapNumber {
+		bestNormal := Normal3D{Nx: 0, Ny: 0, Nz: 1}
+
+		stepResolution := diffractionRayNumber
+
+		var startDz, endDz float64
+		if state.dz < 0 {
+			startDz = state.dz
+			endDz = -1.0
+		} else {
+			startDz = state.dz
+			endDz = 0.0
+		}
+
+		oneStep := (endDz - startDz) / float64(stepResolution)
+
+		// fmt.Printf(
+		// 	"Roof: dz=%.3f -> range [%.3f .. %.3f], oneStep=%.3f\n",
+		// 	state.dz, startDz, endDz, oneStep,
+		// )
+
+		rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, []Normal3D{bestNormal}, index)
 	}
 
-	fmt.Printf("Best Dot: %.3f, bestNormal: %v \n", bestDot, bestNormal)
-	cosTheta := state.dx*bestNormal.Nx + state.dy*bestNormal.Ny + state.dz*bestNormal.Nz
-	cosTheta = rl.clampCosTheta(cosTheta)
-	theta := math.Acos(cosTheta)
-	cross := state.dx*(-bestNormal.Ny) - state.dy*bestNormal.Nx
-	finalTheta := (math.Pi/2 - theta)
-	if cross < 0 {
-		finalTheta = -finalTheta
-	}
-	stepResolution := diffractionRayNumber
-
-	oneStep := computeOneStep(bestNormal.Nx, bestNormal.Ny, state.dx, state.dy, finalTheta, stepResolution)
-
-	fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f cross: %.3f oneStep: %.3f\n", cosTheta, theta, finalTheta, cross, oneStep)
-
-	rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, normals)
 }
 
-func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float64, stepResolution int, i, j int, normalsAround []Normal3D) {
+func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float64, stepResolution int, i, j int, normalsAround []Normal3D, index int) {
 	for step := 0; step <= stepResolution; step++ {
 		x := state.x
 		y := state.y
 		z := state.z
-		angle := float64(step) * oneStep
-		newDx := state.dx*math.Cos(angle) - state.dy*math.Sin(angle)
-		newDy := state.dx*math.Sin(angle) + state.dy*math.Cos(angle)
-		fmt.Printf("Step %d: dx=%.3f dy=%.3f dz=%.3f\n", step, newDx, newDy, state.dz)
+
+		var newDx, newDy, newDz float64
+		if index == rl.Config.RoofCornerMapNumber {
+			if state.dz > 0 {
+				newDz = state.dz + float64(step)*oneStep
+				newDx = state.dx
+				newDy = state.dy
+			} else if state.dz <= 0 {
+				if index == rl.Config.RoofCornerMapNumber {
+					t := float64(step) / float64(stepResolution)
+					newDz = state.dz + t*oneStep
+					factor := 1.0 - t
+					newDx = state.dx * factor
+					newDy = state.dy * factor
+				}
+			}
+		} else {
+			angle := float64(step) * oneStep
+			newDx = state.dx*math.Cos(angle) - state.dy*math.Sin(angle)
+			newDy = state.dx*math.Sin(angle) + state.dy*math.Cos(angle)
+			newDz = state.dz
+		}
+
+		// fmt.Printf("Step %d: dx=%.3f dy=%.3f dz=%.3f\n", step, newDx, newDy, newDz)
 
 		x += newDx
 		y += newDy
-		z += state.dz
+		z += newDz
 
-		fmt.Printf("x: %v y: %v z: %v \n", x, y, z)
-		rl.processDiffractionRayPath(x, y, z, newDx, newDy, *state, i, j, normalsAround)
+		// fmt.Printf("x: %v y: %v z: %v \n", x, y, z)
+		rl.processDiffractionRayPath(x, y, z, newDx, newDy, newDz, *state, i, j, normalsAround)
 	}
 }
 
-func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy float64, state RayState, i, j int, normalsAround []Normal3D) {
-	state.dx, state.dy, state.dz = newDx, newDy, state.dz
+func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy, newDz float64, state RayState, i, j int, normalsAround []Normal3D) {
+	state.dx, state.dy, state.dz = newDx, newDy, newDz
 	state.x, state.y, state.z = x, y, z
 	for rl.shouldContinueRay(&state) {
 		rl.handleGroundReflection(&state)
 		xIdx, yIdx, zIdx := rl.getMapIndices(state.x, state.y, state.z)
 		index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-
-		if rl.shouldBreakRayPropagation(&state, index) {
+		// fmt.Println("xIdx: ", xIdx, "yIdx: ", yIdx, "zIdx: ", zIdx, "index: ", index, "currWallIndex: ", state.currWallIndex)
+		// fmt.Println("x: ", state.x, "y: ", state.y, "z: ", state.z)
+		if rl.shouldBreakRayPropagation(&state, index) || ((state.currWallIndex == rl.Config.RoofMapNumber) && newDz > 0) {
 			break
 		}
 
@@ -300,7 +344,7 @@ func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy float6
 			continue
 		}
 
-		if index == rl.Config.CornerMapNumber {
+		if index == rl.Config.CornerMapNumber || index == rl.Config.RoofCornerMapNumber {
 			break
 		}
 
@@ -331,7 +375,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
 			dx, dy, dz := rl.calculateRayDirection(i, j)
 			// main loop
-			//  if !(i == 7 && j == 5) {
+			// if !(i == 3 && j == 3) {
 			// 	continue
 			// }
 			targetRayIndex := rl.isTargetRay(i, j)
@@ -358,8 +402,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 
 				xIdx, yIdx, zIdx := rl.getMapIndices(state.x, state.y, state.z)
 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-				fmt.Println("xIdx: ", xIdx, "yIdx: ", yIdx, "zIdx: ", zIdx, "index: ", index, "currWallIndex: ", state.currWallIndex)
-				if rl.shouldBreakRayPropagation(state, index) {
+				// fmt.Println("xIdx: ", xIdx, "yIdx: ", yIdx, "zIdx: ", zIdx, "index: ", index, "currWallIndex: ", state.currWallIndex)
+				if rl.shouldBreakRayPropagation(state, index) || (index == rl.Config.RoofCornerMapNumber && state.dz == 0) {
 					break
 				}
 				// reflection from the building roof
@@ -367,8 +411,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					continue
 				}
 
-				if index == rl.Config.CornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber {
-					rl.processCornerDiffraction(state, xIdx, yIdx, zIdx, i, j, rl.Config.DiffractionRayNumber)
+				if (index == rl.Config.CornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) || (index == rl.Config.RoofCornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) {
+					rl.processCornerDiffraction(state, xIdx, yIdx, zIdx, i, j, rl.Config.DiffractionRayNumber, index)
 				}
 
 				if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != state.currWallIndex {
@@ -386,275 +430,6 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 		}
 	}
 }
-
-// func (rl *RayLaunching3D) CalculateRayLaunching3D() {
-// 	for z := 0; z < int(rl.Config.TransmitterPos.Z); z++ {
-// 		rl.PowerMap[z][int(rl.Config.TransmitterPos.Y)][int(rl.Config.TransmitterPos.X)] = 0
-// 	}
-// 	for i := 0; i < rl.Config.NumOfRaysAzim; i++ { // loop over horizontal dim
-// 		theta := (2*math.Pi)/float64(rl.Config.NumOfRaysAzim)*float64(i) // from -π to π
-// 		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
-
-// 			var phi,dx,dy,dz float64
-
-// 			// spherical coordinates
-// 			if rl.Config.TransmitterPos.Z == 0 {
-// 				// half sphere – from 0 to π/2
-// 				phi = ((math.Pi/2) / float64(rl.Config.NumOfRaysElev)) *  float64(j) // from 0 to π/2
-// 				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.Step
-// 				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.Step
-// 				dz = math.Sin(phi) * rl.Config.Step
-// 			} else {
-// 				//full sphere – from 0 to π
-// 				phi = math.Pi * float64(j) / float64(rl.Config.NumOfRaysElev) - math.Pi/2// from 0 to π
-// 				dx = math.Cos(theta) * math.Cos(phi) * rl.Config.Step
-// 				dy = math.Sin(theta) * math.Cos(phi) * rl.Config.Step
-// 				dz = math.Sin(phi) * rl.Config.Step
-
-// 			}
-// 			dx, dy, dz = math.Round(dx*1e15)/1e15, math.Round(dy*1e15)/1e15, math.Round(dz*1e15)/1e15
-
-// 			/* getting past to next step,
-// 			 omitting calculations for transmitter */
-
-// 			x := rl.Config.TransmitterPos.X + dx
-// 			y := rl.Config.TransmitterPos.Y + dy
-// 			z := rl.Config.TransmitterPos.Z + dz
-
-// 			targetRayIndex := rl.isTargetRay(i, j)
-
-// 			// initial counters
-// 			currInteractions := 0
-// 			currPower := 0.0
-// 			currWallIndex := 0
-// 			currStartLengthPos := Point3D{X:rl.Config.TransmitterPos.X, Y:rl.Config.TransmitterPos.Y, Z:rl.Config.TransmitterPos.Z}
-// 			currRayLength := 0.0
-// 			currSumRayLength := 0.0
-// 			currReflectionFactor := 1.0
-// 			diffLossLdB:=0.0
-// 			// main loop
-// 			for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y < rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
-// 				// reflection from the ground when z is below 0
-// 				if (z < 0 && currWallIndex != rl.Config.RoofMapNumber) {
-// 					dz = -dz
-// 					currWallIndex = rl.Config.RoofMapNumber
-// 					currInteractions++
-// 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
-// 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
-// 					nx, ny, nz := 0.0, 0.0, 1.0
-// 					// calculate angle of incidence
-// 					cosTheta := -(dx*nx + dy*ny + dz*nz)
-// 					theta := math.Acos(cosTheta)
-// 					currReflectionFactor *= calculateReflectionFactor(theta, "medium-dry-ground")
-// 					z = 0
-// 				}
-// 				if (z < 0) {
-// 					if (dz < 0) {
-// 						dz = -dz
-// 					}
-// 					z += dz
-// 				}
-// 				xIdx := int(math.Round(x/rl.Config.Step))
-// 				yIdx := int(math.Round(y/rl.Config.Step))
-// 				zIdx := int(math.Round(z/rl.Config.Step))
-// 				index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-// 				// if (i==0 && j == 10) {
-// 					// println("i:", i, "j:", j, "x:", xIdx, "y:", yIdx, "z:", zIdx, "index:", index,"currWallIndex:", currWallIndex, "dx:", dx, "dy:", dy, "dz:", dz)
-// 				// }
-// 				// reflection from the building roof
-// 				if (index == rl.Config.RoofMapNumber) && currWallIndex != rl.Config.RoofMapNumber {
-// 					dz = -dz
-// 					currWallIndex = rl.Config.RoofMapNumber
-// 					currInteractions++
-// 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
-// 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
-// 					nx, ny, nz := 0.0, 0.0, 1.0
-// 					cosTheta := -(dx*nx + dy*ny + dz*nz)
-// 					theta := math.Acos(cosTheta)
-// 					currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
-// 					continue
-// 				}
-// 				 if index == rl.Config.CornerMapNumber && currWallIndex != rl.Config.CornerMapNumber {
-// 					currWallIndex = rl.Config.CornerMapNumber
-// 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
-// 					normals := getNeighborWallNormals(xIdx, yIdx, zIdx, rl)
-// 					fmt.Printf("xIdx: %v yIdx: %v zIdx: %v \n", xIdx, yIdx, zIdx  )
-// 					if len(normals) == 0 {
-// 						break
-// 					}
-// 					bestDot := -math.MaxFloat64
-// 					var bestNormal Normal3D
-
-// 					for k, n := range normals {
-
-// 						dot := dx*n.Nx + dy*n.Ny + dz*n.Nz
-
-// 						n.Nx, n.Ny, n.Nz = -n.Nx, -n.Ny, -n.Nz
-// 						dot = -dot
-
-// 						if dot > bestDot {
-// 							bestDot = dot
-// 							bestNormal = n
-// 						}
-
-// 						fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Dot=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz, dot)
-// 					}
-// 					fmt.Printf("Best Dot: %.3f, bestNormal: %v \n", bestDot, bestNormal)
-// 					cosTheta := dx*bestNormal.Nx + dy*bestNormal.Ny + dz*bestNormal.Nz
-// 					if cosTheta > 1 {
-// 						cosTheta = 1
-// 					}
-// 					if cosTheta < -1 {
-// 						cosTheta = -1
-// 					}
-// 					theta := math.Acos(cosTheta)
-// 					finalTheta := math.Pi/2 - theta
-// 					stepResolution := 10
-// 					oneStep := finalTheta/float64(stepResolution)
-
-// 					fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f \n", cosTheta, theta, finalTheta)
-
-// 					for step := 0; step < stepResolution; step++ {
-// 						x := x
-// 						y := y
-// 						z := z
-// 						angle := float64(step) * oneStep
-// 						newDx := dx * math.Cos(angle) - dy * math.Sin(angle)
-// 						newDy := dx * math.Sin(angle) + dy * math.Cos(angle)
-// 						fmt.Printf("Step %d: dx=%.3f dy=%.3f dz=%.3f\n", step, newDx, newDy, dz)
-// 						x += newDx
-// 						y += newDy
-// 						z += dz
-
-// 						xIdx := int(math.Round(x/rl.Config.Step))
-// 						yIdx := int(math.Round(y/rl.Config.Step))
-// 						zIdx := int(math.Round(z/rl.Config.Step))
-// 						index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-// 						if (index >= rl.Config.WallMapNumber) {
-// 							x += 2*newDx
-// 							y += 2*newDy
-// 							z += 2*dz
-// 						}
-// 						fmt.Printf("newDx: %v newDy: %v z: %v \n", x , y, z  )
-// 						for (x >= 0 && x <= rl.Config.SizeX) && (y >= 0 && y < rl.Config.SizeY) && (z <= rl.Config.SizeZ) && currInteractions < rl.Config.NumOfInteractions && currPower >= rl.Config.MinimalRayPower {
-// 							xIdx := int(math.Round(x/rl.Config.Step))
-// 							yIdx := int(math.Round(y/rl.Config.Step))
-// 							zIdx := int(math.Round(z/rl.Config.Step))
-// 							index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-// 							fmt.Printf("xIdx: %v yIdx: %v zIdx: %v \n", xIdx, yIdx, zIdx  )
-// 							if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != currWallIndex + rl.Config.WallMapNumber{
-// 								// 	check if there is wall and if its diffrent from previous one
-// 								currWallIndex = index - rl.Config.WallMapNumber
-
-// 								//get wall normal
-// 								nx, ny, nz := rl.WallNormals[currWallIndex].Nx, rl.WallNormals[currWallIndex].Ny, rl.WallNormals[currWallIndex].Nz
-// 								//!!! MAP IS MIRRORED BY Y SO ALL Y NORMALS SHOULD BE MIRRORED !!!
-// 								ny = -ny
-// 								dot := dx*nx + dy*ny + dz*nz
-// 								if dot > 0 {
-// 									nx, ny, nz = -nx, -ny, -nz
-// 									dot = -dot
-// 								}
-// 								dot *= 2
-// 								fmt.Printf("Promien %d, %d Nx=%.3f, Ny=%.3f, Nz=%.3f dot:%.3f \n", i, j,  nx, ny, nz, dot)
-
-// 								dx = dx - dot*nx
-// 								dy = dy - dot*ny
-// 								dz = dz - dot*nz
-// 								currInteractions++
-
-// 								// sum distance and set new start position
-// 								currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
-// 								currStartLengthPos = Point3D{X: x, Y: y, Z: z}
-// 								cosTheta := -(dx*nx + dy*ny + dz*nz)
-// 								if cosTheta > 1 {
-// 									cosTheta = 1
-// 								}
-// 								if cosTheta < -1 {
-// 									cosTheta = -1
-// 								}
-// 								theta := math.Acos(cosTheta)
-// 								currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
-// 							} else {
-// 								currRayLength = calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z}) + currSumRayLength
-// 								H := calculateTransmittance(currRayLength, rl.Config.WaveLength, currReflectionFactor)
-// 								currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H))
-// 								if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
-// 									rl.PowerMap[zIdx][yIdx][xIdx] = currPower
-// 								}
-// 							}
-// 							x += newDx
-// 							y += newDy
-// 							z += dz
-// 						}
-// 					}
-
-// 				}
-
-// 				if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != currWallIndex + rl.Config.WallMapNumber{ 	// check if there is wall and if its diffrent from previous one
-// 					currWallIndex = index - rl.Config.WallMapNumber
-
-// 					//get wall normal
-// 					nx, ny, nz := rl.WallNormals[currWallIndex].Nx, rl.WallNormals[currWallIndex].Ny, rl.WallNormals[currWallIndex].Nz
-// 					//!!! MAP IS MIRRORED BY Y SO ALL Y NORMALS SHOULD BE MIRRORED !!!
-// 					ny = -ny
-// 					dot := dx*nx + dy*ny + dz*nz
-// 					if dot > 0 {
-// 						nx, ny, nz = -nx, -ny, -nz
-// 						dot = -dot
-// 					}
-// 					dot *= 2
-// 					fmt.Printf("Promien %d, %d Nx=%.3f, Ny=%.3f, Nz=%.3f dot:%.3f \n", i, j,  nx, ny, nz, dot)
-
-// 					dx = dx - dot*nx
-// 					dy = dy - dot*ny
-// 					dz = dz - dot*nz
-// 					currInteractions++
-
-// 					// sum distance and set new start position
-// 					currSumRayLength += calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z})
-// 					currStartLengthPos = Point3D{X: x, Y: y, Z: z}
-// 					cosTheta := -(dx*nx + dy*ny + dz*nz)
-// 					if cosTheta > 1 {
-// 						cosTheta = 1
-// 					}
-// 					if cosTheta < -1 {
-// 						cosTheta = -1
-// 					}
-// 					theta := math.Acos(cosTheta)
-// 					currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
-// 				} else {
-// 					// calculate distance and transmittance
-// 					currRayLength = calculateDistance(currStartLengthPos, Point3D{X: x, Y: y, Z: z}) + currSumRayLength
-
-// 					H := calculateTransmittance(currRayLength, rl.Config.WaveLength, currReflectionFactor)
-// 					currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - diffLossLdB
-// 					if (diffLossLdB > 0.0) {
-// 						// println("diffLoss: ",diffLossLdB)
-// 						// println("currPorwe: ",currPower)
-// 					}
-// 					// update power map if power is higher than previous one
-// 					if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < currPower {
-// 						rl.PowerMap[zIdx][yIdx][xIdx] = currPower
-// 					}
-// 					if targetRayIndex >= 0 {
-// 						rl.RayPaths[targetRayIndex] = append(rl.RayPaths[targetRayIndex], RayPoint{
-// 							X: float64(math.Round(x/rl.Config.Step)),
-// 							Y: float64(math.Round(y/rl.Config.Step)),
-// 							Z: float64(math.Round(z/rl.Config.Step)),
-// 							Power: currPower,
-// 						})
-// 					}
-// 				}
-// 				// println("currReflectionFactor: ",currReflectionFactor)
-// 				// update position
-// 				x += dx
-// 				y += dy
-// 				z += dz
-// 			}
-// 		}
-// 	}
-// }
 
 func calculateDistance(p1, p2 Point3D) float64 {
 	dist := math.Sqrt(math.Pow(p1.X-p2.X, 2) + math.Pow(p1.Y-p2.Y, 2) + math.Pow(p1.Z-p2.Z, 2))
@@ -707,7 +482,7 @@ func calculateReflectionFactor(angle float64, material string) float64 {
 	R_TE := (cosTheta - root) / (cosTheta + root)
 	R_TM := (eta*cosTheta - root) / (eta*cosTheta + root)
 	reflectionFactor := (math.Pow(R_TE, 2) + math.Pow(R_TM, 2)) / 2
-	println("ANGLE: ", angle, "root: ", root, "R_TE: ", R_TE, " R_TM: ", R_TM, " reflectionFactor ", reflectionFactor)
+	// println("ANGLE: ", angle, "root: ", root, "R_TE: ", R_TE, " R_TM: ", R_TM, " reflectionFactor ", reflectionFactor)
 	return reflectionFactor
 }
 
@@ -741,9 +516,6 @@ func getNeighborWallNormals(x, y, z int, rl *RayLaunching3D) []Normal3D {
 					if _, exists := neighborNormals[currWallIndex]; !exists {
 						neighborNormals[currWallIndex] = rl.WallNormals[currWallIndex]
 					}
-				}
-				if index == rl.Config.RoofMapNumber {
-					neighborNormals[index] = Normal3D{Nx: 0, Ny: 0, Nz: 1}
 				}
 			}
 		}

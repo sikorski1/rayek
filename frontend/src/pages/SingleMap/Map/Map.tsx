@@ -156,14 +156,24 @@ export default function Map({
 						for (let x = 0; x < width; x++) {
 							const flippedY = height - y - 1;
 							const value = layerData[flippedY][x];
-							const normalized = normalizePower(value);
-							const color = getHeatMapColor(normalized);
+
+							
+							
 
 							const index = (y * width + x) * 4;
-							data[index] = color.r * 255;
-							data[index + 1] = color.g * 255;
-							data[index + 2] = color.b * 255;
-							data[index + 3] = normalized * 180;
+							if (value === -150) {
+								data[index] = 255; // r
+								data[index + 1] = 255; // g
+								data[index + 2] = 255; // b
+								data[index + 3] = 60; // pełna nieprzezroczystość
+							} else {
+								const normalized = normalizePower(value);
+								const color = getHeatMapColor(normalized);
+								data[index] = color.r * 255;
+								data[index + 1] = color.g * 255;
+								data[index + 2] = color.b * 500;
+								data[index + 3] = normalized * 200;
+							}
 						}
 					}
 

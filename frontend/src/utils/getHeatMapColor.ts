@@ -3,7 +3,9 @@ export function getHeatMapColor(value: number): Color {
 	let r = 0,
 		g = 0,
 		b = 0;
-
+	if (value === -150) {
+		return new Color(0, 0, 0);
+	}
 	if (value < 0.25) {
 		r = 0;
 		g = 255 * value * 4;

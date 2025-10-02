@@ -240,7 +240,8 @@ func Create3DRayLaunching(context *gin.Context) {
 		WallMapNumber:         1000,
 		RoofMapNumber:         5000,
 		CornerMapNumber:       10000,
-		BuldingInteriorNumber: 10001,
+		RoofCornerMapNumber:   10001,
+		BuldingInteriorNumber: 20000,
 		SizeX:                 float64(request.Size - 1),
 		SizeY:                 float64(request.Size - 1),
 		SizeZ:                 30 - 1,
@@ -258,7 +259,7 @@ func Create3DRayLaunching(context *gin.Context) {
 	start := time.Now()
 	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals, config)
 	rayLaunching.CalculateRayLaunching3D()
-	fmt.Printf("RayPaths: %v", rayLaunching.RayPaths)
+	// fmt.Printf("RayPaths: %v", rayLaunching.RayPaths)
 	stop := time.Since(start)
 	fmt.Printf("RayLaunching 3D calculation time: %v\n", stop)
 	outputDir := filepath.Join("data", mapTitle, "imgs")
