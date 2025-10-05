@@ -2,7 +2,6 @@ package raylaunching
 
 import (
 	. "backendGo/types"
-
 	"fmt"
 	"math"
 	"math/cmplx"
@@ -205,7 +204,7 @@ func (rl *RayLaunching3D) updatePowerMap(state *RayState, xIdx, yIdx, zIdx int) 
 	H := calculateTransmittance(state.currRayLength, rl.Config.WaveLength, state.currReflectionFactor)
 	state.currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - state.diffLossLdB
 
-	println("baseLoss: ", baseLoss, "rayLoss: ", rayLoss, "rayIndex: ", state.diffRayIndex)
+	// println("baseLoss: ", baseLoss, "rayLoss: ", rayLoss, "rayIndex: ", state.diffRayIndex)
 	// println("currPorwe: ", state.currPower)
 
 	// update power map if power is higher than previous one
@@ -231,7 +230,7 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 	state.toDiffractionPointRayLength = state.currSumRayLength
 	state.currStartLengthPos = Point3D{X: state.x, Y: state.y, Z: state.z}
 	normals := getNeighborWallNormals(xIdx, yIdx, zIdx, rl)
-	fmt.Printf("xIdx: %v yIdx: %v zIdx: %v dx: %v dy: %v dz: %v rayLength: %.3f \n", xIdx, yIdx, zIdx, state.dx, state.dy, state.dz, state.currSumRayLength)
+	// fmt.Printf("xIdx: %v yIdx: %v zIdx: %v dx: %v dy: %v dz: %v rayLength: %.3f \n", xIdx, yIdx, zIdx, state.dx, state.dy, state.dz, state.currSumRayLength)
 
 	if len(normals) == 0 {
 		return
@@ -240,7 +239,7 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 	bestDot := -math.MaxFloat64
 	var bestNormal Normal3D
 	if index == rl.Config.CornerMapNumber {
-		for k, n := range normals {
+		for _, n := range normals {
 			n.Nx, n.Ny, n.Nz = -n.Nx, n.Ny, n.Nz
 			dot := state.dx*n.Nx + state.dy*n.Ny + state.dz*n.Nz
 
@@ -249,9 +248,9 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 				bestNormal = n
 
 			}
-			fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Dot=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz, dot)
+			// fmt.Printf("Promien %d, %d Normalna %d: Nx=%.3f, Ny=%.3f, Nz=%.3f Dot=%.3f\n", i, j, k, n.Nx, n.Ny, n.Nz, dot)
 		}
-		fmt.Printf("Best Dot: %.3f, bestNormal: %v \n", bestDot, bestNormal)
+		// fmt.Printf("Best Dot: %.3f, bestNormal: %v \n", bestDot, bestNormal)
 		cosTheta := state.dx*bestNormal.Nx + state.dy*bestNormal.Ny + state.dz*bestNormal.Nz
 		cosTheta = rl.clampCosTheta(cosTheta)
 		theta := math.Acos(cosTheta)
@@ -264,28 +263,36 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 
 		oneStep := computeOneStep(bestNormal.Nx, bestNormal.Ny, state.dx, state.dy, finalTheta, stepResolution)
 
-		fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f cross: %.3f oneStep: %.3f\n", cosTheta, theta, finalTheta, cross, oneStep)
+		// fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f cross: %.3f oneStep: %.3f\n", cosTheta, theta, finalTheta, cross, oneStep)
 
-		state.diffTheta = finalTheta
+		state.diffTheta = math.Abs(finalTheta)
 		rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, normals, index)
 	} else if index == rl.Config.RoofCornerMapNumber {
 		stepResolution := diffractionRayNumber
-		var startDz, endDz float64
+		var startDz, endDz, theta, finalTheta float64
 		if state.dz < 0 {
+			cosTheta := state.dx*0 + state.dy*0 + state.dz*-1
+			cosTheta = rl.clampCosTheta(cosTheta)
+			theta = math.Acos(cosTheta)
+			finalTheta = (math.Pi/2 - theta)
 			startDz = state.dz
 			endDz = -1.0
 		} else {
+			cosTheta := state.dx*0 + state.dy*0 + state.dz*1
+			cosTheta = rl.clampCosTheta(cosTheta)
+			theta = math.Acos(cosTheta)
+			finalTheta = (math.Pi/2 - theta)
 			startDz = state.dz
 			endDz = 0.0
 		}
 
 		oneStep := (endDz - startDz) / float64(stepResolution)
 
-		fmt.Printf(
-			"Roof: dz=%.3f -> range [%.3f .. %.3f], oneStep=%.3f\n",
-			state.dz, startDz, endDz, oneStep,
-		)
-		state.diffTheta = 90.0
+		// fmt.Printf(
+		// 	"Roof: dz=%.3f -> range [%.3f .. %.3f], oneStep=%.3f theta=%.3f finalTheta=%.3f\n",
+		// 	state.dz, startDz, endDz, oneStep, theta, finalTheta,
+		// )
+		state.diffTheta = finalTheta
 		rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, normals, index)
 	}
 
@@ -325,7 +332,7 @@ func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float
 		y += newDy
 		z += newDz
 
-		fmt.Printf("x: %v y: %v z: %v \n", x, y, z)
+		// fmt.Printf("x: %v y: %v z: %v \n", x, y, z)
 		rl.processDiffractionRayPath(x, y, z, newDx, newDy, newDz, *state, i, j, normalsAround, index)
 	}
 }
@@ -337,8 +344,8 @@ func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy, newDz
 		rl.handleGroundReflection(&state)
 		xIdx, yIdx, zIdx := rl.getMapIndices(state.x, state.y, state.z)
 		index := int(rl.PowerMap[zIdx][yIdx][xIdx])
-		fmt.Println("xIdx: ", xIdx, "yIdx: ", yIdx, "zIdx: ", zIdx, "index: ", index, "currWallIndex: ", state.currWallIndex)
-		fmt.Println("x: ", state.x, "y: ", state.y, "z: ", state.z)
+		// fmt.Println("xIdx: ", xIdx, "yIdx: ", yIdx, "zIdx: ", zIdx, "index: ", index, "currWallIndex: ", state.currWallIndex)
+		// fmt.Println("x: ", state.x, "y: ", state.y, "z: ", state.z)
 		if rl.shouldBreakRayPropagation(&state, index) || ((state.currWallIndex == rl.Config.RoofMapNumber) && newDz > 0) {
 			break
 		}
@@ -374,7 +381,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
 			dx, dy, dz := rl.calculateRayDirection(i, j)
 			// main loop
-			// if !(i == 6 && j == 8) {
+			// if !(i == 11 && j == 7) {
 			// 	continue
 			// }
 			targetRayIndex := rl.isTargetRay(i, j)
@@ -414,9 +421,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 
 				if (index == rl.Config.CornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) || (index == rl.Config.RoofCornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) {
 					nextXIdx, nextYIdx, nextZIdx := rl.getMapIndices(state.x+state.dx, state.y+state.dy, state.z+state.dz)
-					fmt.Println("NextXIdx: ", nextXIdx, "NextYIdx: ", nextYIdx, "NextZIdx: ", nextZIdx)
-
-					if nextZIdx < 0 {
+					// fmt.Println("NextXIdx: ", nextXIdx, "NextYIdx: ", nextYIdx, "NextZIdx: ", nextZIdx)
+					if nextZIdx < 0 || !rl.isValidPosition(float64(nextXIdx), float64(nextYIdx), float64(nextZIdx)) {
 						break
 					}
 
