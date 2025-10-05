@@ -1,5 +1,6 @@
 import FormField from "@/components/FormField/FormField";
 
+import ToolTip from "@/components/ToolTip/ToolTip";
 import { SettingsDataTypes } from "@/types/main";
 import { motion } from "framer-motion";
 import styles from "./globalsettings.module.scss";
@@ -31,6 +32,8 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						min: 1,
 						max: 1440,
 						step: 1,
+						toolTipText:
+							"Defines the number of rays distributed horizontally (azimuth plane). Higher values increase precision but also computation time.",
 					},
 					{
 						label: "STATION POWER (watt)",
@@ -39,8 +42,19 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						min: 0.1,
 						max: 100,
 						step: 0.1,
+						toolTipText:
+							"Specifies the transmission power of the station in watts. Affects the signal strength and propagation range.",
 					},
-					{ label: "FREQUENCY (GHz)", name: "frequency", value: formData.frequency, min: 0.1, max: 100, step: 0.1 },
+					{
+						label: "FREQUENCY (GHz)",
+						name: "frequency",
+						value: formData.frequency,
+						min: 0.1,
+						max: 100,
+						step: 0.1,
+						toolTipText:
+							"Sets the transmission frequency in gigahertz. Higher frequencies offer more bandwidth but weaker signal range.",
+					},
 					{
 						label: "REFLECTION FACTOR",
 						name: "relfectionFactor",
@@ -48,6 +62,8 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						min: 0,
 						max: 1,
 						step: 0.01,
+						toolTipText:
+							"Determines how much of the signal is reflected by surfaces. A value of almost 0 means no reflection, 1 means full reflection.",
 					},
 					{
 						label: "DIFFRACTION RAY NUMBER",
@@ -55,21 +71,25 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						value: formData.diffractionRayNumber,
 						min: 4,
 						max: 120,
-						step:1,
+						step: 1,
+						toolTipText:
+							"Controls how many rays are used to model diffraction effects around obstacles. More rays increase accuracy but slow down computation.",
 					},
 				].map((field, i) => (
-					<FormField
-						key={field.name}
-						index={i}
-						label={field.label}
-						name={field.name}
-						defaultValue={field.value}
-						placeholder={`Enter ${field.label.toLowerCase()}`}
-						min={field.min}
-						max={field.max}
-						step={field.step}
-						required
-					/>
+					<div key={field.name} className={styles.singleInputBox}>
+						<ToolTip name={field.name} index={i} toolTipText={field.toolTipText} place="top-end" />
+						<FormField
+							index={i}
+							label={field.label}
+							name={field.name}
+							defaultValue={field.value}
+							placeholder={`Enter ${field.label.toLowerCase()}`}
+							min={field.min}
+							max={field.max}
+							step={field.step}
+							required
+						/>
+					</div>
 				))}
 			</div>
 
@@ -82,6 +102,8 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						min: 1,
 						max: 1440,
 						step: 1,
+						toolTipText:
+							"Defines the number of rays distributed vertically (elevation plane). More rays improve 3D accuracy but require more processing.",
 					},
 					{
 						label: "STATION HEIGHT (m)",
@@ -90,6 +112,8 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						min: 0,
 						max: 29,
 						step: 1,
+						toolTipText:
+							"Specifies the station’s height above ground level in meters. It affects line-of-sight and coverage area.",
 					},
 					{
 						label: "INTERACTIONS",
@@ -98,6 +122,8 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						min: 1,
 						max: 10,
 						step: 1,
+						toolTipText:
+							"Sets the maximum number of reflections, diffractions, or transmissions a ray can undergo. Higher values simulate more complex paths.",
 					},
 					{
 						label: "MINIMAL RAY POWER (dBm)",
@@ -106,20 +132,24 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						min: -160,
 						max: -60,
 						step: 0.01,
+						toolTipText:
+							"Defines the minimum power threshold in dBm for rays to be considered. Rays weaker than this value are ignored.",
 					},
 				].map((field, i) => (
-					<FormField
-						key={field.name}
-						index={i}
-						label={field.label}
-						name={field.name}
-						defaultValue={field.value}
-						placeholder={`Enter ${field.label.toLowerCase()}`}
-						min={field.min}
-						max={field.max}
-						step={field.step}
-						required
-					/>
+					<div key={field.name} className={styles.singleInputBox}>
+						<ToolTip name={field.name} index={i} toolTipText={field.toolTipText} place="top-end" />
+						<FormField
+							index={i}
+							label={field.label}
+							name={field.name}
+							defaultValue={field.value}
+							placeholder={`Enter ${field.label.toLowerCase()}`}
+							min={field.min}
+							max={field.max}
+							step={field.step}
+							required
+						/>
+					</div>
 				))}
 			</div>
 

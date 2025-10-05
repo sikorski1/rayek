@@ -1,0 +1,38 @@
+@use "@/constants/colors.scss" as *;
+@use "@/constants/mixins.scss" as *;
+
+.toolTipBox {
+	position: absolute;
+	top: 0;
+	right: 0;
+	.toolTipIcon {
+		height: 28px;
+		width: 28px;
+		stroke-width: 2.6px;
+		fill: white;
+		transition: stroke 0.3s ease, color 0.5s ease;
+		cursor: pointer;
+		&:hover {
+			color: white;
+			fill: $green-400;
+		}
+	}
+}
+.toolTipTextBox {
+	@include shadow-strong($green-600);
+	max-width: 100%;
+	background-color: white !important;
+	font-size: 1.8rem !important;
+	color: black !important;
+	border-radius: 4px !important; 
+	z-index: 10;
+	transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.toolTipTextArrow {
+	transform: translateY(3px) rotate(45deg) !important;
+	width: 12px !important;
+	height: 12px !important;
+	border-bottom: solid 2px $green-600 !important;
+	border-right: solid 2px $green-600 !important;
+}

@@ -1,4 +1,5 @@
 import FormField from "@/components/FormField/FormField";
+import ToolTip from "@/components/ToolTip/ToolTip";
 import { SettingsDataTypes } from "@/types/main";
 import { motion } from "framer-motion";
 import { IoMdClose } from "react-icons/io";
@@ -40,7 +41,15 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 			{formData.singleRays.length ? (
 				formData.singleRays.map((ray, i) => (
 					<div key={i} className={styles.singleRayBox}>
-						<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+						<div style={{ display: "flex", flexDirection: "column", gap: "1rem", position: "relative" }}>
+							<ToolTip
+								name={"rayAzim" + i}
+								index={i}
+								toolTipText={`Select an azimuth ray between 0 and ${
+									formData.numberOfRaysAzimuth - 1
+								}. Rays are measured in the counterclockwise direction.`}
+								place="top-end"
+							/>
 							<FormField
 								key={ray.azimuth}
 								index={i}
@@ -54,7 +63,15 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 								required
 							/>
 						</div>
-						<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+						<div style={{ display: "flex", flexDirection: "column", gap: "1rem", position: "relative" }}>
+							<ToolTip
+								name={"rayElev" + i}
+								index={i}
+								toolTipText={`Select an elevation ray between 0 and ${
+									formData.numberOfRaysElevation - 1
+								}. Ray 0 points towards the ground, and the maximum ray points towards the sky.`}
+								place="top-end"
+							/>
 							<FormField
 								key={ray.elevation}
 								index={i}
@@ -94,7 +111,7 @@ export default function SingleRaySettings({ formData, handleFormSubmit, handleAd
 				custom={1}
 				initial="initial"
 				animate="animate">
-				Add ray
+				+
 			</motion.button>
 			<motion.button
 				className={styles.submitBtn}
