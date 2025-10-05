@@ -2,7 +2,6 @@ package raylaunching
 
 import (
 	. "backendGo/types"
-	
 
 	"fmt"
 	"math"
@@ -42,6 +41,8 @@ type RayState struct {
 	diffLossLdB                 float64
 	targetRayIndex              int
 	toDiffractionPointRayLength float64
+	diffTheta                   float64
+	diffRayIndex                int
 }
 
 func NewRayLaunching3D(matrix [][][]float64, wallNormals []Normal3D, config RayLaunching3DConfig) *RayLaunching3D {
@@ -193,14 +194,18 @@ func (rl *RayLaunching3D) updatePowerMap(state *RayState, xIdx, yIdx, zIdx int) 
 	d1 := state.toDiffractionPointRayLength
 	d2 := state.currRayLength - state.toDiffractionPointRayLength
 	lambda := rl.Config.WaveLength
-	alpha := math.Pi / 2
-	Ld := BergDiffractionLoss(d1, d2, lambda, alpha)
-	state.diffLossLdB = Ld
+	alpha := state.diffTheta
+	baseLoss := BergDiffractionLoss(d1, d2, lambda, alpha)
+	var rayLoss float64
+	if state.diffTheta != 0 {
+		rayLoss = AngularDiffractionLoss(state.diffRayIndex, rl.Config.DiffractionRayNumber, state.diffTheta, 4.0)
+	}
 
+	state.diffLossLdB = baseLoss + rayLoss
 	H := calculateTransmittance(state.currRayLength, rl.Config.WaveLength, state.currReflectionFactor)
 	state.currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - state.diffLossLdB
 
-	// println("diffLoss: ", state.diffLossLdB)
+	println("baseLoss: ", baseLoss, "rayLoss: ", rayLoss, "rayIndex: ", state.diffRayIndex)
 	// println("currPorwe: ", state.currPower)
 
 	// update power map if power is higher than previous one
@@ -261,6 +266,7 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 
 		fmt.Printf("cosTheta: %.3f theta: %.3f, finalTheta: %.3f cross: %.3f oneStep: %.3f\n", cosTheta, theta, finalTheta, cross, oneStep)
 
+		state.diffTheta = finalTheta
 		rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, normals, index)
 	} else if index == rl.Config.RoofCornerMapNumber {
 		stepResolution := diffractionRayNumber
@@ -279,7 +285,7 @@ func (rl *RayLaunching3D) processCornerDiffraction(state *RayState, xIdx, yIdx, 
 			"Roof: dz=%.3f -> range [%.3f .. %.3f], oneStep=%.3f\n",
 			state.dz, startDz, endDz, oneStep,
 		)
-
+		state.diffTheta = 90.0
 		rl.processDiffractionSteps(state, oneStep, stepResolution, i, j, normals, index)
 	}
 
@@ -290,7 +296,7 @@ func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float
 		x := state.x
 		y := state.y
 		z := state.z
-
+		state.diffRayIndex = step
 		var newDx, newDy, newDz float64
 		if index == rl.Config.RoofCornerMapNumber {
 			if state.dz > 0 {
@@ -299,7 +305,7 @@ func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float
 				newDy = state.dy
 			} else if state.dz <= 0 {
 				if index == rl.Config.RoofCornerMapNumber {
-					t := float64(step) / float64(stepResolution + 1)
+					t := float64(step) / float64(stepResolution+1)
 					newDz = state.dz + float64(step)*oneStep
 					factor := 1.0 - t
 					newDx = state.dx * factor
@@ -337,11 +343,10 @@ func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy, newDz
 			break
 		}
 
-		if !(startIndex == rl.Config.RoofCornerMapNumber  && newDz > 0) && rl.handleRoofReflection(&state, index){
+		if !(startIndex == rl.Config.RoofCornerMapNumber && newDz > 0) && rl.handleRoofReflection(&state, index) {
 			continue
 		}
 
-	
 		if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != state.currWallIndex+rl.Config.WallMapNumber {
 			normalIndex := index - rl.Config.WallMapNumber
 
@@ -369,7 +374,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 		for j := 0; j < rl.Config.NumOfRaysElev; j++ { // loop over vertical dim
 			dx, dy, dz := rl.calculateRayDirection(i, j)
 			// main loop
-			// if !(i == 7 && j == 5) {
+			// if !(i == 6 && j == 8) {
 			// 	continue
 			// }
 			targetRayIndex := rl.isTargetRay(i, j)
@@ -388,6 +393,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				diffLossLdB:                 0.0,
 				targetRayIndex:              targetRayIndex,
 				toDiffractionPointRayLength: 0.0,
+				diffTheta:                   0.0,
+				diffRayIndex:                0,
 			}
 
 			for rl.shouldContinueRay(state) {
@@ -406,16 +413,20 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				}
 
 				if (index == rl.Config.CornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) || (index == rl.Config.RoofCornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) {
-					nextXIdx, nextYIdx, nextZIdx := rl.getMapIndices(state.x + state.dx, state.y + state.dy, state.z + state.dz)
+					nextXIdx, nextYIdx, nextZIdx := rl.getMapIndices(state.x+state.dx, state.y+state.dy, state.z+state.dz)
 					fmt.Println("NextXIdx: ", nextXIdx, "NextYIdx: ", nextYIdx, "NextZIdx: ", nextZIdx)
-					if (nextZIdx < 0) {
+
+					if nextZIdx < 0 {
 						break
 					}
-					nextIndex := int(rl.PowerMap[nextZIdx][nextYIdx][nextXIdx]) 
+
+					nextIndex := int(rl.PowerMap[nextZIdx][nextYIdx][nextXIdx])
 					if nextIndex == rl.Config.RoofMapNumber {
 						break
 					}
+
 					rl.processCornerDiffraction(state, xIdx, yIdx, zIdx, i, j, rl.Config.DiffractionRayNumber-1, index)
+					break
 				}
 
 				if index >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber && index != state.currWallIndex {
@@ -578,4 +589,17 @@ func BergDiffractionLoss(d1, d2, lambda, alpha float64) float64 {
 		Ld = 0
 	}
 	return Ld
+}
+
+func AngularDiffractionLoss(rayIdx, nRays int, maxAngleRad, n float64) float64 {
+	rel := float64(rayIdx) / float64(nRays-1)
+	phi := rel * maxAngleRad
+
+	cosPhi := math.Cos(phi)
+	if cosPhi < 1e-6 {
+		cosPhi = 1e-6
+	}
+
+	additionalLoss := -20 * n * math.Log10(cosPhi)
+	return additionalLoss
 }
