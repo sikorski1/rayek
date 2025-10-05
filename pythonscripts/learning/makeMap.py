@@ -3,7 +3,7 @@ import cv2
 import os
 import re
 
-z_dim, y_dim, x_dim = 30, 250, 250
+z_dim, y_dim, x_dim = 30, 400, 400
 walls = np.fromfile("wallsMatrix3D_raw.bin", dtype=np.float64).reshape((z_dim, y_dim, x_dim))
 
 png_folder = "final"

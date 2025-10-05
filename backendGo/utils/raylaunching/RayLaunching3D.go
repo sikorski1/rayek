@@ -2,7 +2,7 @@ package raylaunching
 
 import (
 	. "backendGo/types"
-	"fmt"
+	// "fmt"
 	"math"
 	"math/cmplx"
 )
@@ -326,7 +326,7 @@ func (rl *RayLaunching3D) processDiffractionSteps(state *RayState, oneStep float
 			newDz = state.dz
 		}
 
-		fmt.Printf("Step %d: dx=%.3f dy=%.3f dz=%.3f\n", step, newDx, newDy, newDz)
+		// fmt.Printf("Step %d: dx=%.3f dy=%.3f dz=%.3f\n", step, newDx, newDy, newDz)
 
 		x += newDx
 		y += newDy
