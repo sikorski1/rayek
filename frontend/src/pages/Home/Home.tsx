@@ -10,12 +10,6 @@ export default function Home() {
 					<h1 className={styles.name}>Rayek</h1>
 					<div className={styles.buttonsBox}>
 						<Link className={styles.link} to="/maps">
-							What is RayLaunching?
-						</Link>
-						<Link className={styles.link} to="/maps">
-							What is RayTraycing?
-						</Link>
-						<Link className={styles.link} to="/maps">
 							Maps
 						</Link>
 					</div>

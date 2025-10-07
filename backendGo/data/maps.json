@@ -13,14 +13,14 @@
 	},
 	{
 		"id": "zlocien",
-		"name": "BAD SHADOW",
+		"name": "ZLOCIEN",
 		"description": "",
-		"img": ""
+		"img": "/maps/zlocien/zlocien.jpg"
 	},
 	{
-		"id": "4",
-		"name": "Cracow Wawel",
+		"id": "zablocie",
+		"name": "ZABLOCIE",
 		"description": "",
-		"img": ""
+		"img": "/maps/zablocie/zablocie.jpeg"
 	}
 ]
