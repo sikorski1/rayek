@@ -22,5 +22,17 @@
 		"name": "ZABLOCIE",
 		"description": "",
 		"img": "/maps/zablocie/zablocie.jpeg"
+	},
+	{
+		"id": "rondo-mogilskie",
+		"name": "RONDO MOGILSKIE",
+		"description": "",
+		"img": "/maps/rondo-mogilskie/rondo-mogilskie.jpg"
+	},
+	{
+		"id": "plac-centralny",
+		"name": "PLAC CENTRALNY",
+		"description": "",
+		"img": "/maps/plac-centralny/plac-centralny.jpg"
 	}
 ]

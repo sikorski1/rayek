@@ -133,7 +133,7 @@ func AngleBetweenNormals(a, b Normal3D) float64 {
 func drawLine(matrix [][][]float64, wallNormals []Normal3D, x1, y1, z1, x2, y2, z2, heightLevels, wallIndex, sizeX, sizeY int) {
 	dx := x2 - x1
 	dy := y2 - y1
-	minCornerAngle := 60.0
+	minCornerAngle := 40.0
 	maxCornerAngle := 120.0
 	if z1 >= heightLevels {
 		z1 = heightLevels - 1
