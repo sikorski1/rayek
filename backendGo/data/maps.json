@@ -6,12 +6,6 @@
 		"img": "/maps/aghwiet/aghwiet.webp"
 	},
 	{
-		"id": "aghlibrary",
-		"name": "AGH Library",
-		"description": "",
-		"img": "/maps/aghlibrary/aghlibrary.jpg"
-	},
-	{
 		"id": "zlocien",
 		"name": "ZLOCIEN",
 		"description": "",
@@ -34,5 +28,11 @@
 		"name": "PLAC CENTRALNY",
 		"description": "",
 		"img": "/maps/plac-centralny/plac-centralny.jpg"
+	},
+	{
+		"id": "nowy-kleparz",
+		"name": "NOWY KLEPARZ",
+		"description": "",
+		"img": "/maps/nowy-kleparz/nowy-kleparz.jpg"
 	}
 ]
