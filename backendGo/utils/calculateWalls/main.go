@@ -42,11 +42,14 @@ func main() {
 	wallsMatrixPath := filepath.Join(mapFolderPath, "wallsMatrix3D_floor.bin")
 	wallNormalsPath := filepath.Join(mapFolderPath, "wallNormals3D.bin")
 
-	var matrix [][][]float64
+	var matrixInt [][][]int16
 	var wallNormals []Normal3D
-	if err := calculations.LoadMatrixBinary(wallsMatrixPath, &matrix); err != nil {
+	if err := calculations.LoadMatrixBinary(wallsMatrixPath, &matrixInt); err != nil {
 		log.Fatalf("Error loading matrix %v", err)
 	}
+
+	matrix := calculations.ConvertInt16MatrixToFloat64(matrixInt)
+
 	if err := calculations.LoadMatrixBinary(wallNormalsPath, &wallNormals); err != nil {
 		log.Fatalf("Error loading normals %v", err)
 	}

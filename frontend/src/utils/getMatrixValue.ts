@@ -1,5 +1,5 @@
 export const getMatrixValue = (
-	matrix: Float64Array,
+	matrix: Int16Array,
 	x: number,
 	y: number,
 	z: number,
@@ -13,4 +13,3 @@ export const getMatrixValue = (
 	const index = z * sizeY * sizeX + y * sizeX + x;
 	return matrix[index];
 };
-

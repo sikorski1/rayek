@@ -34,7 +34,7 @@ const initialSettingsData: SettingsDataTypes = {
 
 export default function SingleMap() {
 	const [settingsData, setSettingsData] = useState<SettingsDataTypes>(initialSettingsData);
-	const [wallMatrix, setWallMatrix] = useState<Float64Array | null>(null);
+	const [wallMatrix, setWallMatrix] = useState<Int16Array | null>(null);
 	const [rayLaunchData, setRayLaunchData] = useState<RayLaunchType | null>(null);
 	const [powerMapData, setPowerMapData] = useState<any>(null);
 	const { id } = useParams();

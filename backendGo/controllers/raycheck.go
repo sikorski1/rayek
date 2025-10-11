@@ -216,14 +216,15 @@ func Create3DRayLaunching(context *gin.Context) {
 	if err != nil {
 		log.Println(err)
 	}
-	var matrix [][][]float64
+	var matrixInt [][][]int16
 	// fmt.Printf("Single rays: %v", request.SingleRays)
-	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D_floor.bin"), &matrix)
+	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D_floor.bin"), &matrixInt)
 	if err != nil {
 		log.Println("Failed to load matrix:", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
 		return
 	}
+	matrix := calculations.ConvertInt16MatrixToFloat64(matrixInt)
 	var wallNormals []Normal3D
 	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallNormals3D.bin"), &wallNormals)
 	if err != nil {

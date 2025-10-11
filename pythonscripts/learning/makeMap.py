@@ -3,8 +3,8 @@ import cv2
 import os
 import re
 
-z_dim, y_dim, x_dim = 30, 500, 500
-walls = np.fromfile("wallsMatrix3D_raw.bin", dtype=np.float64).reshape((z_dim, y_dim, x_dim))
+z_dim, y_dim, x_dim = 30, 250, 250
+walls = np.fromfile("wallsMatrix3D_raw.bin", dtype=np.int16).reshape((z_dim, y_dim, x_dim))
 
 png_folder = "final"
 file_pattern = re.compile(r"^(.*)-(\d+)m\.png$")
