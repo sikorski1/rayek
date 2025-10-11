@@ -25,6 +25,7 @@ type Map struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Img         string `json:"img"`
+	Size        string `json:"size"`
 }
 type MapAndBuildingsResponse struct {
 	MapData       MapConfiguration       `json:"mapData"`

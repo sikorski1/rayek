@@ -4,6 +4,7 @@ export type Maps = {
 	name: string;
 	description: string;
 	img: string;
+	size: string;
 };
 
 export type SingleRay = {
@@ -24,8 +25,8 @@ export type SettingsDataTypes = {
 	stationPos?: [number, number];
 	singleRays: SingleRay[];
 	powerMapHeight: number;
-	isPowerMapVisible: boolean
-	diffractionRayNumber:number
+	isPowerMapVisible: boolean;
+	diffractionRayNumber: number;
 };
 
 export type RayLaunchType = {
@@ -59,7 +60,7 @@ export type MapTypesExtended = MapTypes & {
 	size: number;
 	powerMap: number[][][];
 	powerMapHeight: number;
-	isPowerMapVisible: boolean
+	isPowerMapVisible: boolean;
 };
 
 export type PostComputeTypes = {

@@ -3,36 +3,42 @@
 		"id": "aghwiet",
 		"name": "AGH WIET",
 		"description": "",
-		"img": "/maps/aghwiet/aghwiet.webp"
+		"img": "/maps/aghwiet/aghwiet.webp",
+		"size": "250"
 	},
 	{
 		"id": "zlocien",
 		"name": "ZLOCIEN",
 		"description": "",
-		"img": "/maps/zlocien/zlocien.jpg"
+		"img": "/maps/zlocien/zlocien.jpg",
+		"size": "400"
 	},
 	{
 		"id": "zablocie",
 		"name": "ZABLOCIE",
 		"description": "",
-		"img": "/maps/zablocie/zablocie.jpeg"
+		"img": "/maps/zablocie/zablocie.jpeg",
+		"size": "400"
 	},
 	{
 		"id": "rondo-mogilskie",
 		"name": "RONDO MOGILSKIE",
 		"description": "",
-		"img": "/maps/rondo-mogilskie/rondo-mogilskie.jpg"
+		"img": "/maps/rondo-mogilskie/rondo-mogilskie.jpg",
+		"size": "400"
 	},
 	{
 		"id": "plac-centralny",
 		"name": "PLAC CENTRALNY",
 		"description": "",
-		"img": "/maps/plac-centralny/plac-centralny.jpg"
+		"img": "/maps/plac-centralny/plac-centralny.jpg",
+		"size": "400"
 	},
 	{
 		"id": "nowy-kleparz",
 		"name": "NOWY KLEPARZ",
 		"description": "",
-		"img": "/maps/nowy-kleparz/nowy-kleparz.jpg"
+		"img": "/maps/nowy-kleparz/nowy-kleparz.jpg",
+		"size": "500"
 	}
 ]

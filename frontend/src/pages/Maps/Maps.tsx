@@ -6,14 +6,10 @@ import { useGetMaps } from "@/hooks/useMap";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import styles from "./maps.module.scss";
-type MapData = {
-	id: string;
-	name: string;
-	description: string;
-	img: string;
-};
+
 export default function Maps() {
-	const { data, isLoading, error } = useGetMaps();
+	const { data } = useGetMaps();
+	console.log(data);
 	return (
 		<PageTransition>
 			<Wrapper>
@@ -22,7 +18,7 @@ export default function Maps() {
 					<div className={styles.cardsBox}>
 						<AnimatePresence>
 							{data &&
-								data.map((item: MapData, index: number) => (
+								data.map((item, index: number) => (
 									<motion.div
 										className={styles.card}
 										key={item.id}
@@ -39,8 +35,15 @@ export default function Maps() {
 										<div className={styles.cardBox}>
 											<Link key={item.id} to={item.id} className={styles.link}></Link>
 											<div className={styles.imgBox}>
-												<img className={styles.img} src={item.img || sampleImg} alt="map image" />
+												<img
+													className={styles.img}
+													src={item.img || sampleImg}
+													alt="map image"
+												/>
 											</div>
+										</div>
+										<div className={styles.sizeSign}>
+											{item.size}m x {item.size}m
 										</div>
 									</motion.div>
 								))}
