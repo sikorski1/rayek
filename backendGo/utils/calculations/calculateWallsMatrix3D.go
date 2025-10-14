@@ -273,7 +273,7 @@ func generateBuildingMatrix(buildings []Building, latMin, latMax, lonMin, lonMax
 		for y := range matrix[z] {
 			matrix[z][y] = make([]int16, size)
 			for x := range matrix[z][y] {
-				matrix[z][y][x] = -150.0
+				matrix[z][y][x] = -160.0
 			}
 		}
 	}

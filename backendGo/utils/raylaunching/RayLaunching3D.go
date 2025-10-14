@@ -2,6 +2,7 @@ package raylaunching
 
 import (
 	. "backendGo/types"
+	"fmt"
 
 	"math"
 	"math/cmplx"
@@ -21,10 +22,23 @@ type RayPoint struct {
 	Power float64 `json:"power"`
 }
 type RayLaunching3D struct {
-	PowerMap    [][][]float64
-	WallNormals []Normal3D
-	Config      RayLaunching3DConfig
-	RayPaths    [][]RayPoint
+	PowerMap       [][][]float64
+	WallNormals    []Normal3D
+	Config         RayLaunching3DConfig
+	RayPaths       [][]RayPoint
+	PowerMapLegend map[int]PowerMapLegendEntry
+}
+
+type PowerMapLegendEntry struct {
+	Ptotal   float64 `json:"total"`
+	P0_20    float64 `json:"< 0dbm"`
+	P20_40   float64 `json:"< -20dbm"`
+	P40_60   float64 `json:"< -40dbm"`
+	P60_80   float64 `json:"< -60dbm"`
+	P80_100  float64 `json:"< -80dbm"`
+	P100_120 float64 `json:"< -100dbm"`
+	P120_140 float64 `json:"< -120dbm"`
+	P140plus float64 `json:"< -140dbm"`
 }
 
 type RayState struct {
@@ -205,7 +219,7 @@ func (rl *RayLaunching3D) updatePowerMap(state *RayState, xIdx, yIdx, zIdx int) 
 	// println("currPorwe: ", state.currPower)
 
 	// update power map if power is higher than previous one
-	if rl.PowerMap[zIdx][yIdx][xIdx] == -150 || rl.PowerMap[zIdx][yIdx][xIdx] < state.currPower {
+	if rl.PowerMap[zIdx][yIdx][xIdx] == -160 || rl.PowerMap[zIdx][yIdx][xIdx] < state.currPower {
 		rl.PowerMap[zIdx][yIdx][xIdx] = state.currPower
 	}
 }
@@ -369,6 +383,82 @@ func (rl *RayLaunching3D) processDiffractionRayPath(x, y, z, newDx, newDy, newDz
 	}
 }
 
+func (rl *RayLaunching3D) CreatePowerMapLegend() {
+	legend := make(map[int]PowerMapLegendEntry)
+
+	for z := 0; z < len(rl.PowerMap); z++ {
+		entry := PowerMapLegendEntry{}
+		var coveredPoints, totalPoints float64
+
+		for y := 0; y < len(rl.PowerMap[z]); y++ {
+			for x := 0; x < len(rl.PowerMap[z][y]); x++ {
+				power := rl.PowerMap[z][y][x]
+				if power < 0 {
+					totalPoints++
+					if power > -159.9 {
+						coveredPoints++
+						loss := math.Abs(power)
+						switch {
+						case loss < 20:
+							entry.P0_20++
+						case loss < 40:
+							entry.P20_40++
+						case loss < 60:
+							entry.P40_60++
+						case loss < 80:
+							entry.P60_80++
+						case loss < 100:
+							entry.P80_100++
+						case loss < 120:
+							entry.P100_120++
+						case loss < 140:
+							entry.P120_140++
+						default:
+							entry.P140plus++
+						}
+					}
+				}
+			}
+		}
+
+		if coveredPoints > 0 {
+			scale := 100.0 / coveredPoints
+			entry.P0_20 *= scale
+			entry.P20_40 *= scale
+			entry.P40_60 *= scale
+			entry.P60_80 *= scale
+			entry.P80_100 *= scale
+			entry.P100_120 *= scale
+			entry.P120_140 *= scale
+			entry.P140plus *= scale
+		}
+
+		entry.Ptotal = (coveredPoints / totalPoints) * 100.0
+
+		legend[z] = entry
+	}
+
+	rl.PowerMapLegend = legend
+}
+
+func (rl *RayLaunching3D) PrintPowerMapLegend() {
+	fmt.Println("===== Power Map Legend per Floor =====")
+	for z := 0; z < len(rl.PowerMap); z++ {
+		entry := rl.PowerMapLegend[z]
+		fmt.Printf("Floor z = %d:\n", z)
+		fmt.Printf("  Total coverage: %.2f%%\n", entry.Ptotal)
+		fmt.Printf("  0-20 dB   : %.2f%%\n", entry.P0_20)
+		fmt.Printf("  20-40 dB  : %.2f%%\n", entry.P20_40)
+		fmt.Printf("  40-60 dB  : %.2f%%\n", entry.P40_60)
+		fmt.Printf("  60-80 dB  : %.2f%%\n", entry.P60_80)
+		fmt.Printf("  80-100 dB : %.2f%%\n", entry.P80_100)
+		fmt.Printf("  100-120 dB: %.2f%%\n", entry.P100_120)
+		fmt.Printf("  120-140 dB: %.2f%%\n", entry.P120_140)
+		fmt.Printf("  >140 dB   : %.2f%%\n", entry.P140plus)
+		fmt.Println("--------------------------------------")
+	}
+}
+
 func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 	for z := 0; z < int(rl.Config.TransmitterPos.Z); z++ {
 		rl.PowerMap[z][int(rl.Config.TransmitterPos.Y)][int(rl.Config.TransmitterPos.X)] = 0
@@ -428,7 +518,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 					if nextIndex == rl.Config.RoofMapNumber {
 						break
 					}
-					
+
 					if !(state.currWallIndex >= rl.Config.WallMapNumber && state.currWallIndex < rl.Config.RoofMapNumber) {
 						rl.processCornerDiffraction(state, xIdx, yIdx, zIdx, i, j, rl.Config.DiffractionRayNumber-1, index)
 						break
@@ -449,6 +539,8 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 			}
 		}
 	}
+
+	rl.CreatePowerMapLegend()
 }
 
 func calculateDistance(p1, p2 Point3D) float64 {

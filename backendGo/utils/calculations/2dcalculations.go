@@ -86,7 +86,7 @@ func GenerateHeatmap(powerMap [][]float64) *image.RGBA {
     height := len(powerMap)
     width := len(powerMap[0])
 
-    minVal := -150.0  
+    minVal := -160.0  
     maxVal := 0.0
 
     img := image.NewRGBA(image.Rect(0, 0, width, height))

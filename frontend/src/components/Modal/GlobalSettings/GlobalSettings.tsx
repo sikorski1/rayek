@@ -69,7 +69,7 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						label: "DIFFRACTION RAY NUMBER",
 						name: "diffractionRayNumber",
 						value: formData.diffractionRayNumber,
-						min: 4,
+						min: 1,
 						max: 120,
 						step: 1,
 						toolTipText:
@@ -109,7 +109,7 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						label: "STATION HEIGHT (m)",
 						name: "stationHeight",
 						value: formData.stationHeight,
-						min: 0,
+						min: 1,
 						max: 29,
 						step: 1,
 						toolTipText:

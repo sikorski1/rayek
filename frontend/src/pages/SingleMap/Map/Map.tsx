@@ -157,22 +157,24 @@ export default function Map({
 							const flippedY = height - y - 1;
 							const value = layerData[flippedY][x];
 
-							
-							
-
 							const index = (y * width + x) * 4;
-							if (value === -150) {
+							if (value === -160) {
 								data[index] = 255; // r
 								data[index + 1] = 255; // g
 								data[index + 2] = 255; // b
-								data[index + 3] = 60; // pełna nieprzezroczystość
+								data[index + 3] = 100; // pełna nieprzezroczystość
+							} else if (value > 0) {
+								data[index] = 255; // r
+								data[index + 1] = 0; // g
+								data[index + 2] = 0; // b
+								data[index + 3] = 150;
 							} else {
 								const normalized = normalizePower(value);
 								const color = getHeatMapColor(normalized);
 								data[index] = color.r * 255;
 								data[index + 1] = color.g * 255;
-								data[index + 2] = color.b * 500;
-								data[index + 3] = normalized * 200;
+								data[index + 2] = color.b * 255;
+								data[index + 3] = normalized * 240;
 							}
 						}
 					}
@@ -281,7 +283,11 @@ export default function Map({
 							sphereModelTransform.translateZ
 						)
 						.scale(
-							new THREE.Vector3(sphereModelTransform.scale, sphereModelTransform.scale, sphereModelTransform.scale)
+							new THREE.Vector3(
+								sphereModelTransform.scale,
+								sphereModelTransform.scale,
+								sphereModelTransform.scale
+							)
 						);
 					camera.projectionMatrix = m.multiply(l);
 					renderer.resetState();
@@ -341,7 +347,7 @@ export default function Map({
 			const pointGeometry = dragDropGeoJSON.features[0].geometry as GeoJSON.Point;
 			let towerModelOrigin: [number, number];
 
-			if (checkBounds([coords.lng, coords.lat], bounds as number[][]) && value === -150) {
+			if (checkBounds([coords.lng, coords.lat], bounds as number[][]) && value === -160) {
 				towerModelOrigin = [parseFloat(coords.lng.toFixed(6)), parseFloat(coords.lat.toFixed(6))];
 				lastValidCoords = towerModelOrigin;
 			} else {
@@ -353,7 +359,10 @@ export default function Map({
 			const source = mapRef.current?.getSource("point") as mapboxgl.GeoJSONSource;
 			source.setData(dragDropGeoJSON);
 
-			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(towerModelOrigin, stationHeight);
+			const towerModelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
+				towerModelOrigin,
+				stationHeight
+			);
 			towerModelTransform.translateX = towerModelAsMercatorCoordinate.x;
 			towerModelTransform.translateY = towerModelAsMercatorCoordinate.y;
 			towerModelTransform.translateZ = towerModelAsMercatorCoordinate.z;
@@ -415,7 +424,13 @@ export default function Map({
 							towerModelTransform.translateY,
 							towerModelTransform.translateZ
 						)
-						.scale(new THREE.Vector3(towerModelTransform.scale, -towerModelTransform.scale, towerModelTransform.scale))
+						.scale(
+							new THREE.Vector3(
+								towerModelTransform.scale,
+								-towerModelTransform.scale,
+								towerModelTransform.scale
+							)
+						)
 						.multiply(rotationX)
 						.multiply(rotationY)
 						.multiply(rotationZ);
@@ -466,7 +481,8 @@ export default function Map({
 
 			if (layers) {
 				labelLayerId = layers.find(
-					layer => layer.type === "symbol" && layer.layout && typeof layer.layout["text-field"] !== "undefined"
+					layer =>
+						layer.type === "symbol" && layer.layout && typeof layer.layout["text-field"] !== "undefined"
 				)?.id;
 			}
 			mapRef.current?.addSource("region-mask", {
@@ -528,7 +544,15 @@ export default function Map({
 					paint: {
 						"fill-extrusion-color": "#aaa",
 						"fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "height"]],
-						"fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "min_height"]],
+						"fill-extrusion-base": [
+							"interpolate",
+							["linear"],
+							["zoom"],
+							15,
+							0,
+							15.05,
+							["get", "min_height"],
+						],
 						"fill-extrusion-opacity": 0.6,
 					},
 				},

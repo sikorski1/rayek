@@ -233,8 +233,6 @@ func Create3DRayLaunching(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
 		return
 	}
-	// TESTING - START
-
 	config := raylaunching.RayLaunching3DConfig{
 		NumOfRaysAzim:         request.NumberOfRaysAzimuth,
 		NumOfRaysElev:         request.NumberOfRaysElevation,
@@ -261,6 +259,8 @@ func Create3DRayLaunching(context *gin.Context) {
 	start := time.Now()
 	rayLaunching := raylaunching.NewRayLaunching3D(matrix, wallNormals, config)
 	rayLaunching.CalculateRayLaunching3D()
+	// TESTING - START
+
 	// fmt.Printf("RayPaths: %v", rayLaunching.RayPaths)
 	stop := time.Since(start)
 	fmt.Printf("RayLaunching 3D calculation time: %v\n", stop)
@@ -335,10 +335,11 @@ func Create3DRayLaunching(context *gin.Context) {
 	// TESTING - END
 
 	context.JSON(http.StatusOK, gin.H{
-		"message":    "Request received successfully",
-		"mapTitle":   mapTitle,
-		"stationPos": request.StationPos,
-		"powerMap":   rayLaunching.PowerMap,
-		"rayPaths":   rayLaunching.RayPaths,
+		"message":        "Request received successfully",
+		"mapTitle":       mapTitle,
+		"stationPos":     request.StationPos,
+		"powerMap":       rayLaunching.PowerMap,
+		"rayPaths":       rayLaunching.RayPaths,
+		"powerMapLegend": rayLaunching.PowerMapLegend,
 	})
 }

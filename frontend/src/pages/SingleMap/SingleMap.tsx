@@ -4,9 +4,11 @@ import Modal from "@/components/Modal/Modal";
 import SingleRaySettings from "@/components/Modal/SingleRaySettings/SingleRaySettings";
 import { useGetMapById, useRayLaunching } from "@/hooks/useMap";
 import Map from "@/pages/SingleMap/Map/Map";
-import { RayLaunchType, SettingsDataTypes } from "@/types/main";
+import { PowerMapLegendEntry, PowerMapLegendType, RayLaunchType, SettingsDataTypes } from "@/types/main";
 import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
+import { getHeatMapColor } from "@/utils/getHeatMapColor";
 import { getMatrixValue } from "@/utils/getMatrixValue";
+import { getNormalizedValueFromLabel } from "@/utils/getNormalizedValueFromLabel";
 import { loadWallMatrix } from "@/utils/loadWallMatrix";
 import { matrixIndexToGeo } from "@/utils/matrixIndexToGeo";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,27 +20,45 @@ import styles from "./singleMap.module.scss";
 const initialSettingsData: SettingsDataTypes = {
 	settingsType: "global",
 	isOpen: false,
-	frequency: 5,
+	frequency: 3.8,
 	stationHeight: 5,
 	numberOfRaysAzimuth: 360,
 	numberOfRaysElevation: 360,
 	numberOfInteractions: 5,
-	reflectionFactor: 0.5,
+	reflectionFactor: 1,
 	stationPower: 5,
-	minimalRayPower: -120,
+	minimalRayPower: -160,
 	singleRays: [],
 	powerMapHeight: 5,
 	isPowerMapVisible: true,
 	diffractionRayNumber: 20,
 };
 
+const createDefaultLegendEntry = (): PowerMapLegendEntry => ({
+	total: 0,
+	"< 0dbm": 0,
+	"< -20dbm": 0,
+	"< -40dbm": 0,
+	"< -60dbm": 0,
+	"< -80dbm": 0,
+	"< -100dbm": 0,
+	"< -120dbm": 0,
+	"< -140dbm": 0,
+});
+
+const defaultPowerMapLegend: PowerMapLegendType = Object.fromEntries(
+	Array.from({ length: 10 }, (_, z) => [z, createDefaultLegendEntry()])
+);
+
 export default function SingleMap() {
 	const [settingsData, setSettingsData] = useState<SettingsDataTypes>(initialSettingsData);
 	const [wallMatrix, setWallMatrix] = useState<Int16Array | null>(null);
 	const [rayLaunchData, setRayLaunchData] = useState<RayLaunchType | null>(null);
 	const [powerMapData, setPowerMapData] = useState<any>(null);
+	const [powerMapLegend, setPowerMapLegend] = useState<PowerMapLegendType>(defaultPowerMapLegend);
 	const { id } = useParams();
 	const { data, isLoading, error } = useGetMapById(id!);
+
 	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
 		setSettingsData(prev => {
 			const updatedSingleMapData = { ...prev, stationPos: stationPos };
@@ -52,6 +72,7 @@ export default function SingleMap() {
 			return updatedsettingsData;
 		});
 	};
+
 	const handleAddRay = () => {
 		if (settingsData.singleRays.length >= 4) return;
 
@@ -60,15 +81,18 @@ export default function SingleMap() {
 			singleRays: [...prev.singleRays, { azimuth: 0, elevation: 0 }],
 		}));
 	};
+
 	const handleRemoveRay = (index: number) => {
 		setSettingsData(prev => ({
 			...prev,
 			singleRays: prev.singleRays.filter((_, i) => i !== index),
 		}));
 	};
+
 	const handleOnOffPowerMap = () => {
 		setSettingsData(prev => ({ ...prev, isPowerMapVisible: !prev.isPowerMapVisible }));
 	};
+
 	const handleGlobalSettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 
@@ -95,6 +119,7 @@ export default function SingleMap() {
 			setSettingsData(prev => ({ ...prev, ...updatedSettingsData }));
 		}
 	};
+
 	const handleSingleRaySettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 
@@ -115,8 +140,11 @@ export default function SingleMap() {
 	const handleOnSuccess = (data: any) => {
 		setRayLaunchData(data.rayPaths);
 		setPowerMapData(data.powerMap);
+		setPowerMapLegend(data.powerMapLegend);
 	};
+
 	const { mutate, isPending: isPendingRayLaunch } = useRayLaunching(handleOnSuccess);
+
 	const handleComputeBtn = async () => {
 		const { stationPos, stationHeight, isOpen, ...restData } = settingsData;
 		mutate({
@@ -124,6 +152,7 @@ export default function SingleMap() {
 			configData: { stationPos: { x: i, y: j, z: Number(stationHeight) }, size: data.mapData.size, ...restData },
 		});
 	};
+
 	useEffect(() => {
 		if (!data) return;
 		setSettingsData(prev => ({ ...prev, stationPos: data.mapData.center }));
@@ -163,6 +192,7 @@ export default function SingleMap() {
 		);
 		return { matrixIndexValue, i, j };
 	}, [wallMatrix, settingsData?.stationHeight, settingsData?.stationPos, data?.mapData?.coordinates]);
+
 	const spherePositions = useMemo(() => {
 		if (!data?.mapData?.coordinates || !rayLaunchData || !Array.isArray(rayLaunchData)) return [];
 		const coordinates = data.mapData.coordinates;
@@ -249,12 +279,54 @@ export default function SingleMap() {
 								powerMap={powerMapData}
 							/>
 						)}
+						<div className={styles.legendBox}>
+							<div className={styles.legendHeaderBox}>
+								<p className={styles.legendHeaderText}>Total coverage</p>
+								<p className={styles.legendHeaderPercentage}>
+									{powerMapLegend[settingsData.powerMapHeight].total.toFixed(2)}%
+								</p>
+							</div>
+
+							<div className={styles.powerRangesBox}>
+								{Object.entries(powerMapLegend[settingsData.powerMapHeight])
+									.filter(([power]) => power !== "total")
+									.map(([power, percentage]) => {
+										const normalized = getNormalizedValueFromLabel(power);
+										const color = getHeatMapColor(normalized);
+										const [main, unit] = power.split(/(dbm)/gi);
+										const colorRGB = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
+
+										return (
+											<div className={styles.powerRangeEntry} key={power}>
+												<div
+													className={styles.powerCircle}
+													style={{
+														backgroundColor: `rgb(${color.r * 255}, ${color.g * 255}, ${
+															color.b * 255
+														})`,
+													}}
+												/>
+												<p className={styles.powerRangeText}>
+													{main}
+													{unit && (
+														<span style={{ fontSize: "0.70em", marginLeft: 1 }}>
+															[{unit}]
+														</span>
+													)}
+												</p>
+												<p className={styles.percentageText}>{percentage.toFixed(2)}%</p>
+											</div>
+										);
+									})}
+							</div>
+						</div>
 						<div className={styles.stationPosContener}>
 							{settingsData.stationPos && (
 								<>
 									<p>Station position</p>
 									<p>
-										Longitude: {parseFloat(settingsData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
+										Longitude:{" "}
+										{parseFloat(settingsData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
 												settingsData.stationPos[0] as unknown as number,
@@ -268,7 +340,8 @@ export default function SingleMap() {
 										}{" "}
 									</p>
 									<p>
-										Latitude: {parseFloat(settingsData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
+										Latitude:{" "}
+										{parseFloat(settingsData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
 												settingsData.stationPos[0] as unknown as number,
@@ -302,7 +375,9 @@ export default function SingleMap() {
 							className={styles.slider}
 							type="range"
 							value={settingsData.powerMapHeight}
-							onChange={e => setSettingsData(prev => ({ ...prev, powerMapHeight: Number(e.target.value) }))}
+							onChange={e =>
+								setSettingsData(prev => ({ ...prev, powerMapHeight: Number(e.target.value) }))
+							}
 							min={0}
 							max={29}
 						/>

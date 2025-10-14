@@ -3,7 +3,7 @@ import cv2
 import os
 import re
 
-z_dim, y_dim, x_dim = 30, 250, 250
+z_dim, y_dim, x_dim = 30, 500, 500
 walls = np.fromfile("wallsMatrix3D_raw.bin", dtype=np.int16).reshape((z_dim, y_dim, x_dim))
 
 png_folder = "final"
@@ -39,10 +39,10 @@ for file_name in os.listdir(png_folder):
 
     layer = walls[height].copy()
 
-    condition_mask = np.logical_or(layer == -150, layer >= 1000)
-    layer[np.logical_and(layer == -150, gray_mask_flipped)] = 5000
+    condition_mask = np.logical_or(layer == -160, layer >= 1000)
+    layer[np.logical_and(layer == -160, gray_mask_flipped)] = 5000
     layer[np.logical_and(condition_mask, magenta_mask_flipped)] = 10000
-    layer[np.logical_and(layer == -150, yellow_mask_flipped)] = 20000
+    layer[np.logical_and(layer == -160, yellow_mask_flipped)] = 20000
     layer[np.logical_and(condition_mask, magenta_dark_mask_flipped)] = 10001
 
     walls[height] = np.flipud(layer)

@@ -40,7 +40,7 @@
 			.onOffBtn {
 				@include shadow-strong();
 				@include shadow-strong-hover-clickable(black, $green-400);
-				width: 30px; 
+				width: 30px;
 				height: 30px;
 				color: $white;
 				border: none;
@@ -226,4 +226,56 @@
 	z-index: 10;
 	background-color: rgba(0, 0, 0, 0.6);
 	backdrop-filter: blur(2px);
+}
+
+.legendBox {
+	@include shadow-strong(black);
+	@include glassmorphism(#ffffff8a, 4px);
+	width: 22rem;
+	position: absolute;
+	left: 2rem;
+	bottom: 15rem;
+	padding: 1rem;
+	.legendHeaderBox {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		.legendHeaderText {
+			font-size: 2.2rem;
+			font-weight: 600;
+			color: $green-400;
+			margin-bottom: 0.4rem;
+		}
+		.legendHeaderPercentage {
+			font-weight: bold;
+			font-size: 2.6rem;
+			color: $green-400;
+		}
+	}
+	.powerRangesBox {
+		margin-top: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		.powerRangeEntry {
+			display: flex;
+			align-items: center;
+			font-size: 1.8rem;
+			color: $green-400;
+			font-weight: 600;
+			.percentageText {
+				margin-left: auto;
+			}
+			.powerCircle {
+				width: 20px;
+				height: 20px;
+				border-radius: 50%;
+				margin-right: 1rem;
+				background-color: $green-400;
+				box-shadow: 2px 4px rgba(0, 0, 0, 0.2), inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+					inset 2px 2px 4px rgba(255, 255, 255, 0.3);
+			}
+		}
+	}
 }

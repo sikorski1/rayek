@@ -55,7 +55,7 @@ export type MapTypesExtended = MapTypes & {
 	handleStationPosUpdate: (value: mapboxgl.LngLatLike) => void;
 	buildingsData: GeoJSON.FeatureCollection | null;
 	computationResult: mapboxgl.LngLatLike[][];
-	wallMatrix: Float64Array;
+	wallMatrix: Int16Array;
 	spherePositions: { positions: { coord: MercatorCoordinate; power: number }[]; rayIndex: number }[] | undefined;
 	size: number;
 	powerMap: number[][][];
@@ -66,4 +66,17 @@ export type MapTypesExtended = MapTypes & {
 export type PostComputeTypes = {
 	freq: string;
 	stationH: string;
+};
+
+export type PowerMapLegendType = Record<string, PowerMapLegendEntry>;
+export type PowerMapLegendEntry = {
+	total: number;
+	"< 0dbm": number;
+	"< -20dbm": number;
+	"< -40dbm": number;
+	"< -60dbm": number;
+	"< -80dbm": number;
+	"< -100dbm": number;
+	"< -120dbm": number;
+	"< -140dbm": number;
 };
