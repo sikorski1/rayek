@@ -128,6 +128,7 @@ func (rl *RayLaunching3D) handleGroundReflection(state *RayState) {
 		nx, ny, nz := 0.0, 0.0, 1.0
 		// calculate angle of incidence
 		cosTheta := -(state.dx*nx + state.dy*ny + state.dz*nz)
+		cosTheta = rl.clampCosTheta(cosTheta)
 		theta := math.Acos(cosTheta)
 		state.currReflectionFactor *= calculateReflectionFactor(theta, "medium-dry-ground")
 		state.z = 0
@@ -151,6 +152,7 @@ func (rl *RayLaunching3D) handleRoofReflection(state *RayState, index int) bool 
 
 		nx, ny, nz := 0.0, 0.0, 1.0
 		cosTheta := -(state.dx*nx + state.dy*ny + state.dz*nz)
+		cosTheta = rl.clampCosTheta(cosTheta)
 		theta := math.Acos(cosTheta)
 		state.currReflectionFactor *= calculateReflectionFactor(theta, "concrete")
 		return true
@@ -206,6 +208,7 @@ func (rl *RayLaunching3D) updatePowerMap(state *RayState, xIdx, yIdx, zIdx int) 
 
 	d1 := state.toDiffractionPointRayLength
 	d2 := state.currRayLength - state.toDiffractionPointRayLength
+
 	lambda := rl.Config.WaveLength
 	rel := float64(state.diffRayIndex) / float64(rl.Config.DiffractionRayNumber-1)
 	alpha := rel * state.diffTheta
@@ -213,8 +216,15 @@ func (rl *RayLaunching3D) updatePowerMap(state *RayState, xIdx, yIdx, zIdx int) 
 
 	state.diffLossLdB = baseLoss
 	H := calculateTransmittance(state.currRayLength, rl.Config.WaveLength, state.currReflectionFactor)
-	state.currPower = 10*math.Log10(rl.Config.TransmitterPower) + 20*math.Log10(cmplx.Abs(H)) - state.diffLossLdB
-
+	absH := cmplx.Abs(H)
+	if absH <= 0 {
+		absH = 1e-15
+	}
+	txPower := rl.Config.TransmitterPower
+	if txPower <= 0 {
+		txPower = 1e-15
+	}
+	state.currPower = 10*math.Log10(txPower) + 20*math.Log10(absH) - state.diffLossLdB
 	// println("baseLoss: ", baseLoss, "rayIndex: ", state.diffRayIndex)
 	// println("currPorwe: ", state.currPower)
 
@@ -507,7 +517,9 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				}
 
 				if (index == rl.Config.CornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) || (index == rl.Config.RoofCornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber && !(state.currWallIndex >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber)) {
-
+					if rl.Config.DiffractionRayNumber < 2 {
+						break
+					}
 					nextXIdx, nextYIdx, nextZIdx := rl.getMapIndices(state.x+state.dx, state.y+state.dy, state.z+state.dz)
 					// fmt.Println("NextXIdx: ", nextXIdx, "NextYIdx: ", nextYIdx, "NextZIdx: ", nextZIdx)
 					if nextZIdx < 0 || !rl.isValidPosition(float64(nextXIdx), float64(nextYIdx), float64(nextZIdx)) {
@@ -590,11 +602,14 @@ func calculateReflectionFactor(angle float64, material string) float64 {
 	if cosTheta < -1 {
 		cosTheta = -1
 	}
-	root := math.Sqrt(eta - sinTheta*sinTheta)
+	v := eta - sinTheta*sinTheta
+	if v < 0 {
+		v = 0
+	}
+	root := math.Sqrt(v)
 	R_TE := (cosTheta - root) / (cosTheta + root)
 	R_TM := (eta*cosTheta - root) / (eta*cosTheta + root)
 	reflectionFactor := (math.Pow(R_TE, 2) + math.Pow(R_TM, 2)) / 2
-	// println("ANGLE: ", angle, "root: ", root, "R_TE: ", R_TE, " R_TM: ", R_TM, " reflectionFactor ", reflectionFactor)
 	return reflectionFactor
 }
 
@@ -721,4 +736,12 @@ func AngularDiffractionLoss(rayIdx, nRays int, maxAngleRad, n float64) float64 {
 
 	additionalLoss := -20 * n * math.Log10(cosPhi)
 	return additionalLoss
+}
+
+func checkNaN(label string, value float64) bool {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		fmt.Printf("⚠️ NaN detected at %s: %v\n", label, value)
+		return true
+	}
+	return false
 }
