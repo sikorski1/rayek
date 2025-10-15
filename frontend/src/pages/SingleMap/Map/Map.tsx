@@ -75,7 +75,7 @@ export default function Map({
 				properties: {},
 				geometry: {
 					type: "Point",
-					coordinates: stationPos as Position,
+					coordinates: stationPos as unknown as Position,
 				},
 			},
 		],
@@ -93,7 +93,7 @@ export default function Map({
 		return rendererRef.current;
 	};
 
-	const createSafeRenderFunction = (originalRender: Function, layerId: string) => {
+	const createSafeRenderFunction = (originalRender: Function, _layerId: string) => {
 		return (gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
 			if (renderStateRef.current.isRendering) {
 				renderStateRef.current.pendingRenders.add(() => originalRender(gl, matrix));
@@ -271,7 +271,7 @@ export default function Map({
 				type: "custom",
 				renderingMode: "3d",
 				onAdd: () => {},
-				render: createSafeRenderFunction((gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+				render: createSafeRenderFunction((_gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
 					const renderer = getSharedRenderer();
 					if (!renderer) return;
 
@@ -369,7 +369,7 @@ export default function Map({
 			towerModelTransform.scale = towerModelAsMercatorCoordinate.meterInMercatorCoordinateUnits() * 5;
 		}
 
-		function onUp(e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
+		function onUp(_e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) {
 			if (lastValidCoords) {
 				handleStationPosUpdate(lastValidCoords);
 			}
@@ -400,7 +400,8 @@ export default function Map({
 				type: "custom",
 				renderingMode: "3d",
 				onAdd: () => {},
-				render: createSafeRenderFunction((gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+				render: createSafeRenderFunction((_gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
+					
 					const renderer = getSharedRenderer();
 					if (!renderer) return;
 

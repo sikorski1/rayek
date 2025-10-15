@@ -1,0 +1,17 @@
+
+services:
+  backend:
+    build: ./backend
+    container_name: rayek-backend
+    ports:
+      - "3000:3000"
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: rayek-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: always

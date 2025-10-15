@@ -1,6 +1,6 @@
 import { Maps } from "@/types/main";
 import { url } from "@/utils/url";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 const fetchMaps = async () => {
 	try {
@@ -18,17 +18,6 @@ const fetchMapById = async (mapTitle: string) => {
 	} catch (error) {
 		console.error(`Error fetching maps`, error);
 		throw new Error(`Failed to fetch maps`);
-	}
-};
-const fetchWallMatrix = async (mapTitle: string): Promise<Float64Array> => {
-	try {
-		const response = await axios.get(`${url}/maps/wallmatrix/${mapTitle}`, {
-			responseType: "arraybuffer",
-		});
-		return new Float64Array(response.data);
-	} catch (error) {
-		console.error(`Error fetching wall matrix`, error);
-		throw new Error("Failed to fetch wall matrix");
 	}
 };
 
@@ -60,7 +49,7 @@ export const useGetMapById = (mapTitle: string) => {
 
 
 export const useRayLaunching = (handleOnSuccess:(data:any) => void) => {
-	const queryClient = useQueryClient();
+
 	return useMutation({
 		mutationFn: startRayLaunching,
 		onSuccess: (data) => {

@@ -57,9 +57,9 @@ export default function SingleMap() {
 	const [powerMapData, setPowerMapData] = useState<any>(null);
 	const [powerMapLegend, setPowerMapLegend] = useState<PowerMapLegendType>(defaultPowerMapLegend);
 	const { id } = useParams();
-	const { data, isLoading, error } = useGetMapById(id!);
+	const { data, isLoading } = useGetMapById(id!);
 
-	const handleStationPosUpdate = (stationPos: mapboxgl.LngLatLike) => {
+	const handleStationPosUpdate = (stationPos: [number, number]) => {
 		setSettingsData(prev => {
 			const updatedSingleMapData = { ...prev, stationPos: stationPos };
 			return updatedSingleMapData;
@@ -99,7 +99,7 @@ export default function SingleMap() {
 		const form = event.currentTarget;
 		const formData = new FormData(form);
 
-		const updatedSettingsData: Omit<SettingsDataTypes, "settingsType" | "singleRays" | "isOpen"> = {
+		const updatedSettingsData: Omit<SettingsDataTypes, "settingsType" | "singleRays" | "isOpen" | "isPowerMapVisible" | "powerMapHeight"> = {
 			numberOfRaysAzimuth: Number(formData.get("raysAzimuth")),
 			numberOfRaysElevation: Number(formData.get("raysElevation")),
 			frequency: Number(formData.get("frequency")),
@@ -294,7 +294,6 @@ export default function SingleMap() {
 										const normalized = getNormalizedValueFromLabel(power);
 										const color = getHeatMapColor(normalized);
 										const [main, unit] = power.split(/(dbm)/gi);
-										const colorRGB = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
 
 										return (
 											<div className={styles.powerRangeEntry} key={power}>
