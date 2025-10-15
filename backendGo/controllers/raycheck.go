@@ -191,17 +191,17 @@ func ComputeRays(context *gin.Context) {
 }
 
 type RayLaunchRequest struct {
-	StationPos            TransmitterPos3D `json:"stationPos"`
-	NumberOfRaysAzimuth   int              `json:"numberOfRaysAzimuth"`
-	NumberOfRaysElevation int              `json:"numberOfRaysElevation"`
-	Frequency             float64          `json:"frequency"`
-	ReflectionFactor      float64          `json:"reflectionFactor"`
-	NumberOfInteractions  int              `json:"numberOfInteractions"`
-	StationPower          float64          `json:"stationPower"`
-	MinimalRayPower       float64          `json:"minimalRayPower"`
-	SingleRays            []SingleRay      `json:"singleRays"`
-	Size                  int              `json:"size"`
-	DiffractionRayNumber  int              `json:"diffractionRayNumber"`
+	NumberOfRaysAzimuth   int         `json:"numberOfRaysAzimuth" binding:"required,min=1,max=1440"`
+	NumberOfRaysElevation int         `json:"numberOfRaysElevation" binding:"required,min=1,max=1440"`
+	NumberOfInteractions  int         `json:"numberOfInteractions" binding:"required,min=1,max=10"`
+	ReflectionFactor      float64     `json:"reflectionFactor" binding:"required,gte=0,lte=1"`
+	StationPower          float64     `json:"stationPower" binding:"required,gte=0.1,lte=100"`
+	MinimalRayPower       float64     `json:"minimalRayPower" binding:"required,gte=-160,lte=-60"`
+	Frequency             float64     `json:"frequency" binding:"required,gte=0.1,lte=100"`
+	Size                  int         `json:"size" binding:"required,oneof=250 400 500"`
+	StationPos            Point3D     `json:"stationPos" binding:"required"`
+	SingleRays            []SingleRay `json:"singleRays" binding:"omitempty,dive,required"`
+	DiffractionRayNumber  int         `json:"diffractionRayNumber" binding:"required,min=1,max=120"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
