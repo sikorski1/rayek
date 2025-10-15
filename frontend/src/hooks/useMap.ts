@@ -58,13 +58,6 @@ export const useGetMapById = (mapTitle: string) => {
 	return useQuery({ queryKey: ["map", mapTitle], queryFn: () => fetchMapById(mapTitle) });
 };
 
-export const useWallMatrix = (mapTitle: string) => {
-	return useQuery({
-		queryKey: ["wallMatrix", mapTitle],
-		queryFn: () => fetchWallMatrix(mapTitle),
-		enabled: !!mapTitle,
-	});
-};
 
 export const useRayLaunching = (handleOnSuccess:(data:any) => void) => {
 	const queryClient = useQueryClient();

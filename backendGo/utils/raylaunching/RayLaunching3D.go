@@ -3,7 +3,6 @@ package raylaunching
 import (
 	. "backendGo/types"
 	"fmt"
-
 	"math"
 	"math/cmplx"
 )

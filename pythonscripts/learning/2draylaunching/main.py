@@ -23,27 +23,23 @@ class RayLaunching:
         self.grid_size = int(room_size / step)
         self.power_map = np.zeros((self.grid_size, self.grid_size))
         
-        # Definicja ścian pomieszczenia
         self.walls = [
-            Wall(Point(0, 0), Point(room_size, 0)),  # dolna
-            Wall(Point(room_size, 0), Point(room_size, room_size)),  # prawa
-            Wall(Point(room_size, room_size), Point(0, room_size)),  # górna
-            Wall(Point(0, room_size), Point(0, 0))  # lewa
+            Wall(Point(0, 0), Point(room_size, 0)),  
+            Wall(Point(room_size, 0), Point(room_size, room_size)),  
+            Wall(Point(room_size, room_size), Point(0, room_size)),  
+            Wall(Point(0, room_size), Point(0, 0)) 
         ]
         
     def calculate_intersection(self, ray_start: Point, ray_angle: float, wall: Wall) -> Tuple[bool, Point]:
-        # Parametryczne równanie promienia
         dx = np.cos(ray_angle)
         dy = np.sin(ray_angle)
         
-        # Parametryczne równanie ściany
         wall_dx = wall.end.x - wall.start.x
         wall_dy = wall.end.y - wall.start.y
         
-        # Wyznacznik
         det = dx * (-wall_dy) - dy * (-wall_dx)
         
-        if abs(det) < 1e-6:  # Linie równoległe
+        if abs(det) < 1e-6: 
             return False, Point(0, 0)
             
         t = ((wall.start.x - ray_start.x) * (-wall_dy) - (wall.start.y - ray_start.y) * (-wall_dx)) / det
@@ -62,7 +58,7 @@ class RayLaunching:
         return -incident_angle
     
     def simulate(self, source: Point, power: float = 1.0, angle_step: float = np.pi/180):
-        self.source = source  # Zapisz źródło do późniejszej wizualizacji
+        self.source = source  
         for angle in np.arange(0, 2*np.pi, angle_step):
             self.trace_ray(source, angle, power)
     
@@ -71,8 +67,8 @@ class RayLaunching:
         current_angle = angle
         current_power = power
         
-        while current_power > 0.01:  # Minimalna wartość mocy do śledzenia
-            # Znajdź najbliższą kolizję
+        while current_power > 0.01: 
+          
             min_distance = float('inf')
             closest_wall = None
             intersection_point = None
@@ -86,19 +82,18 @@ class RayLaunching:
                         closest_wall = wall
                         intersection_point = point
             
-            # Dodaj moc do mapy wzdłuż promienia
+         
             self.add_power_along_ray(current_point, intersection_point, current_power)
             
             if closest_wall is None:
                 break
                 
-            # Oblicz odbicie
+        
             reflection_angle = self.calculate_reflection_angle(current_angle, closest_wall)
-            
-            # Przygotuj do następnej iteracji
+        
             current_point = intersection_point
             current_angle = reflection_angle
-            current_power *= 0.5  # Tłumienie przy odbiciu
+            current_power *= 0.5  
     
     def add_power_along_ray(self, start: Point, end: Point, power: float):
         if end is None:
@@ -112,33 +107,29 @@ class RayLaunching:
             x = start.x + t * (end.x - start.x)
             y = start.y + t * (end.y - start.y)
             
-            # Konwersja na indeksy siatki
             grid_x = int(x / self.step)
             grid_y = int(y / self.step)
             
             if 0 <= grid_x < self.grid_size and 0 <= grid_y < self.grid_size:
-                # Dodaj moc z uwzględnieniem tłumienia wraz z odległością
+              
                 distance_from_start = np.sqrt((x - start.x)**2 + (y - start.y)**2)
-                local_power = power / (1 + distance_from_start)  # Proste tłumienie
+                local_power = power / (1 + distance_from_start)  #
                 self.power_map[grid_y, grid_x] += local_power
 
     def visualize(self):
         plt.figure(figsize=(10, 10))
         
-        # Wyświetl mapę mocy
         plt.imshow(self.power_map, 
                   extent=[0, self.room_size, 0, self.room_size],
                   origin='lower',
                   cmap='jet')
         plt.colorbar(label='Moc sygnału')
         
-        # Narysuj ściany
         for wall in self.walls:
             plt.plot([wall.start.x, wall.end.x], 
                     [wall.start.y, wall.end.y], 
                     'k-', linewidth=2, label='Ściany')
         
-        # Narysuj źródło sygnału
         plt.plot(self.source.x, self.source.y, 'r*', markersize=15, label='Nadajnik')
         
         plt.title('Mapa mocy sygnału')
@@ -149,16 +140,12 @@ class RayLaunching:
         plt.show()
 
 def main():
-    # Stwórz symulator
     simulator = RayLaunching(room_size=20.0, step=0.1)
     
-    # Ustaw źródło w środku pomieszczenia
     source = Point(10.0, 10.0)
     
-    # Przeprowadź symulację
     simulator.simulate(source, power=1.0, angle_step=np.pi/180)
     
-    # Wyświetl wyniki
     simulator.visualize()
 
 if __name__ == "__main__":
