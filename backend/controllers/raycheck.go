@@ -132,7 +132,7 @@ type RayLaunchRequest struct {
 	Size                  int         `json:"size" binding:"required,oneof=250 400 500"`
 	StationPos            Point3D     `json:"stationPos" binding:"required"`
 	SingleRays            []SingleRay `json:"singleRays" binding:"omitempty,dive,required"`
-	DiffractionRayNumber  int         `json:"diffractionRayNumber" binding:"required,min=0,max=120"`
+	DiffractionRayNumber  int         `json:"diffractionRayNumber" binding:"omitempty,gte=0,lte=120"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
