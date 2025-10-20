@@ -39,9 +39,9 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						label: "STATION POWER (watt)",
 						name: "stationPower",
 						value: formData.stationPower,
-						min: 0.1,
+						min: 0.01,
 						max: 100,
-						step: 0.1,
+						step: 0.01,
 						toolTipText:
 							"Specifies the transmission power of the station in watts. Affects the signal strength and propagation range.",
 					},
@@ -69,7 +69,7 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 						label: "DIFFRACTION RAY NUMBER",
 						name: "diffractionRayNumber",
 						value: formData.diffractionRayNumber,
-						min: 1,
+						min: 0,
 						max: 120,
 						step: 1,
 						toolTipText:

@@ -126,13 +126,13 @@ type RayLaunchRequest struct {
 	NumberOfRaysElevation int         `json:"numberOfRaysElevation" binding:"required,min=1,max=1440"`
 	NumberOfInteractions  int         `json:"numberOfInteractions" binding:"required,min=1,max=10"`
 	ReflectionFactor      float64     `json:"reflectionFactor" binding:"required,gte=0,lte=1"`
-	StationPower          float64     `json:"stationPower" binding:"required,gte=0.1,lte=100"`
+	StationPower          float64     `json:"stationPower" binding:"required,gte=0.01,lte=100"`
 	MinimalRayPower       float64     `json:"minimalRayPower" binding:"required,gte=-160,lte=-60"`
 	Frequency             float64     `json:"frequency" binding:"required,gte=0.1,lte=100"`
 	Size                  int         `json:"size" binding:"required,oneof=250 400 500"`
 	StationPos            Point3D     `json:"stationPos" binding:"required"`
 	SingleRays            []SingleRay `json:"singleRays" binding:"omitempty,dive,required"`
-	DiffractionRayNumber  int         `json:"diffractionRayNumber" binding:"required,min=1,max=120"`
+	DiffractionRayNumber  int         `json:"diffractionRayNumber" binding:"required,min=0,max=120"`
 }
 
 func Create3DRayLaunching(context *gin.Context) {
@@ -164,7 +164,12 @@ func Create3DRayLaunching(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load matrix"})
 		return
 	}
-
+	var diffRayNum int
+	if request.DiffractionRayNumber == 0 {
+		diffRayNum = 1
+	} else {
+		diffRayNum = request.DiffractionRayNumber
+	}
 	config := raylaunching.RayLaunching3DConfig{
 		NumOfRaysAzim:         request.NumberOfRaysAzimuth,
 		NumOfRaysElev:         request.NumberOfRaysElevation,
@@ -185,7 +190,7 @@ func Create3DRayLaunching(context *gin.Context) {
 		WaveLength:            0,
 		TransmitterPos:        Point3D{X: request.StationPos.X, Y: request.StationPos.Y, Z: request.StationPos.Z},
 		SingleRays:            request.SingleRays,
-		DiffractionRayNumber:  request.DiffractionRayNumber,
+		DiffractionRayNumber:  diffRayNum,
 	}
 	config.WaveLength = 299792458 / (config.TransmitterFreq)
 	start := time.Now()
