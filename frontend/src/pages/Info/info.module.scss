@@ -1,0 +1,62 @@
+@use "@/constants/colors" as *;
+@use "@/constants/mixins" as *;
+.box {
+	background: #dddddd;
+	min-height: 100vh;
+	color: $white;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	padding: 4rem 2rem;
+}
+
+.container {
+	max-width: 1200px;
+	width: 100%;
+}
+
+.section {
+	margin-bottom: 4rem;
+	padding: 3rem;
+	background: $black-gradient;
+	backdrop-filter: blur(6px);
+	@include shadow-strong();
+	transition: transform 0.3s ease;
+
+	&:hover {
+		transform: translateY(-4px);
+	}
+}
+
+.subtitle {
+	font-size: 3rem;
+	color: $green-200;
+	margin-bottom: 1rem;
+}
+
+.section p {
+	color: $white-shadow;
+	line-height: 3.6rem;
+	font-size: 2.4rem;
+
+	strong {
+		color: $green-200;
+	}
+}
+
+.list {
+	margin-top: 1rem;
+	padding-left: 1.5rem;
+	color: $white-shadow;
+
+	li {
+		margin-bottom: 4rem;
+		font-size: 2.2rem;
+		line-height: 2rem;
+		list-style-type: "▸ ";
+		list-style-position: inside;
+		strong {
+			color: $green-300;
+		}
+	}
+}

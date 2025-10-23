@@ -30,6 +30,11 @@
 			opacity: 1;
 		}
 	}
+	.buttonsBoxMain {
+		display: flex;
+		gap: 2rem;
+	}
+
 	.name {
 		margin-bottom: 2rem;
 		font-size: 12rem;
@@ -40,6 +45,25 @@
 	.buttonsBox {
 		display: flex;
 		gap: 2rem;
+	}
+	.infoBox {
+		position: absolute;
+		bottom: 4rem;
+		left: 4rem;
+	}
+	.infoLink {
+		@include shadow-strong();
+		@include shadow-strong-hover-clickable(black, $green-400, $white);
+		width: 64px;
+		height: 64px;
+		font-size: 4rem;
+		color: $green-400;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 100%;
+		text-decoration: none;
+		font-family: "Nunito";
 	}
 	.link {
 		position: relative;

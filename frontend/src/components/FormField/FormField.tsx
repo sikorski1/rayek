@@ -9,8 +9,10 @@ interface FormFieldProps {
 	placeholder?: string;
 	min?: number;
 	max?: number;
+	value?: number;
 	step?: number;
 	required?: boolean;
+	onChange?: (value: any) => void;
 }
 
 import { motion } from "framer-motion";
@@ -30,14 +32,17 @@ const FormField: React.FC<FormFieldProps & { index?: number }> = ({
 	label,
 	name,
 	type = "number",
-	defaultValue,
+	value,
 	placeholder,
 	min,
 	max,
 	step,
 	required = false,
 	index = 0,
+	onChange,
 }) => {
+	const inputProps = onChange ? { value: value } : { defaultValue: value };
+
 	return (
 		<>
 			<motion.label
@@ -52,7 +57,7 @@ const FormField: React.FC<FormFieldProps & { index?: number }> = ({
 				id={name}
 				name={name}
 				type={type}
-				defaultValue={defaultValue}
+				{...inputProps}
 				placeholder={placeholder}
 				className={styles.input}
 				min={min}
@@ -63,6 +68,11 @@ const FormField: React.FC<FormFieldProps & { index?: number }> = ({
 				initial="initial"
 				animate="animate"
 				custom={index}
+				onChange={e => {
+					if (onChange) {
+						onChange(parseFloat(e.target.value) || 0);
+					}
+				}}
 			/>
 		</>
 	);

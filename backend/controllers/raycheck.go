@@ -122,8 +122,8 @@ func GetMapById(context *gin.Context) {
 }
 
 type RayLaunchRequest struct {
-	NumberOfRaysAzimuth   int         `json:"numberOfRaysAzimuth" binding:"required,min=1,max=1440"`
-	NumberOfRaysElevation int         `json:"numberOfRaysElevation" binding:"required,min=1,max=1440"`
+	NumberOfRaysAzimuth   int         `json:"numberOfRaysAzimuth" binding:"required,min=1,max=2879"`
+	NumberOfRaysElevation int         `json:"numberOfRaysElevation" binding:"required,min=1,max=2879"`
 	NumberOfInteractions  int         `json:"numberOfInteractions" binding:"required,min=1,max=10"`
 	ReflectionFactor      float64     `json:"reflectionFactor" binding:"required,gte=0,lte=1"`
 	StationPower          float64     `json:"stationPower" binding:"required,gte=0.01,lte=100"`
@@ -134,6 +134,8 @@ type RayLaunchRequest struct {
 	SingleRays            []SingleRay `json:"singleRays" binding:"omitempty,dive,required"`
 	DiffractionRayNumber  int         `json:"diffractionRayNumber" binding:"omitempty,gte=0,lte=120"`
 }
+
+const MaxTotalRays = 2880
 
 func Create3DRayLaunching(context *gin.Context) {
 	mapTitle := context.Param("mapTitle")
@@ -148,6 +150,16 @@ func Create3DRayLaunching(context *gin.Context) {
 	if err != nil {
 		log.Println(err)
 	}
+
+	totalRays := request.NumberOfRaysAzimuth + request.NumberOfRaysElevation
+	if totalRays > MaxTotalRays {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Total number of rays (%d) exceeds maximum limit (%d). Azimuth: %d, Elevation: %d",
+				totalRays, MaxTotalRays, request.NumberOfRaysAzimuth, request.NumberOfRaysElevation),
+		})
+		return
+	}
+	
 	var matrixInt [][][]int16
 	err = calculations.LoadMatrixBinary(filepath.Join(cwd, "data", mapTitle, "wallsMatrix3D_floor.bin"), &matrixInt)
 	if err != nil {
@@ -184,9 +196,9 @@ func Create3DRayLaunching(context *gin.Context) {
 		SizeZ:                 30 - 1,
 		Step:                  1.0,
 		ReflFactor:            request.ReflectionFactor,
-		TransmitterPower:      request.StationPower,    
-		MinimalRayPower:       request.MinimalRayPower, 
-		TransmitterFreq:       request.Frequency * 1e9, 
+		TransmitterPower:      request.StationPower,
+		MinimalRayPower:       request.MinimalRayPower,
+		TransmitterFreq:       request.Frequency * 1e9,
 		WaveLength:            0,
 		TransmitterPos:        Point3D{X: request.StationPos.X, Y: request.StationPos.Y, Z: request.StationPos.Z},
 		SingleRays:            request.SingleRays,

@@ -3,6 +3,7 @@ import FormField from "@/components/FormField/FormField";
 import ToolTip from "@/components/ToolTip/ToolTip";
 import { SettingsDataTypes } from "@/types/main";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import styles from "./globalsettings.module.scss";
 type Props = {
 	formData: SettingsDataTypes;
@@ -20,7 +21,13 @@ const itemVariants = {
 		},
 	}),
 };
+const MAX_TOTAL_RAYS = 2880;
 export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
+	const [raysAzimuth, setRaysAzimuth] = useState(formData.numberOfRaysAzimuth);
+	const [raysElevation, setRaysElevation] = useState(formData.numberOfRaysElevation);
+
+	const maxAzimuth = MAX_TOTAL_RAYS - raysElevation;
+	const maxElevation = MAX_TOTAL_RAYS - raysAzimuth;
 	return (
 		<form id="global-form" onSubmit={handleFormSubmit} className={styles.formBox}>
 			<div className={styles.formInputBox}>
@@ -28,10 +35,11 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 					{
 						label: "RAYS AZIMUTH",
 						name: "raysAzimuth",
-						value: formData.numberOfRaysAzimuth,
+						value: raysAzimuth,
 						min: 1,
-						max: 1440,
+						max: maxAzimuth,
 						step: 1,
+						onChange: (value: number) => setRaysAzimuth(value),
 						toolTipText:
 							"Defines the number of rays distributed horizontally (azimuth plane). Higher values increase precision but also computation time.",
 					},
@@ -83,10 +91,12 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 							label={field.label}
 							name={field.name}
 							defaultValue={field.value}
+							value={field.value}
 							placeholder={`Enter ${field.label.toLowerCase()}`}
 							min={field.min}
 							max={field.max}
 							step={field.step}
+							onChange={field.onChange}
 							required
 						/>
 					</div>
@@ -98,10 +108,11 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 					{
 						label: "RAYS ELEVATION",
 						name: "raysElevation",
-						value: formData.numberOfRaysElevation,
+						value: raysElevation,
 						min: 1,
-						max: 1440,
+						max: maxElevation,
 						step: 1,
+						onChange: (value: number) => setRaysElevation(value),
 						toolTipText:
 							"Defines the number of rays distributed vertically (elevation plane). More rays improve 3D accuracy but require more processing.",
 					},
@@ -143,10 +154,12 @@ export default function GlobalSettings({ formData, handleFormSubmit }: Props) {
 							label={field.label}
 							name={field.name}
 							defaultValue={field.value}
+							value={field.value}
 							placeholder={`Enter ${field.label.toLowerCase()}`}
 							min={field.min}
 							max={field.max}
 							step={field.step}
+							onChange={field.onChange}
 							required
 						/>
 					</div>

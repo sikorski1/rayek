@@ -1,0 +1,86 @@
+@use "@/constants/colors" as *;
+@use "@/constants/mixins" as *;
+.panel {
+	@include glassmorphism(#ffffff8a, 4px);
+	@include shadow-strong();
+	position: absolute;
+	bottom: 4rem;
+	left: 25rem;
+    width: 270px;
+	padding: 0.6rem 0.8rem;
+	color: $green-400;
+}
+
+.header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.title {
+	font-size: 1.6rem;
+}
+
+.closeButton {
+	background: none;
+	border: none;
+	font-size: 2.4rem;
+	padding: 0 4px;
+	line-height: 1;
+	color: $green-400;
+	transition: color 0.2s;
+	cursor: pointer;
+	&:hover {
+		color: #000;
+	}
+	&:active {
+		transform: scale(0.95);
+	}
+}
+
+.content {
+	display: grid;
+	gap: 4px;
+}
+
+.row {
+	display: flex;
+	gap: 6px;
+}
+
+.label {
+	color: $green-400;
+	font-weight: 600;
+}
+
+.coordinates,
+.index {
+	font-size: 1.4rem;
+	color: $green-400;
+	font-weight: 600;
+}
+
+.coordinates {
+	margin-top: 4px;
+}
+
+.colorWall {
+	color: #999;
+}
+
+.colorStrong {
+	color: #e74c3c;
+}
+
+.colorGood {
+	color: #f39c12;
+}
+
+.colorMedium {
+	color: #27ae60;
+}
+
+.colorWeak {
+	color: #3498db;
+}

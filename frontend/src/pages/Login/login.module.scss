@@ -1,0 +1,53 @@
+@use "@/constants/colors" as *;
+@use "@/constants/mixins" as *;
+.loginBox {
+	background: $white-strong;
+	color: $white;
+	min-height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.form {
+	@include glassmorphism(#ffffff1a, 4px);
+	@include shadow-strong();
+	width: 400px;
+	height: 250px;
+	padding: 2rem 3rem;
+	text-align: center;
+}
+
+.title {
+	color: $green-300;
+	font-size: 4rem;
+	margin-bottom: 1.5rem;
+}
+
+.input {
+	@include shadow-strong();
+	@include shadow-strong-hover-input($green-400);
+	width: 100%;
+	padding: 0.7rem 1rem;
+	margin-bottom: 1rem;
+	font-size: 2rem;
+	text-align: center;
+}
+
+.btn {
+	@include shadow-strong();
+	@include shadow-strong-hover-clickable(black, $green-400, $white);
+	margin-top: 1rem;
+	padding: 0.6rem 1.2rem;
+	font-size: 2rem;
+	cursor: pointer;
+	transition: 0.2s;
+}
+
+.error {
+    height: 1.6rem;
+	color: $red;
+	font-size: 1.6rem;
+	margin-bottom: 0.5rem;
+}

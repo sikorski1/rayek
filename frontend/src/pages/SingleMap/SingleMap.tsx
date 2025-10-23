@@ -1,4 +1,5 @@
 import SpinWifi from "@/components/Loaders/SpinWifi";
+import LogoutButton from "@/components/LogoutButton/LogoutButton";
 import GlobalSettings from "@/components/Modal/GlobalSettings/GlobalSettings";
 import Modal from "@/components/Modal/Modal";
 import SingleRaySettings from "@/components/Modal/SingleRaySettings/SingleRaySettings";
@@ -15,7 +16,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useMemo, useState } from "react";
 import { IoMdSettings } from "react-icons/io";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
 const initialSettingsData: SettingsDataTypes = {
 	settingsType: "global",
@@ -303,12 +304,18 @@ export default function SingleMap() {
 												<div
 													className={styles.powerCircle}
 													style={{
-														backgroundColor: `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`,
+														backgroundColor: `rgb(${color.r * 255}, ${color.g * 255}, ${
+															color.b * 255
+														})`,
 													}}
 												/>
 												<p className={styles.powerRangeText}>
 													{main}
-													{unit && <span style={{ fontSize: "0.70em", marginLeft: 1 }}>[{unit}]</span>}
+													{unit && (
+														<span style={{ fontSize: "0.70em", marginLeft: 1 }}>
+															[{unit}]
+														</span>
+													)}
 												</p>
 												<p className={styles.percentageText}>{percentage.toFixed(2)}%</p>
 											</div>
@@ -321,7 +328,8 @@ export default function SingleMap() {
 								<>
 									<p>Station position</p>
 									<p>
-										Longitude: {parseFloat(settingsData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
+										Longitude:{" "}
+										{parseFloat(settingsData.stationPos.toString().split(",")[0]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
 												settingsData.stationPos[0] as unknown as number,
@@ -335,7 +343,8 @@ export default function SingleMap() {
 										}{" "}
 									</p>
 									<p>
-										Latitude: {parseFloat(settingsData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
+										Latitude:{" "}
+										{parseFloat(settingsData.stationPos.toString().split(",")[1]).toFixed(6)} |{" "}
 										{
 											geoToMatrixIndex(
 												settingsData.stationPos[0] as unknown as number,
@@ -348,7 +357,6 @@ export default function SingleMap() {
 											).j
 										}
 									</p>
-									{matrixIndexValue && <p>index: {matrixIndexValue}</p>}
 								</>
 							)}
 						</div>
@@ -360,17 +368,14 @@ export default function SingleMap() {
 							initial={{ opacity: 0, y: -20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5 }}>
-							<div className={styles.onOffBox}>
-								<button onClick={handleOnOffPowerMap} className={styles.onOffBtn}>
-									{settingsData.isPowerMapVisible ? "ON" : "OFF"}
-								</button>
-							</div>
-							<label>Height: {settingsData.powerMapHeight}m</label>
+							<label>Height {settingsData.powerMapHeight}m</label>
 							<input
 								className={styles.slider}
 								type="range"
 								value={settingsData.powerMapHeight}
-								onChange={e => setSettingsData(prev => ({ ...prev, powerMapHeight: Number(e.target.value) }))}
+								onChange={e =>
+									setSettingsData(prev => ({ ...prev, powerMapHeight: Number(e.target.value) }))
+								}
 								min={0}
 								max={29}
 							/>
@@ -389,6 +394,12 @@ export default function SingleMap() {
 					<button onClick={handleComputeBtn} className={styles.computeBtn}>
 						raylaunch
 					</button>
+					<div className={styles.infoBox}>
+						<LogoutButton />
+						<Link to="/info" className={styles.infoLink}>
+							i
+						</Link>
+					</div>
 				</div>
 			)}
 		</>

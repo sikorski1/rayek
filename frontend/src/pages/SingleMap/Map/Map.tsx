@@ -1,11 +1,14 @@
+import PowerInfoMarker from "@/components/PowerMapInfo/PowerInfoMarker";
+import PowerInfoPanel from "@/components/PowerMapInfo/PowerInfoPanel";
 import { MapTypesExtended } from "@/types/main";
 import { geoToMatrixIndex } from "@/utils/geoToMatrixIndex";
 import { getHeatMapColor } from "@/utils/getHeatMapColor";
 import { getMatrixValue } from "@/utils/getMatrixValue";
+import { normalizePower } from "@/utils/normalizePower";
 import { FeatureCollection, Position } from "geojson";
 import mapboxgl, { CustomLayerInterface, LngLatLike } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
@@ -17,15 +20,6 @@ const checkBounds = (coords: number[], bounds: number[][]) => {
 	} else {
 		return false;
 	}
-};
-
-const normalizePower = (value: number) => {
-	const minPowerDb = -160;
-	const maxPowerDb = -0.1;
-
-	const clamped = Math.max(minPowerDb, Math.min(maxPowerDb, value));
-
-	return (clamped - minPowerDb) / (maxPowerDb - minPowerDb);
 };
 
 export default function Map({
@@ -44,6 +38,14 @@ export default function Map({
 	powerMapHeight,
 	isPowerMapVisible,
 }: MapTypesExtended) {
+	const [clickedPowerInfo, setClickedPowerInfo] = useState<{
+		lng: number;
+		lat: number;
+		power: number;
+		x: number;
+		y: number;
+		buildingHeight: number | null;
+	} | null>(null);
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<mapboxgl.Map | null>(null);
 	const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -113,6 +115,7 @@ export default function Map({
 			}
 		};
 	};
+
 	useEffect(() => {
 		if (powerMapUpdateTimeoutRef.current) {
 			clearTimeout(powerMapUpdateTimeoutRef.current);
@@ -159,22 +162,26 @@ export default function Map({
 
 							const index = (y * width + x) * 4;
 							if (value === -160) {
-								data[index] = 255; // r
-								data[index + 1] = 255; // g
-								data[index + 2] = 255; // b
-								data[index + 3] = 100; // pełna nieprzezroczystość
+								data[index] = 255;
+								data[index + 1] = 255;
+								data[index + 2] = 255;
+								data[index + 3] = 80; 
 							} else if (value > 0) {
-								data[index] = 255; // r
-								data[index + 1] = 0; // g
-								data[index + 2] = 0; // b
-								data[index + 3] = 150;
+								data[index] = 255;
+								data[index + 1] = 0;
+								data[index + 2] = 0;
+								data[index + 3] = 120; 
 							} else {
 								const normalized = normalizePower(value);
 								const color = getHeatMapColor(normalized);
 								data[index] = color.r * 255;
 								data[index + 1] = color.g * 255;
 								data[index + 2] = color.b * 255;
-								data[index + 3] = normalized * 240;
+								const alpha =
+									normalized < 0.3
+										? 60 + normalized * 200 
+										: 120 + normalized * 60; 
+								data[index + 3] = alpha;
 							}
 						}
 					}
@@ -401,7 +408,6 @@ export default function Map({
 				renderingMode: "3d",
 				onAdd: () => {},
 				render: createSafeRenderFunction((_gl: WebGLRenderingContext, matrix: THREE.Matrix4) => {
-					
 					const renderer = getSharedRenderer();
 					if (!renderer) return;
 
@@ -599,5 +605,94 @@ export default function Map({
 		};
 	}, [stationHeight]);
 
-	return <div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>;
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map) return;
+
+		const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
+			const coords = e.lngLat;
+			const lng = parseFloat(coords.lng.toFixed(6));
+			const lat = parseFloat(coords.lat.toFixed(6));
+
+			if (!checkBounds([lng, lat], bounds as number[][])) {
+				setClickedPowerInfo(null);
+				return;
+			}
+
+			const { i, j } = geoToMatrixIndex(
+				lng,
+				lat,
+				coordinates[0][0][0],
+				coordinates[0][2][0],
+				coordinates[0][0][1],
+				coordinates[0][2][1],
+				size
+			);
+			let buildingHeight: number | null = null;
+			if (wallMatrix && i >= 0 && j >= 0 && i < size && j < size) {
+				const depth = 30;
+				for (let z = depth - 1; z >= 0; z--) {
+					const value = getMatrixValue(wallMatrix, i, j, z, size, size, depth);
+					if (value && value >= 5000) {
+						buildingHeight = z;
+						break;
+					}
+				}
+			}
+			if (!powerMap || powerMap.length === 0) {
+				setClickedPowerInfo({
+					lng,
+					lat,
+					power: -160,
+					x: i,
+					y: j,
+					buildingHeight,
+				});
+			} else {
+				if (powerMapHeight >= 0 && powerMapHeight < powerMap.length) {
+					const layerData = powerMap[powerMapHeight];
+
+					if (j >= 0 && j < layerData.length && i >= 0 && i < layerData[0].length) {
+						const power = layerData[j][i];
+
+						setClickedPowerInfo({
+							lng,
+							lat,
+							power,
+							x: i,
+							y: j,
+							buildingHeight,
+						});
+					}
+				}
+			}
+		};
+
+		if (map.isStyleLoaded()) {
+			map.on("click", handleMapClick);
+		} else {
+			map.once("load", () => {
+				map.on("click", handleMapClick);
+			});
+		}
+
+		return () => {
+			if (map && map.loaded()) {
+				map.off("click", handleMapClick);
+			}
+		};
+	}, [powerMap, powerMapHeight, wallMatrix, stationHeight, coordinates]);
+	return (
+		<div style={{ position: "relative", height: "100%", width: "100%" }}>
+			<div id={title} ref={mapContainerRef} style={{ height: "100%", width: "100%" }}></div>
+
+			<PowerInfoMarker map={mapRef.current} powerInfo={clickedPowerInfo} />
+
+			<PowerInfoPanel
+				powerInfo={clickedPowerInfo}
+				height={powerMapHeight}
+				onClose={() => setClickedPowerInfo(null)}
+			/>
+		</div>
+	);
 }

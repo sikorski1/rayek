@@ -1,4 +1,5 @@
 import sampleImg from "@/assets/imgs/sampleMapImg.jpg";
+import LogoutButton from "@/components/LogoutButton/LogoutButton";
 import PageTransition from "@/components/PageTransition/PageTransition";
 import Title from "@/components/Title/Title";
 import Wrapper from "@/components/Wrapper/Wrapper";
@@ -9,7 +10,6 @@ import styles from "./maps.module.scss";
 
 export default function Maps() {
 	const { data } = useGetMaps();
-	console.log(data);
 	return (
 		<PageTransition>
 			<Wrapper>
@@ -48,6 +48,12 @@ export default function Maps() {
 									</motion.div>
 								))}
 						</AnimatePresence>
+					</div>
+					<div className={styles.infoBox}>
+						<LogoutButton />
+						<Link to="/info" className={styles.infoLink}>
+							i
+						</Link>
 					</div>
 				</div>
 			</Wrapper>

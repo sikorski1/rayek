@@ -1,0 +1,16 @@
+@use "@/constants/colors" as *;
+@use "@/constants/mixins" as *;
+.logOutBtn {
+	@include glassmorphism(#ffffff1a, 4px);
+	@include shadow-strong();
+	@include shadow-strong-hover-clickable(black, red, $white);
+	font-size: 4rem;
+	width: 64px;
+	height: 64px;
+	color: $red;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-radius: 100%;
+	cursor: pointer;
+}
