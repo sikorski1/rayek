@@ -11,7 +11,7 @@
 		justify-content: center;
 		align-items: flex-start;
 		margin: 0 auto;
-		max-width: 1600px;
+		max-width: 1400px;
 		height: 80%;
 
 		.bgImage {
@@ -106,5 +106,13 @@
 	}
 	100% {
 		transform: rotate(360deg) translate(0px, 0px);
+	}
+}
+
+@media (min-width: 1600px) {
+	.box {
+		.container {
+			max-width: 1500px;
+		}
 	}
 }
