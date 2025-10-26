@@ -21,11 +21,11 @@
 			width: 1080px;
 			height: 1080px;
 			transform: translateY(-50%);
-			background-image: url("home/bg-home.png");
+			background-image: url("/home/bg-home.png");
 			background-size: cover;
 			background-position: center;
 			z-index: -1;
-			mask-image: url("home/ink-animation.webp");
+			mask-image: url("/home/ink-animation.webp");
 			mask-size: cover;
 			opacity: 1;
 		}

@@ -1,5 +1,5 @@
 import { hashPassword } from "@/utils/hashPassword";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./login.module.scss";
 
@@ -9,7 +9,7 @@ export default function Login() {
 	const navigate = useNavigate();
 	const CORRECT_PASSWORD = import.meta.env.VITE_PASSWORD;
 
-	const handleSubmit = async e => {
+	const handleSubmit = async (e:FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
 		const enteredHash = await hashPassword(password);

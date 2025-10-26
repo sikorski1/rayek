@@ -90,9 +90,6 @@ export default function SingleMap() {
 		}));
 	};
 
-	const handleOnOffPowerMap = () => {
-		setSettingsData(prev => ({ ...prev, isPowerMapVisible: !prev.isPowerMapVisible }));
-	};
 
 	const handleGlobalSettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
