@@ -5,7 +5,7 @@ from Vector import Vector
 import time
 class Raytracing:
     def __init__(self, matrixDimensions, tPos, tPower, tFreq, rFactor, oPos):
-        self.step = 0.05
+        self.step = 0.1
         self.transmitterPos = tPos
         self.transmitterPower = tPower #mW
         self.transmitterFreq = tFreq # GHz
@@ -168,8 +168,7 @@ class Raytracing:
         # Plot transmitter
         plt.scatter(self.transmitterPos[0], self.transmitterPos[1], color='red', label='Transmitter', zorder=5)
         # Plot mirrored transmitters pos
-        for idx, mirroredPos in enumerate(self.mirroredTransmittersPos):
-            plt.scatter(mirroredPos[0], mirroredPos[1], color='black', zorder=5)
+      
         plt.legend()
         # Display the plot
         plt.show()
@@ -180,11 +179,11 @@ wall1 = Vector([0, 3], [3, 6])
 wall2 = Vector([1, 3], [6, 3])
 wall3 = Vector([6, 10], [12, 12])
 
-wall5 = Vector([25, 10], [25, 30])
+wall5 = Vector([25, 10], [25, 19])
 wall6 = Vector([5, 30], [10, 35])
-wall7 = Vector([23, 36], [25, 39])
+wall7 = Vector([23, 36], [25, 37])
 
-raytracing = Raytracing([40, 40], [18, 5], 5, 10, 0.7, [wall1,wall2,wall3,wall5,wall6,wall7])
+raytracing = Raytracing([40, 40], [20, 20], 5, 10, 0.7, [wall1,wall2,wall3,wall5,wall6,wall7])
 print(raytracing.mirroredTransmittersPos)
 raytracing.calculateRayTracing()
 end = time.time() - start
