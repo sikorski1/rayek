@@ -283,8 +283,8 @@
 	display: flex;
 	gap: 1rem;
 	position: fixed;
-	top: 3.5rem;
-	left: 24rem;
+	top: 10rem;
+	left: 4rem;
 	.infoLink {
 		@include glassmorphism(#ffffff1a, 4px);
 		@include shadow-strong();
@@ -299,5 +299,12 @@
 		border-radius: 100%;
 		text-decoration: none;
 		font-family: "Nunito";
+	}
+}
+
+@media (min-width: 1600px) {
+	.infoBox {
+		top: 3.5rem;
+		left: 24rem;
 	}
 }

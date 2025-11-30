@@ -516,7 +516,7 @@ func (rl *RayLaunching3D) CalculateRayLaunching3D() {
 				}
 
 				if (index == rl.Config.CornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber) || (index == rl.Config.RoofCornerMapNumber && state.currWallIndex != rl.Config.CornerMapNumber && !(state.currWallIndex >= rl.Config.WallMapNumber && index < rl.Config.RoofMapNumber)) {
-					if rl.Config.DiffractionRayNumber < 2 {
+					if rl.Config.DiffractionRayNumber < 2 || rl.Config.NumOfInteractions <= 1 {
 						break
 					}
 					nextXIdx, nextYIdx, nextZIdx := rl.getMapIndices(state.x+state.dx, state.y+state.dy, state.z+state.dz)
