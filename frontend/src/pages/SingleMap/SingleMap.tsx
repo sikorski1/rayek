@@ -1,5 +1,4 @@
 import SpinWifi from "@/components/Loaders/SpinWifi";
-import LogoutButton from "@/components/LogoutButton/LogoutButton";
 import GlobalSettings from "@/components/Modal/GlobalSettings/GlobalSettings";
 import Modal from "@/components/Modal/Modal";
 import SingleRaySettings from "@/components/Modal/SingleRaySettings/SingleRaySettings";
@@ -16,7 +15,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useMemo, useState } from "react";
 import { IoMdSettings } from "react-icons/io";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import styles from "./singleMap.module.scss";
 const initialSettingsData: SettingsDataTypes = {
 	settingsType: "global",
@@ -89,7 +88,6 @@ export default function SingleMap() {
 			singleRays: prev.singleRays.filter((_, i) => i !== index),
 		}));
 	};
-
 
 	const handleGlobalSettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -391,12 +389,12 @@ export default function SingleMap() {
 					<button onClick={handleComputeBtn} className={styles.computeBtn}>
 						raylaunch
 					</button>
-					<div className={styles.infoBox}>
+					{/* <div className={styles.infoBox}>
 						<LogoutButton />
 						<Link to="/info" className={styles.infoLink}>
 							i
 						</Link>
-					</div>
+					</div> */}
 				</div>
 			)}
 		</>
