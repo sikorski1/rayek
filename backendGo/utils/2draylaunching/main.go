@@ -29,8 +29,8 @@ type RayLaunching struct {
 
 func NewRayLaunching(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayLaunching {
 	step := 0.1
-	numberOfRays := 7200
-	numberOfInteractions := 6
+	numberOfRays := 2880
+	numberOfInteractions := 2
 	minimalPower := -150.0
 	wallMapNumber := 1000
 	rows := int(matrixDimensions.Y*(1/step))+1
@@ -275,8 +275,92 @@ func main() {
 		{A: Point{X: 18, Y: 40}, B: Point{X: 10, Y: 40}},
 		{A: Point{X: 10, Y: 40}, B: Point{X: 10, Y: 34}},
 	}
-	wallsSet := [][]Vector{walls1,walls2,walls3,walls4,walls5}
-	walls := wallsSet[3]
+
+	walls_scenario_1 := []Vector{
+		// Lewy dolny róg (teraz górny po odwróceniu Y)
+		{A: Point{X: 5, Y: 35}, B: Point{X: 5, Y: 25}},
+		{A: Point{X: 5, Y: 25}, B: Point{X: 15, Y: 25}},
+
+		// Środkowa sekcja
+		{A: Point{X: 10, Y: 20}, B: Point{X: 10, Y: 10}},
+		{A: Point{X: 10, Y: 10}, B: Point{X: 20, Y: 10}},
+
+		// Trójkąt
+		{A: Point{X: 25, Y: 35}, B: Point{X: 35, Y: 25}},
+		{A: Point{X: 35, Y: 25}, B: Point{X: 35, Y: 35}},
+
+		// X kształt
+		{A: Point{X: 25, Y: 15}, B: Point{X: 35, Y: 5}},
+		{A: Point{X: 35, Y: 15}, B: Point{X: 25, Y: 5}},
+
+		// Graniczne bariery
+		{A: Point{X: 2, Y: 2}, B: Point{X: 15, Y: 2}},
+		{A: Point{X: 38, Y: 38}, B: Point{X: 38, Y: 25}},
+
+		// Mała przeszkoda przy środku
+		{A: Point{X: 18, Y: 26}, B: Point{X: 22, Y: 22}},
+
+		// Ukośna wejściowa
+		{A: Point{X: 0, Y: 20}, B: Point{X: 5, Y: 15}},
+
+		// Ukośna dolna (teraz górna)
+		{A: Point{X: 30, Y: 40}, B: Point{X: 35, Y: 35}},
+
+		// Rozpraszacz
+		{A: Point{X: 15, Y: 35}, B: Point{X: 20, Y: 30}},
+
+		// Górna (teraz dolna)
+		{A: Point{X: 20, Y: 5}, B: Point{X: 25, Y: 0}},
+	}
+
+	// SCENARIUSZ 2: 30 Ścian (Bardziej skomplikowany labirynt)
+	walls_scenario_2 := []Vector{
+		// Zewnętrzny pierścień (przerywany)
+		{A: Point{X: 2, Y: 38}, B: Point{X: 2, Y: 30}},
+		{A: Point{X: 2, Y: 28}, B: Point{X: 2, Y: 20}},
+		{A: Point{X: 2, Y: 18}, B: Point{X: 2, Y: 2}},
+		{A: Point{X: 38, Y: 38}, B: Point{X: 38, Y: 25}},
+		{A: Point{X: 38, Y: 22}, B: Point{X: 38, Y: 2}},
+		{A: Point{X: 5, Y: 2}, B: Point{X: 15, Y: 2}},
+		{A: Point{X: 20, Y: 2}, B: Point{X: 35, Y: 2}},
+		{A: Point{X: 5, Y: 38}, B: Point{X: 20, Y: 38}},
+		{A: Point{X: 25, Y: 38}, B: Point{X: 35, Y: 38}},
+
+		// Wewnętrzne struktury - Zygzak
+		{A: Point{X: 8, Y: 32}, B: Point{X: 12, Y: 28}},
+		{A: Point{X: 12, Y: 28}, B: Point{X: 16, Y: 32}},
+		{A: Point{X: 8, Y: 8}, B: Point{X: 12, Y: 12}},
+		{A: Point{X: 12, Y: 12}, B: Point{X: 16, Y: 8}},
+
+		// Centralne przeszkody (wokół transmitera 20,20)
+		{A: Point{X: 18, Y: 18}, B: Point{X: 22, Y: 18}},
+		{A: Point{X: 22, Y: 18}, B: Point{X: 22, Y: 22}},
+		{A: Point{X: 18, Y: 22}, B: Point{X: 15, Y: 25}},
+		{A: Point{X: 22, Y: 15}, B: Point{X: 25, Y: 12}},
+
+		// Rozproszone ukośne (reflektory)
+		{A: Point{X: 30, Y: 30}, B: Point{X: 35, Y: 25}},
+		{A: Point{X: 30, Y: 25}, B: Point{X: 35, Y: 30}},
+		{A: Point{X: 30, Y: 15}, B: Point{X: 35, Y: 10}},
+		{A: Point{X: 30, Y: 10}, B: Point{X: 35, Y: 15}},
+
+		// Pionowe/Poziome przegrody
+		{A: Point{X: 10, Y: 25}, B: Point{X: 10, Y: 15}},
+		{A: Point{X: 28, Y: 35}, B: Point{X: 28, Y: 25}},
+		{A: Point{X: 28, Y: 15}, B: Point{X: 28, Y: 5}},
+		{A: Point{X: 15, Y: 35}, B: Point{X: 25, Y: 35}},
+
+		// Dodatkowe drobne elementy
+		{A: Point{X: 5, Y: 15}, B: Point{X: 8, Y: 15}},
+		{A: Point{X: 32, Y: 20}, B: Point{X: 35, Y: 20}},
+		{A: Point{X: 12, Y: 5}, B: Point{X: 15, Y: 8}},
+		{A: Point{X: 25, Y: 32}, B: Point{X: 22, Y: 35}},
+	}
+
+	wallsSet := [][]Vector{walls1,walls2,walls3,walls4,walls5, walls_scenario_1, walls_scenario_2}
+
+
+	walls := wallsSet[6]
 	raylaunching := NewRayLaunching(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
 	raylaunching.calculateRayLaunching()
 	// fmt.Printf("%v \n", raylaunching.Map)

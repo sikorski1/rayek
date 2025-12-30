@@ -10,10 +10,12 @@ import (
 	"math/cmplx"
 	"os"
 	"time"
+
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
 )
+
 type RayTracing struct {
 	Step                 float64
 	TransmitterPos       Point
@@ -26,11 +28,12 @@ type RayTracing struct {
 	Matrix               [][]Point
 	MirroredTransmitters []Point
 }
-//create RayTracingObject
+
+// create RayTracingObject
 func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq float64, rFactor float64, wallPos []Vector) *RayTracing {
-	step := 0.01
-	rows := int(matrixDimensions.Y*(1/step))+1
-	cols := int(matrixDimensions.X*(1/step))+1
+	step := 0.1
+	rows := int(matrixDimensions.Y*(1/step)) + 1
+	cols := int(matrixDimensions.X*(1/step)) + 1
 	powerMap := make([][]float64, rows)
 	//powermap
 	for i := range powerMap {
@@ -41,7 +44,7 @@ func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq flo
 	for i := range matrix {
 		matrix[i] = make([]Point, cols)
 		for j := range matrix[i] {
-			matrix[i][j] = Point{X: math.Round(float64(j) * step * 10)/10, Y: math.Round(float64(i) * step * 10)/10}
+			matrix[i][j] = Point{X: math.Round(float64(j)*step*10) / 10, Y: math.Round(float64(i)*step*10) / 10}
 		}
 	}
 	//mirred transmitters
@@ -58,7 +61,7 @@ func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq flo
 				mirroredTransmitters[i].X = wall.A.X
 			}
 			continue
- 		}
+		}
 		if wall.A.Y == wall.B.Y {
 			mirroredTransmitters[i].X = tPos.X
 			distance := math.Abs(wall.A.Y - tPos.Y)
@@ -71,37 +74,37 @@ func NewRayTracing(matrixDimensions Point, tPos Point, tPower float64, tFreq flo
 			}
 			continue
 		}
-		a1 := (wall.B.Y - wall.A.Y) / (wall.B.X -  wall.A.X)
-		b1 := wall.A.Y  -  a1 * wall.A.X
+		a1 := (wall.B.Y - wall.A.Y) / (wall.B.X - wall.A.X)
+		b1 := wall.A.Y - a1*wall.A.X
 
-		a2 := -1/a1
-		b2 := tPos.Y - a2 * tPos.X
+		a2 := -1 / a1
+		b2 := tPos.Y - a2*tPos.X
 
-		x := (b2-b1)/(a1-a2)
+		x := (b2 - b1) / (a1 - a2)
 		y := a1*x + b1
 
-		mirroredTransmitters[i].X = math.Round((2*x - tPos.X) * 10)/10
-		mirroredTransmitters[i].Y = math.Round((2*y - tPos.Y) * 10)/10
+		mirroredTransmitters[i].X = math.Round((2*x-tPos.X)*10) / 10
+		mirroredTransmitters[i].Y = math.Round((2*y-tPos.Y)*10) / 10
 
 	}
 	return &RayTracing{
-		Step:             step,
-		TransmitterPos:   tPos,
-		TransmitterPower: tPower,
-		TransmitterFreq:  tFreq,
-		WaveLength:       299792458 / (tFreq * math.Pow(10, 9)),
-		ReflectionFactor: rFactor,
-		Walls: wallPos,
-		PowerMap: powerMap,
-		Matrix: matrix,
+		Step:                 step,
+		TransmitterPos:       tPos,
+		TransmitterPower:     tPower,
+		TransmitterFreq:      tFreq,
+		WaveLength:           299792458 / (tFreq * math.Pow(10, 9)),
+		ReflectionFactor:     rFactor,
+		Walls:                wallPos,
+		PowerMap:             powerMap,
+		Matrix:               matrix,
 		MirroredTransmitters: mirroredTransmitters,
 	}
 }
 
 func (rt *RayTracing) calculateRayTracing() {
-	for i := range(len(rt.Matrix)) {
-		for j := range(len(rt.Matrix[0])) {
-			H := complex(0,0)
+	for i := range len(rt.Matrix) {
+		for j := range len(rt.Matrix[0]) {
+			H := complex(0, 0)
 			receiverPos := rt.Matrix[i][j]
 			if checkLineOfSight(rt.TransmitterPos, receiverPos, rt.Walls) {
 				H += CalculateTransmittance(receiverPos, rt.TransmitterPos, rt.WaveLength, 1.0)
@@ -117,8 +120,8 @@ func (rt *RayTracing) calculateRayTracing() {
 }
 
 func checkLineOfSight(transmitterPos, receiverPos Point, walls []Vector) bool {
-	for _, wall := range(walls) {
-		if TwoVectors(receiverPos, transmitterPos,wall.A, wall.B) >= 0 {
+	for _, wall := range walls {
+		if TwoVectors(receiverPos, transmitterPos, wall.A, wall.B) >= 0 {
 			return false
 		}
 	}
@@ -126,39 +129,40 @@ func checkLineOfSight(transmitterPos, receiverPos Point, walls []Vector) bool {
 }
 
 func calculateSingleWallReflection(mirroredTransmitters []Point, transmitterPos, receiverPos Point, walls []Vector, waveLength, reflectionFactor float64) complex128 {
-	H := complex(0,0)
+	H := complex(0, 0)
 	for i, wall := range walls {
 		if TwoVectors(receiverPos, mirroredTransmitters[i], wall.A, wall.B) <= 0 {
 			continue
-		} 
+		}
 		reflectionPoint := CalculateCrossPoint(receiverPos, mirroredTransmitters[i], wall.A, wall.B)
 		collision := false
-		for j := range(len(walls)-1) {
-			index := (i+j+1) % len(walls)
+		for j := range len(walls) - 1 {
+			index := (i + j + 1) % len(walls)
 			if TwoVectors(transmitterPos, reflectionPoint, walls[index].A, walls[index].B) >= 0 {
 				collision = true
 				break
 			}
-			if TwoVectors(reflectionPoint, receiverPos, walls[index].A, walls[index].B) >= 0{
+			if TwoVectors(reflectionPoint, receiverPos, walls[index].A, walls[index].B) >= 0 {
 				collision = true
 				break
 			}
 		}
 		if !collision {
-			r := CalculateDist(transmitterPos,  reflectionPoint) + CalculateDist(reflectionPoint, receiverPos)
+			r := CalculateDist(transmitterPos, reflectionPoint) + CalculateDist(reflectionPoint, receiverPos)
 			H += CalculateTransmittanceWithLength(r, waveLength, reflectionFactor)
 		}
 	}
 	return H
 }
+
 // Interpolacja kolorów między niebieskim a czerwonym
 
 func (rt *RayTracing) PlotVisualization(filename string) error {
-    p := plot.New()
-    p.Title.Text = "RayTracing Visualization"
-    p.X.Label.Text = "X"
-    p.Y.Label.Text = "Y"
-    // Ustalanie jednakowej skali dla osi X i Y
+	p := plot.New()
+	p.Title.Text = "RayTracing Visualization"
+	p.X.Label.Text = "X"
+	p.Y.Label.Text = "Y"
+	// Ustalanie jednakowej skali dla osi X i Y
 	xMin, xMax := 0.0, rt.Matrix[0][len(rt.Matrix[0])-1].X
 	yMin, yMax := 0.0, rt.Matrix[len(rt.Matrix)-1][0].Y
 	xRange := xMax - xMin
@@ -176,145 +180,246 @@ func (rt *RayTracing) PlotVisualization(filename string) error {
 	// Ustawienie zakresu wykresu po korekcie
 	p.X.Min, p.X.Max = xMin, xMax
 	p.Y.Min, p.Y.Max = yMin, yMax
-    // Rysowanie ścian
-    for _, wall := range rt.Walls {
-        line := plotter.XYs{
-            {X: wall.A.X, Y: wall.A.Y},
-            {X: wall.B.X, Y: wall.B.Y},
-        }
-        l, err := plotter.NewLine(line)
-        if err != nil {
-            return err
-        }
-        l.Color = color.RGBA{R: 0, G: 0, B: 0, A: 255}
-        l.Width = vg.Points(2)
-        p.Add(l)
-    }
-    // Rysowanie transmitera
-    transmitter := plotter.XYs{
-        {X: rt.TransmitterPos.X, Y: rt.TransmitterPos.Y},
-    }
-    transmitterScatter, err := plotter.NewScatter(transmitter)
-    if err != nil {
-        return err
-    }
-    transmitterScatter.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
-    transmitterScatter.Radius = vg.Points(5)
-    p.Add(transmitterScatter)
-    // Rysowanie odbitych transmiterów
-    for _, mt := range rt.MirroredTransmitters {
-        mirroredTransmitter := plotter.XYs{
-            {X: mt.X, Y: mt.Y},
-        }
-        mtScatter, err := plotter.NewScatter(mirroredTransmitter)
-        if err != nil {
-            return err
-        }
-        mtScatter.Color = color.RGBA{R: 0, G: 0, B: 255, A: 255}
-        mtScatter.Radius = vg.Points(3)
-        p.Add(mtScatter)
-    }
-    // Dodanie legendy
-    p.Legend.Add("Transmitter", transmitterScatter)
-    
-    // Tworzymy linię dla legendy
-    legendLine, err := plotter.NewLine(plotter.XYs{{X: 0, Y: 0}, {X: 1, Y: 1}})
-    if err != nil {
-        return err
-    }
-    p.Legend.Add("Walls", legendLine)
-    
-    // Tworzymy punkt dla legendy
-    legendPoint, err := plotter.NewScatter(plotter.XYs{{X: 0, Y: 0}})
-    if err != nil {
-        return err
-    }
-    p.Legend.Add("Mirrored Transmitters", legendPoint)
-    
-    p.Legend.Top = true
-    p.Legend.Left = true
-    // Zapisanie wykresu do pliku
-    return p.Save(10*vg.Inch, 10*vg.Inch, filename)
-}
+	// Rysowanie ścian
+	for _, wall := range rt.Walls {
+		line := plotter.XYs{
+			{X: wall.A.X, Y: wall.A.Y},
+			{X: wall.B.X, Y: wall.B.Y},
+		}
+		l, err := plotter.NewLine(line)
+		if err != nil {
+			return err
+		}
+		l.Color = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+		l.Width = vg.Points(2)
+		p.Add(l)
+	}
+	// Rysowanie transmitera
+	transmitter := plotter.XYs{
+		{X: rt.TransmitterPos.X, Y: rt.TransmitterPos.Y},
+	}
+	transmitterScatter, err := plotter.NewScatter(transmitter)
+	if err != nil {
+		return err
+	}
+	transmitterScatter.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
+	transmitterScatter.Radius = vg.Points(5)
+	p.Add(transmitterScatter)
+	// Rysowanie odbitych transmiterów
+	for _, mt := range rt.MirroredTransmitters {
+		mirroredTransmitter := plotter.XYs{
+			{X: mt.X, Y: mt.Y},
+		}
+		mtScatter, err := plotter.NewScatter(mirroredTransmitter)
+		if err != nil {
+			return err
+		}
+		mtScatter.Color = color.RGBA{R: 0, G: 0, B: 255, A: 255}
+		mtScatter.Radius = vg.Points(3)
+		p.Add(mtScatter)
+	}
+	// Dodanie legendy
+	p.Legend.Add("Transmitter", transmitterScatter)
 
+	// Tworzymy linię dla legendy
+	legendLine, err := plotter.NewLine(plotter.XYs{{X: 0, Y: 0}, {X: 1, Y: 1}})
+	if err != nil {
+		return err
+	}
+	p.Legend.Add("Walls", legendLine)
+
+	// Tworzymy punkt dla legendy
+	legendPoint, err := plotter.NewScatter(plotter.XYs{{X: 0, Y: 0}})
+	if err != nil {
+		return err
+	}
+	p.Legend.Add("Mirrored Transmitters", legendPoint)
+
+	p.Legend.Top = true
+	p.Legend.Left = true
+	// Zapisanie wykresu do pliku
+	return p.Save(10*vg.Inch, 10*vg.Inch, filename)
+}
 
 func main() {
 	start := time.Now()
-	matrixDimensions := Point{X:40, Y:40}
-	transmitterPos := Point{X:16, Y:20}
+	matrixDimensions := Point{X: 40, Y: 40}
+	transmitterPos := Point{X: 20, Y: 20}
 	transmitterPower := 5.0 // mW
-	transmitterFreq := 2.4   // GHz
+	transmitterFreq := 2.4  // GHz
 	reflectionFactor := 0.8
-	walls := []Vector{
-		
-		{A: Point{X: 2, Y: 2}, B: Point{X: 8, Y: 2}},
-		{A: Point{X: 8, Y: 2}, B: Point{X: 8, Y: 8}},
-		{A: Point{X: 8, Y: 8}, B: Point{X: 2, Y: 8}},
-		{A: Point{X: 2, Y: 8}, B: Point{X: 2, Y: 2}},
+	walls_scenario_1 := []Vector{
+		// Lewy dolny róg (teraz górny po odwróceniu Y)
+		{A: Point{X: 5, Y: 35}, B: Point{X: 5, Y: 25}},
+		{A: Point{X: 5, Y: 25}, B: Point{X: 15, Y: 25}},
 
-		{A: Point{X: 12, Y: 4}, B: Point{X: 18, Y: 4}},
-		{A: Point{X: 18, Y: 4}, B: Point{X: 18, Y: 10}},
-		{A: Point{X: 18, Y: 10}, B: Point{X: 12, Y: 10}},
-		{A: Point{X: 12, Y: 10}, B: Point{X: 12, Y: 4}},
+		// Środkowa sekcja
+		{A: Point{X: 10, Y: 20}, B: Point{X: 10, Y: 10}},
+		{A: Point{X: 10, Y: 10}, B: Point{X: 20, Y: 10}},
 
+		// Trójkąt
+		{A: Point{X: 25, Y: 35}, B: Point{X: 35, Y: 25}},
+		{A: Point{X: 35, Y: 25}, B: Point{X: 35, Y: 35}},
 
-		{A: Point{X: 22, Y: 6}, B: Point{X: 30, Y: 6}},
-		{A: Point{X: 30, Y: 6}, B: Point{X: 30, Y: 14}},
-		{A: Point{X: 30, Y: 14}, B: Point{X: 22, Y: 14}},
-		{A: Point{X: 22, Y: 14}, B: Point{X: 22, Y: 6}},
+		// X kształt
+		{A: Point{X: 25, Y: 15}, B: Point{X: 35, Y: 5}},
+		{A: Point{X: 35, Y: 15}, B: Point{X: 25, Y: 5}},
 
+		// Graniczne bariery
+		{A: Point{X: 2, Y: 2}, B: Point{X: 15, Y: 2}},
+		{A: Point{X: 38, Y: 38}, B: Point{X: 38, Y: 25}},
 
-		{A: Point{X: 4, Y: 12}, B: Point{X: 10, Y: 12}},
-		{A: Point{X: 10, Y: 12}, B: Point{X: 10, Y: 18}},
-		{A: Point{X: 10, Y: 18}, B: Point{X: 4, Y: 18}},
-		{A: Point{X: 4, Y: 18}, B: Point{X: 4, Y: 12}},
+		// Mała przeszkoda przy środku
+		{A: Point{X: 18, Y: 26}, B: Point{X: 22, Y: 22}},
 
+		// Ukośna wejściowa
+		{A: Point{X: 0, Y: 20}, B: Point{X: 5, Y: 15}},
 
+		// Ukośna dolna (teraz górna)
+		{A: Point{X: 30, Y: 40}, B: Point{X: 35, Y: 35}},
 
+		// Rozpraszacz
+		{A: Point{X: 15, Y: 35}, B: Point{X: 20, Y: 30}},
 
-		{A: Point{X: 26, Y: 18}, B: Point{X: 34, Y: 18}},
-		{A: Point{X: 34, Y: 18}, B: Point{X: 34, Y: 26}},
-		{A: Point{X: 34, Y: 26}, B: Point{X: 26, Y: 26}},
-		{A: Point{X: 26, Y: 26}, B: Point{X: 26, Y: 18}},
-
-	
-		{A: Point{X: 6, Y: 22}, B: Point{X: 12, Y: 22}},
-		{A: Point{X: 12, Y: 22}, B: Point{X: 12, Y: 30}},
-		{A: Point{X: 12, Y: 30}, B: Point{X: 6, Y: 30}},
-		{A: Point{X: 6, Y: 30}, B: Point{X: 6, Y: 22}},
-
-		{A: Point{X: 16, Y: 26}, B: Point{X: 24, Y: 26}},
-		{A: Point{X: 24, Y: 26}, B: Point{X: 24, Y: 34}},
-		{A: Point{X: 24, Y: 34}, B: Point{X: 16, Y: 34}},
-		{A: Point{X: 16, Y: 34}, B: Point{X: 16, Y: 26}},
-
-		{A: Point{X: 28, Y: 30}, B: Point{X: 36, Y: 30}},
-		{A: Point{X: 36, Y: 30}, B: Point{X: 36, Y: 38}},
-		{A: Point{X: 36, Y: 38}, B: Point{X: 28, Y: 38}},
-		{A: Point{X: 28, Y: 38}, B: Point{X: 28, Y: 30}},
-
-
-		{A: Point{X: 10, Y: 34}, B: Point{X: 18, Y: 34}},
-		{A: Point{X: 18, Y: 34}, B: Point{X: 18, Y: 40}},
-		{A: Point{X: 18, Y: 40}, B: Point{X: 10, Y: 40}},
-		{A: Point{X: 10, Y: 40}, B: Point{X: 10, Y: 34}},
+		// Górna (teraz dolna)
+		{A: Point{X: 20, Y: 5}, B: Point{X: 25, Y: 0}},
 	}
 
-	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor, walls)
+	// SCENARIUSZ 2: 30 Ścian (Bardziej skomplikowany labirynt)
+	walls_scenario_2 := []Vector{
+		// Zewnętrzny pierścień (przerywany)
+		{A: Point{X: 2, Y: 38}, B: Point{X: 2, Y: 30}},
+		{A: Point{X: 2, Y: 28}, B: Point{X: 2, Y: 20}},
+		{A: Point{X: 2, Y: 18}, B: Point{X: 2, Y: 2}},
+		{A: Point{X: 38, Y: 38}, B: Point{X: 38, Y: 25}},
+		{A: Point{X: 38, Y: 22}, B: Point{X: 38, Y: 2}},
+		{A: Point{X: 5, Y: 2}, B: Point{X: 15, Y: 2}},
+		{A: Point{X: 20, Y: 2}, B: Point{X: 35, Y: 2}},
+		{A: Point{X: 5, Y: 38}, B: Point{X: 20, Y: 38}},
+		{A: Point{X: 25, Y: 38}, B: Point{X: 35, Y: 38}},
+
+		// Wewnętrzne struktury - Zygzak
+		{A: Point{X: 8, Y: 32}, B: Point{X: 12, Y: 28}},
+		{A: Point{X: 12, Y: 28}, B: Point{X: 16, Y: 32}},
+		{A: Point{X: 8, Y: 8}, B: Point{X: 12, Y: 12}},
+		{A: Point{X: 12, Y: 12}, B: Point{X: 16, Y: 8}},
+
+		// Centralne przeszkody (wokół transmitera 20,20)
+		{A: Point{X: 18, Y: 18}, B: Point{X: 22, Y: 18}},
+		{A: Point{X: 22, Y: 18}, B: Point{X: 22, Y: 22}},
+		{A: Point{X: 18, Y: 22}, B: Point{X: 15, Y: 25}},
+		{A: Point{X: 22, Y: 15}, B: Point{X: 25, Y: 12}},
+
+		// Rozproszone ukośne (reflektory)
+		{A: Point{X: 30, Y: 30}, B: Point{X: 35, Y: 25}},
+		{A: Point{X: 30, Y: 25}, B: Point{X: 35, Y: 30}},
+		{A: Point{X: 30, Y: 15}, B: Point{X: 35, Y: 10}},
+		{A: Point{X: 30, Y: 10}, B: Point{X: 35, Y: 15}},
+
+		// Pionowe/Poziome przegrody
+		{A: Point{X: 10, Y: 25}, B: Point{X: 10, Y: 15}},
+		{A: Point{X: 28, Y: 35}, B: Point{X: 28, Y: 25}},
+		{A: Point{X: 28, Y: 15}, B: Point{X: 28, Y: 5}},
+		{A: Point{X: 15, Y: 35}, B: Point{X: 25, Y: 35}},
+
+		// Dodatkowe drobne elementy
+		{A: Point{X: 5, Y: 15}, B: Point{X: 8, Y: 15}},
+		{A: Point{X: 32, Y: 20}, B: Point{X: 35, Y: 20}},
+		{A: Point{X: 12, Y: 5}, B: Point{X: 15, Y: 8}},
+		{A: Point{X: 25, Y: 32}, B: Point{X: 22, Y: 35}},
+	}
+
+	walls_scenario_3 := []Vector{
+		// --- 1. ZEWNĘTRZNY PIERŚCIEŃ (GRANICE) ---
+		// Lewa krawędź
+		{A: Point{X: 2, Y: 38}, B: Point{X: 2, Y: 30}},
+		{A: Point{X: 2, Y: 28}, B: Point{X: 2, Y: 20}},
+		{A: Point{X: 2, Y: 18}, B: Point{X: 2, Y: 10}}, // Zagęszczone
+		{A: Point{X: 2, Y: 8}, B: Point{X: 2, Y: 2}},
+
+		// Prawa krawędź
+		{A: Point{X: 38, Y: 38}, B: Point{X: 38, Y: 28}},
+		{A: Point{X: 38, Y: 25}, B: Point{X: 38, Y: 15}},
+		{A: Point{X: 38, Y: 12}, B: Point{X: 38, Y: 2}},
+
+		// Dolna krawędź
+		{A: Point{X: 5, Y: 2}, B: Point{X: 12, Y: 2}},
+		{A: Point{X: 15, Y: 2}, B: Point{X: 25, Y: 2}},
+		{A: Point{X: 28, Y: 2}, B: Point{X: 35, Y: 2}},
+
+		// Górna krawędź
+		{A: Point{X: 5, Y: 38}, B: Point{X: 15, Y: 38}},
+		{A: Point{X: 18, Y: 38}, B: Point{X: 28, Y: 38}},
+		{A: Point{X: 32, Y: 38}, B: Point{X: 36, Y: 38}},
+
+		// --- 2. WEWNĘTRZNE STRUKTURY (ZYGZAKI I KORYTARZE) ---
+		// Lewy górny róg - labirynt
+		{A: Point{X: 8, Y: 35}, B: Point{X: 8, Y: 30}},
+		{A: Point{X: 8, Y: 30}, B: Point{X: 12, Y: 28}},
+		{A: Point{X: 12, Y: 28}, B: Point{X: 15, Y: 32}},
+		{A: Point{X: 5, Y: 32}, B: Point{X: 8, Y: 28}}, // Dodatkowa ukośna
+
+		// Lewy dolny róg - "pokoje"
+		{A: Point{X: 8, Y: 8}, B: Point{X: 12, Y: 12}},
+		{A: Point{X: 12, Y: 12}, B: Point{X: 16, Y: 8}},
+		{A: Point{X: 5, Y: 15}, B: Point{X: 10, Y: 15}},
+		{A: Point{X: 10, Y: 15}, B: Point{X: 10, Y: 10}},
+
+		// --- 3. CENTRUM (WOKÓŁ NADAJNIKA 20,20) ---
+		// Skomplikowane otoczenie środka
+		{A: Point{X: 18, Y: 22}, B: Point{X: 22, Y: 22}}, // Daszek nad środkiem
+		{A: Point{X: 18, Y: 18}, B: Point{X: 18, Y: 15}}, // Lewa ścianka dolna
+		{A: Point{X: 22, Y: 18}, B: Point{X: 25, Y: 15}}, // Prawa ukośna
+		{A: Point{X: 15, Y: 20}, B: Point{X: 17, Y: 22}}, // Oslona lewa
+		{A: Point{X: 23, Y: 22}, B: Point{X: 25, Y: 20}}, // Oslona prawa
+
+		// --- 4. PRAWA STRONA - REFLEKTORY I ROZPRASZACZE ---
+		// Górne "X"
+		{A: Point{X: 30, Y: 30}, B: Point{X: 35, Y: 25}},
+		{A: Point{X: 30, Y: 25}, B: Point{X: 35, Y: 30}},
+
+		// Dolne "X"
+		{A: Point{X: 30, Y: 15}, B: Point{X: 35, Y: 10}},
+		{A: Point{X: 30, Y: 10}, B: Point{X: 35, Y: 15}},
+
+		// Pionowe przegrody "grzebień"
+		{A: Point{X: 28, Y: 35}, B: Point{X: 28, Y: 30}},
+		{A: Point{X: 28, Y: 25}, B: Point{X: 28, Y: 20}}, // Środkowa przegroda
+		{A: Point{X: 28, Y: 10}, B: Point{X: 28, Y: 5}},
+
+		// --- 5. DROBNE PRZESZKODY I FILARY (HARD MODE DLA RAYTRACINGU) ---
+		// Rozrzucone małe elementy
+		{A: Point{X: 15, Y: 35}, B: Point{X: 15, Y: 33}}, // Filar góra
+		{A: Point{X: 25, Y: 35}, B: Point{X: 25, Y: 33}}, // Filar góra 2
+		{A: Point{X: 32, Y: 20}, B: Point{X: 35, Y: 20}}, // Pozioma belka
+		{A: Point{X: 12, Y: 5}, B: Point{X: 14, Y: 8}},   // Mały ukos dół
+		{A: Point{X: 20, Y: 5}, B: Point{X: 20, Y: 8}},   // Pionowy słupek dół
+		{A: Point{X: 22, Y: 35}, B: Point{X: 24, Y: 37}}, // Zamykający ukos góra
+		{A: Point{X: 3, Y: 22}, B: Point{X: 6, Y: 22}},   // Pozioma belka lewa
+		{A: Point{X: 16, Y: 25}, B: Point{X: 17, Y: 26}}, // Mikro przeszkoda 1
+		{A: Point{X: 24, Y: 25}, B: Point{X: 23, Y: 26}}, // Mikro przeszkoda 2
+		{A: Point{X: 20, Y: 10}, B: Point{X: 22, Y: 12}}, // "V" shape part 1
+		{A: Point{X: 22, Y: 12}, B: Point{X: 24, Y: 10}}, // "V" shape part 2
+		{A: Point{X: 32, Y: 5}, B: Point{X: 35, Y: 4}},   // Płaski ukos róg
+		{A: Point{X: 5, Y: 5}, B: Point{X: 7, Y: 7}},     // Narożnik lewy dół
+	}
+	wallsSet := [][]Vector{ walls_scenario_1, walls_scenario_2,walls_scenario_3}
+	wall := wallsSet[0]
+	raytracing := NewRayTracing(matrixDimensions, transmitterPos, transmitterPower, transmitterFreq, reflectionFactor,wall)
 	fmt.Printf("%v \n", raytracing.MirroredTransmitters)
 	fmt.Printf("%v \n", raytracing.Matrix[285][211])
-	
+
 	raytracing.calculateRayTracing()
 	stop := time.Since(start)
 	fmt.Printf("Computation time: %v \n", stop)
 	err := raytracing.PlotVisualization("raytracing.png")
-    if err != nil {
-        fmt.Printf("Error creating visualization: %v\n", err)
-        return
-    }
-    fmt.Println("Visualization saved to raytracing.png")
+	if err != nil {
+		fmt.Printf("Error creating visualization: %v\n", err)
+		return
+	}
+	fmt.Println("Visualization saved to raytracing.png")
 	heatmap := GenerateHeatmap(raytracing.PowerMap)
-    f, _ := os.Create("heatmap.png")
-    defer f.Close()
-    png.Encode(f, heatmap)
+	f, _ := os.Create("heatmap.png")
+	defer f.Close()
+	png.Encode(f, heatmap)
 }
